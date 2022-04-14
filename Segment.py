@@ -1,5 +1,7 @@
 import scipy.stats as sts
 import numpy as np
+from collections import namedtuple
+
 import scipy.optimize as opt
 
 from doCNA import Testing
@@ -18,6 +20,9 @@ class Segment:
         self.estimate_parameters ()
         self.logger.info ('Segment created.')
         
+    def __repr__(self) -> str:
+        return '\n'.join ([self.name, str(self.parameters)])
+    
     def estimate_parameters (self):
         if self.symbol == E_SYMBOL:
             self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL, 'vaf'].values,
@@ -36,8 +41,43 @@ class Segment:
     def report (self, type = 'bed'):
         pass
     
-    def __repr__(self) -> str:
-        return '\n'.join ([self.name, str(self.parameters)])
+    def select_model (self):
+        #add 'model' and 'clonality' and 'distance' keys to self.parameters
+        
+        m = self.parameters.m
+        v = self.parameters.ai
+        m0 = self.genome_medians['COV']['m']
+        
+        self.distances = np.array ([calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
+        
+        picked = np.where(self.distance == self.distance.min())[0][0]
+                
+        self.parameters['model'] = model_presets.keys()[picked]
+        self.parameters['k'] = model_presets[self.parameters['model']].k(m,v,m0)
+                
+
+def calculate_distance (preset, m, ai, m0):
+    return np.abs (preset.C (m,ai,m0) - preset.D (m,ai,m0))/np.sqrt (preset.A(m,ai,m0)**2 + preset.B(m,ai,m0)**2)
+    
+
+Preset = namedtuple ('Preset', ['A', 'B', 'C', 'D', 'k'])
+model_presets = {'cn1' : Preset(A = lambda m,dv,m0: -m0/2,
+                                B = lambda m,dv,m0: -1,
+                                C = lambda m,dv,m0: m0,
+                                D = lambda m,dv,m0: m0*(2*dv/(0.5+dv))/2+m,
+                                k = lambda m,dv,m0: 2*dv/(0.5+dv)),
+                 
+                 'cnL' : Preset(A = lambda m,dv,m0: 0,
+                                B = lambda m,dv,m0: -1,
+                                C = lambda m,dv,m0: m0,
+                                D = lambda m,dv,m0: m,
+                                k = lambda m,dv,m0: 2*dv),
+                 
+                 'cn3' : Preset(A = lambda m,dv,m0: m0/2,
+                                B = lambda m,dv,m0: -1,
+                                C = lambda m,dv,m0: m0,
+                                D = lambda m,dv,m0: -m0*(2*dv/(0.5-dv))/2+m,
+                                k = lambda m,dv,m0: 2*dv/(0.5-dv))}
     
 def get_sensitive (vafs, covs, fb, mG, z_thr = 1.5):
     #this only works for E
@@ -55,7 +95,7 @@ def get_sensitive (vafs, covs, fb, mG, z_thr = 1.5):
     return {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a } 
 
 def get_full (vaf, cov, mG, b):
-    #this is intended to work for U & N
+    
     m, l = Testing.COV_test (cov)
     cov = mG
     
@@ -75,19 +115,9 @@ def get_full (vaf, cov, mG, b):
     popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = [dv0, ones0/c.sum(), 2, f0, 0.5, b], 
                                 bounds = ((0,   0,   1, 0, 0.45, 1),
                                           (0.5, 0.95, 5, 1, 0.55, 10)))
-        #model_label = 'full'
             
     dv, a, lerr, f, vaf, b = popt
-    #punc = np.sqrt (np.diag (pcov))
-    #    #cn1, cnL, cn3
-    #    k = [2*dv/(0.5+dv), 2*dv, 2*dv/(0.5-dv)]
-    #    dk = [punc[0]/(0.5+dv), 2*punc[0], punc[0]/(0.5-dv) ]
-    #    z = np.array([Result (mG.value*(2 - k[0])/2, mG.error).z(m),
-    #                 Result (mG.value, mG.error).z(m),
-    #                 Result (mG.value*(2 + k[2])/2, mG.error).z(m)])
     
-    #    i = np.where (z == z.min())[0][0]
-    #    model_label = ['cn1', 'cnL', 'cn3'][i]
     return {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b} 
     
 
