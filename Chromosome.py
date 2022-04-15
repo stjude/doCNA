@@ -26,6 +26,7 @@ class Chromosome:
         self.Eruns = []
         self.Uruns = []
         self.Nruns = []
+        self.logger.debug (f"Object chromosome {name} created.")
         
     def markE_onHE(self, he_parameters, threshold = 13.8):
         zv = (self.data['vaf'] - he_parameters['vaf']) / np.sqrt (0.25/(he_parameters['cov']))
@@ -35,6 +36,8 @@ class Chromosome:
         self.data['symbol'] = N_SYMBOL       
         indexes = self.data.loc[z < threshold, :].index.values.tolist()
         self.data.loc[indexes, 'symbol'] = E_SYMBOL
+        self.logger.debug (f"""Chromosome {self.name} marked based on 
+                           parameters v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         
     def mark_on_full_model (self):
         self.get_fragments (exclude_symbols = [], n = int(self.config['Segment']['No_SNPs']))
@@ -105,9 +108,7 @@ class Chromosome:
         self.m_dist = Distribution.Distribution (self.m, thr_z = z_thr, p_thr = 0.3)
         self.l = np.array (ll)
         self.l_dist = Distribution.Distribution (self.l, thr_z = z_thr, p_thr = 0.3)
-        ##
-        
-                
+                    
     def find_segments (self, z_thr = 2.5):
         #if there are any Uruns already processed
         self.find_Nruns ()
@@ -134,26 +135,33 @@ class Chromosome:
                 self.solutions.sort (key = lambda x: x['chi2_noO'])
 
             #that is quite ugly
-            allruns = self.Nruns + self.Uruns
-            allruns.sort (key = lambda x: x[0])
+            UNruns = self.Nruns + self.Uruns
+            UNruns.sort (key = lambda x: x[0])
             currentNU = 0
             for si, ei in self.solutions[0]['segment']:
                 start = self.positions[si][0]
                 end = self.positions[ei][0]
-                intersect = [(start < s) & (end > e) for s,e in allruns]
+                intersect = [(start < s) & (end > e) for s,e in UNruns]
                 for i in intersect:
-                    self.Eruns.append ((start, allruns[i][0]))
-                    start = allruns[i][1]
-                self.Eruns.append ((start, end))
+                    self.Eruns.append ((start, UNruns[i][0]))
+                    start = UNruns[i][1]
+                if start < end:
+                    self.Eruns.append ((start, end))
         else:
             self.logger.warning (f"Not enough of near diploid to segment on {self.name}")
             
     def generate_segments (self):
         #once there are N and U runs known as well as near diploid is segmented,
         #we can start generating segments
-              
-        pass
-    
+        allruns = self.Nruns + self.Uruns + self.Eruns
+        self.segments = []
+        allruns.sort(key = lambda x: x[0])
+        
+        for seg in allruns:
+            start, end = seg
+            data = self.data.loc[(self.data['position'] > start) & (self.data['position'] < end)]
+            self.segments.append (Segment.Segment(data, self.config, self.logger, self.genome_medians))
+                
     def get_distributions (self):
         res_m = []
         res_s = []
@@ -332,7 +340,8 @@ class Chromosome:
                                'runs' : (symbol, count),
                                'segment' : indexes})
             
-        
+    def report (self, type = 'bed'):
+        return '\n'.join([seg.report() for seg in self.segments])    
     
 def two_gauss (v, dv, v0, s, a = 0.5):
     return a*sts.norm.cdf (v, v0 - dv, s)+(1-a)*sts.norm.cdf (v,v0 + dv,s)

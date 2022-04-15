@@ -3,7 +3,7 @@ from doCNA import Genome
 
 class WGS:
     def __init__ (self, wgs_file_name,  sample_name, parameters, assembly = 'hg19',  
-                  no_processes = 1):
+                  no_processes = 1, verbosity = 'INFO'):
         
         self.sample_name = sample_name
         self.assembly = assembly
@@ -12,17 +12,24 @@ class WGS:
         self.config = parameters
         self.SG_file = open (assembly + self.config['Input']['SuperGood_core_name'], 'rb')
         self.CB_file = open (assembly + self.config['Input']['cytoband_core_name'], 'r')
-        self.logger = self.create_logger ()
+        self.logger = self.create_logger (verbosity)
         self.logger.debug ("WGS object created.")
         
-    def create_logger (self):
+    def create_logger (self, verbosity):
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.DEBUG)
-        fh = logging.FileHandler(self.sample_name + '.log')
+        fh = logging.FileHandler(self.sample_name + '.log', mode = 'w')
         fh.setLevel(logging.DEBUG)
-        fh_formatter = logging.Formatter('%(asctime)s %(name)s: %(funcName)s: %(levelname)s: %(message)s')
+        #%(funcName)s:
+        fh_formatter = logging.Formatter('%(asctime)s %(name)s: %(levelname)s: %(message)s')
         fh.setFormatter(fh_formatter)
         logger.addHandler(fh)
+        
+        sh = logging.StreamHandler ()
+        sh.setLevel (verbosity)
+        sh.setFormatter (fh_formatter)
+        logger.addHandler (sh)
+        
         return logger
             
     def analyze (self):
@@ -42,9 +49,7 @@ class WGS:
 
     #this probably needs to be split into more functions
     def report (self):
-        #return self.genome.bed 
-        pass
-
+        return self.genome.report()
 
     def __del__ (self):
         self.wgs_file.close ()

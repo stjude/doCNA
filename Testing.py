@@ -37,7 +37,7 @@ class Testing:
         i = np.where([t == test_name for t in ['COV', 'HE', 'VAF']])[0][0]
         self.test = [COV_test, HE_test, VAF_test][i]
         self.chromosomes = chromosomes
-        self.logger = logger.getChild (f'{self.__class__.__name__}-{self.test}')
+        self.logger = logger.getChild (f'{self.__class__.__name__}-{self.test.__name__}')
         
     def run_test (self, no_processes = 1, *args):
                 
