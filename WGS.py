@@ -40,19 +40,25 @@ class WGS:
                          self.config['InputColumns']['ref_count'],
                          self.config['InputColumns']['alt_count'],
                          self.config['InputColumns']['Type']]
-        
+        self.logger.debug ('Genome object created.')
         self.genome.retrive_counts_create_chromosomes (data_file = self.wgs_file, #SG_file = self.SG_file,
                                                        columns = input_columns)
+        self.logger.debug ('Counts data retrived.')
         self.logger.info ('Segmenting genome.')
         self.genome.segment_genome ()
         self.logger.info ('Ready to report.')
 
     #this probably needs to be split into more functions
-    def report (self):
-        return self.genome.report()
+    def report (self, type = 'bed'):
+        return self.genome.report(type)
 
+    def pickle_genome (self):
+        #test is closing file handlers in logger allows pickling, so sort of destructor
+        pass
+    
     def __del__ (self):
         self.wgs_file.close ()
         if self.SG_file is not None:
             self.SG_file.close ()
         self.CB_file.close ()
+
