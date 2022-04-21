@@ -8,6 +8,7 @@ from doCNA import Chromosome
 SEX_CHROMS = ['chrX', 'chrY']
 
 class Genome:
+    """Class to run genome wide tests of HE and create chromosomes."""
     def __init__(self, sample_name, logger, config, CB_file = None, no_processes = 1):
         self.sample_name = sample_name
         self.no_processes = no_processes
@@ -104,7 +105,9 @@ class Genome:
         keys = list(self.chromosomes.keys())
         keys.sort(key = lambda x: int(x[3:]))
         return '\n'.join([self.chromosomes[key].report() for key in keys])
-        
+   
+    def get_genome_wide_threshold (self):
+        pass     
 
 def f (c):
     c.find_segments()

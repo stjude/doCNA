@@ -6,6 +6,7 @@ from collections import namedtuple
 from doCNA import Testing
 from doCNA import Distribution
 from doCNA import Segment
+from doCNA import Run
 
 N_SYMBOL = 'N'
 E_SYMBOL = 'E'
@@ -17,6 +18,7 @@ Run_treshold =  namedtuple('Run_treshold', [N_SYMBOL, E_SYMBOL])
 
 
 class Chromosome:
+    """Class to contain data, and find runs."""
     def __init__ (self, name, data, config, logger, genome_medians):
         self.name = name
         self.data = data
@@ -44,7 +46,7 @@ class Chromosome:
         self.get_vaf_shift_full ()
         self.Uruns = []
         
-        indexes, merged_string = merge_symbols (self.dv_dist.string, outliers_threshold = 4)
+        indexes, merged_string = Run.merge_symbols (self.dv_dist.string, outliers_threshold = 4)
 
         for r in indexes:
             start = self.positions [r[0]][0]
@@ -63,51 +65,60 @@ class Chromosome:
                                     (self.data['position'] <= end), 'symbol'] = U_SYMBOL
                 self.Uruns.append ((start, end))
     
-    def get_vaf_shift (self, zero_thr = 0.01, cov_mult = 1.03, p_thr = 0.5, z_thr = 1.5):
-        tmpf = 1
-        s0 = np.sqrt (0.25/self.genome_medians['COV']['m'])
-                
-        while tmpf > zero_thr:
-            dvl = []
-            v0l = []
-            s = s0/np.sqrt(cov_mult)
-            def make_two_gauss (v, dv, v0):
-                return two_gauss (v, dv, v0, s, a = 0.5)
+    #or whatever name
+    def segment (self):
+        
+        self.find_Nruns ()
+        #now we have nicely marked chromosome
+        
+        pass
+    
+    #def get_vaf_shift (self, zero_thr = 0.01, cov_mult = 1.03, p_thr = 0.5, z_thr = 1.5):
+    #    tmpf = 1
+    #    s0 = np.sqrt (0.25/self.genome_medians['COV']['m'])
+    #            
+    #    while tmpf > zero_thr:
+    #        dvl = []
+    #        v0l = []
+    #        s = s0/np.sqrt(cov_mult)
+    #        def make_two_gauss (v, dv, v0):
+    #            return two_gauss (v, dv, v0, s, a = 0.5)
             
             #print (self.fragments[0])
             #print (len(self.fragments))
-            for fragment in self.fragments:
-                #print (fragment)
-                vaf = fragment['vaf'].values
-                popt, pcov = opt.curve_fit (make_two_gauss, np.sort(vaf), np.linspace (0,1, len(vaf)),
-                                            p0 = [0.05, 0.5],
-                                            bounds = ((0, 0.4),(0.5, 0.6)))
-                dvl.append (popt[0])
-                v0l.append (popt[1])
+    #        for fragment in self.fragments:
+    #            #print (fragment)
+    #            vaf = fragment['vaf'].values
+    #            popt, pcov = opt.curve_fit (make_two_gauss, np.sort(vaf), np.linspace (0,1, len(vaf)),
+    #                                        p0 = [0.05, 0.5],
+    #                                        bounds = ((0, 0.4),(0.5, 0.6)))
+    #            dvl.append (popt[0])
+    #           v0l.append (popt[1])
+    #    
+    #        tmpf = sum ([d < zero_thr for d in dvl])/len (dvl)
+    #        cov_mult += 0.05
         
-            tmpf = sum ([d < zero_thr for d in dvl])/len (dvl)
-            cov_mult += 0.05
-        
-        self.dv = np.array (dvl)
-        self.v0 = np.array (v0l)
+    #    self.dv = np.array (dvl)
+    #    self.v0 = np.array (v0l)
 
-        self.dv_dist = Distribution.Distribution (self.dv, p_thr = 0.5, thr_z = z_thr)
+    #    self.dv_dist = Distribution.Distribution (self.dv, p_thr = 0.5, thr_z = z_thr)
 
-        self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult))
+    #    self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult))
     
-    def get_coverage (self, z_thr = 1.5):
-        ml = []
-        ll = []
+    #Moved to Run.py    
+    #def get_coverage (self, z_thr = 1.5):
+    #    ml = []
+    #    ll = []
             
-        for fragment in self.fragments:
-            result = Testing.COV_test (fragment)
-            ml.append (result.m)
-            ll.append (result.l)
+    #    for fragment in self.fragments:
+    #        result = Testing.COV_test (fragment)
+    #        ml.append (result.m)
+    #        ll.append (result.l)
 
-        self.m = np.array (ml)
-        self.m_dist = Distribution.Distribution (self.m, thr_z = z_thr, p_thr = 0.3)
-        self.l = np.array (ll)
-        self.l_dist = Distribution.Distribution (self.l, thr_z = z_thr, p_thr = 0.3)
+    #    self.m = np.array (ml)
+    #    self.m_dist = Distribution.Distribution (self.m, thr_z = z_thr, p_thr = 0.3)
+    #    self.l = np.array (ll)
+    #    self.l_dist = Distribution.Distribution (self.l, thr_z = z_thr, p_thr = 0.3)
                     
     def find_segments (self, z_thr = 2.5):
         #if there are any Uruns already processed
@@ -161,7 +172,8 @@ class Chromosome:
             start, end = seg
             data = self.data.loc[(self.data['position'] > start) & (self.data['position'] < end)]
             self.segments.append (Segment.Segment(data, self.config, self.logger, self.genome_medians))
-                
+      
+    #Moved to Run.py     
     def get_distributions (self):
         res_m = []
         res_s = []
@@ -194,59 +206,62 @@ class Chromosome:
                 res_a.append (a)
         return (res_m, res_s, res_a)
 
-    def get_fragments (self, exclude_symbols = [], n = 1000):
-        tmp = self.data.loc[[s not in exclude_symbols for s in self.data['symbol']], ]
-        #print (tmp)
-        N = int(np.floor(len(tmp)/n))
-        #print (self.name, N)
-        indexes = np.linspace (0,len (tmp), 2*N+2, dtype = int)
+    #Moved to Run.py
+    #def get_fragments (self, exclude_symbols = [], n = 1000):
+    #    tmp = self.data.loc[[s not in exclude_symbols for s in self.data['symbol']], ]
+    #    #print (tmp)
+    #    N = int(np.floor(len(tmp)/n))
+    #    #print (self.name, N)
+    #    indexes = np.linspace (0,len (tmp), 2*N+2, dtype = int)
 
         #self.vafs = []
         #self.covs = []
-        self.fragments = []
-        self.positions = []
+    #    self.fragments = []
+    #    self.positions = []
 
-        for i in np.arange (2*N):
-            tmpi = tmp.iloc[indexes[i]:indexes[i+2], ]
-            self.fragments.append(tmpi)
+    #    for i in np.arange (2*N):
+    #        tmpi = tmp.iloc[indexes[i]:indexes[i+2], ]
+    #        self.fragments.append(tmpi)
             #self.vafs.append (np.sort(tmpi['vaf'].values))
             #self.covs.append (np.sort(tmpi['cov'].values))
-            self.positions.append ((tmpi['position'].min(), tmpi['position'].max()))
+    #        self.positions.append ((tmpi['position'].min(), tmpi['position'].max()))
 
-    def get_vaf_shift_full (self, z_thr = 2.5):
-        
-        def vaf_cdf (v, dv, a, lerr, f, vaf, b):
-            return vaf_cdf_c (v, dv, a, lerr, f, vaf, b, cov)
+    #Moved to Run.py
+    #def get_vaf_shift_full (self, z_thr = 2.5):
+    #    
+    #    def vaf_cdf (v, dv, a, lerr, f, vaf, b):
+    #        return vaf_cdf_c (v, dv, a, lerr, f, vaf, b, cov)
                 
-        v0 = self.genome_medians['HE']['vaf']
-        b = self.genome_medians['HE']['b']
-        cov = self.genome_medians['HE']['cov']
-        dvs = []
-        v0s = []
-        for vaf in self.vafs:
-            v, c = np.unique(vaf, return_counts = True)
+    #    v0 = self.genome_medians['HE']['vaf']
+    #    b = self.genome_medians['HE']['b']
+    #    cov = self.genome_medians['HE']['cov']
+    #    dvs = []
+    #    v0s = []
+    #    for vaf in self.vafs:
+    #        v, c = np.unique(vaf, return_counts = True)
 
-            cnor = np.cumsum(c)/np.sum(c)
-            ones0 = c[v >= (cov-1)/cov].sum()
-            f0 = c[v < v0].sum()/(c.sum() - ones0) 
+    #        cnor = np.cumsum(c)/np.sum(c)
+    #        ones0 = c[v >= (cov-1)/cov].sum()
+    #        f0 = c[v < v0].sum()/(c.sum() - ones0) 
 
-            dv0 = v0 - np.median (v[v < v0])
+    #        dv0 = v0 - np.median (v[v < v0])
 
-            try:
-                popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = [dv0, ones0/c.sum(), 2, f0, 0.5, b], 
-                                            bounds = ((0,   0,   1, 0, 0.45, 1),
-                                                      (0.5, 0.95, 5, 1, 0.55, 10)))
-                dvs.append (popt[0])
-                v0s.append (popt[-1])
-            except:
-                print (self.name, dv0, ones0/c.sum(), 2, f0, 0.5, b)
-                #the lenghts must be same
-                #adding 0 either makes outlier or not outlir but it is safe value
-                dvs.append (0)
+    #        try:
+    #            popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = [dv0, ones0/c.sum(), 2, f0, 0.5, b], 
+    #                                        bounds = ((0,   0,   1, 0, 0.45, 1),
+    #                                                  (0.5, 0.95, 5, 1, 0.55, 10)))
+    #            dvs.append (popt[0])
+    #            v0s.append (popt[-1])
+    #        except:
+    #            print (self.name, dv0, ones0/c.sum(), 2, f0, 0.5, b)
+    #            #the lenghts must be same
+    #            #adding 0 either makes outlier or not outlir but it is safe value
+    #            dvs.append (0)
                 
-        self.dv = np.array(dvs)
-        self.v0 = np.array(v0s)
-        self.dv_dist = Distribution.Distribution (self.dv[~np.isnan(self.dv)], p_thr = 0.5, thr_z = z_thr)
+    #    self.dv = np.array(dvs)
+    #    self.v0 = np.array(v0s)
+    #    self.dv_dist = Distribution.Distribution (self.dv[~np.isnan(self.dv)],
+    #                                              p_thr = 0.3, thr_z = z_thr)
     
     def find_Nruns (self):
         symbol_list = self.data.loc[(self.data['vaf'] < 1) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()
@@ -272,8 +287,8 @@ class Chromosome:
         for i in np.where ((z1 < z0)&(z1 < thr_z**2))[0]:
             string[i] = 'D'
         
-        symbol, count = rle_encode (string)
-        indexes, merged_string = merge_symbols (string)
+        symbol, count = Run.rle_encode (string)
+        indexes, merged_string = Run.merge_symbols (string)
         chi2 = 0.0
         chi2_noO = 0.0
         NnoO = 0
@@ -317,8 +332,8 @@ class Chromosome:
         for i in np.where (z0 < thr_z**2)[0]:
             string[i] = 'B'
 
-        symbol, count = rle_encode (string)
-        indexes, merged_string = merge_symbols (string)
+        symbol, count = Run.rle_encode (string)
+        indexes, merged_string = Run.merge_symbols (string)
         chi2 = 0.0
         chi2_noO = 0.0
         NnoO = 0
@@ -342,16 +357,17 @@ class Chromosome:
             
     def report (self, type = 'bed'):
         return '\n'.join([seg.report() for seg in self.segments])    
-    
-def two_gauss (v, dv, v0, s, a = 0.5):
-    return a*sts.norm.cdf (v, v0 - dv, s)+(1-a)*sts.norm.cdf (v,v0 + dv,s)
+
+#No longer needed    
+#def two_gauss (v, dv, v0, s, a = 0.5):
+#    return a*sts.norm.cdf (v, v0 - dv, s)+(1-a)*sts.norm.cdf (v,v0 + dv,s)
 
 
 #func to analyze N runs
 def analyze_string_N (symbol_list, N = 'N', E = 'E'):
                         
     runs = []
-    values, counts = rle_encode (symbol_list)
+    values, counts = Run.rle_encode (symbol_list)
     threshold = find_runs_thr (values, counts, N = N, E = E)
         
     runs = get_N_runs_indexes (values, counts, N = N, E = E, threshold = threshold)
@@ -360,7 +376,7 @@ def analyze_string_N (symbol_list, N = 'N', E = 'E'):
         for i in range(s,e+1):
             symbol_list[i] = N
     
-    values, counts = rle_encode (symbol_list)
+    values, counts = Run.rle_encode (symbol_list)
     threshold = find_runs_thr (values, counts, N = N, E = E)
     runs = get_N_runs_indexes (values, counts, threshold = threshold, N = N, E = E)
         
@@ -438,81 +454,69 @@ def get_N_runs_indexes (values, counts, threshold, N = N_SYMBOL, E = E_SYMBOL):
         
     return [[counts[:i].sum(),counts[:j+1].sum()] for i, j in bed] 
         
-def vaf_cdf_c (v, dv, a, lerr, f, vaf, b, cov):
+#Moved to Run.py
+#def vaf_cdf_c (v, dv, a, lerr, f, vaf, b, cov):
     #cn2 = vaf_cn2 (v, vaf, cov)
-    cnai = vaf_cnai (v, dv, f, vaf, b, cov)
-    cnHO = vaf_HO (v, lerr)
+#    cnai = vaf_cnai (v, dv, f, vaf, b, cov)
+#    cnHO = vaf_HO (v, lerr)
     
-    return a*cnHO + (1 - a)*cnai 
+#    return a*cnHO + (1 - a)*cnai 
 
-def vaf_cnai (v, dv, a, vaf,b, cov):
-    s = np.sqrt((vaf - dv)*(vaf + dv)/(b*cov))
-    return a*sts.norm.cdf (v, vaf - dv, s) + (1-a)*sts.norm.cdf (v, vaf + dv, s)
+#def vaf_cnai (v, dv, a, vaf,b, cov):
+#    s = np.sqrt((vaf - dv)*(vaf + dv)/(b*cov))
+#    return a*sts.norm.cdf (v, vaf - dv, s) + (1-a)*sts.norm.cdf (v, vaf + dv, s)
 
-def vaf_HO (v, lerr):
-    err = 10**lerr
-    return np.exp ((v-1)*err)
+#def vaf_HO (v, lerr):
+#    err = 10**lerr
+#    return np.exp ((v-1)*err)
 
-def merge_symbols (in_string, outliers_threshold = 2):
-    string = list(in_string)
-    symbols, counts = rle_encode (string)
+#Moved to Run.py
+#def merge_symbols (in_string, outliers_threshold = 2):
+#    string = list(in_string)
+#    symbols, counts = rle_encode (string)#
 
-    argsort = np.argsort (counts)[-1:0:-1]
-    symbolindex = 0
+#    argsort = np.argsort (counts)[-1:0:-1]
+#    symbolindex = 0
 
-    while symbolindex < len(symbols)-1:  #(min(counts) <= outliers_threshold)&(counter < 10):
-        i = argsort[symbolindex]
-        symbol = symbols[i]
-        s = i
-        e = i
+#    while symbolindex < len(symbols)-1:  #(min(counts) <= outliers_threshold)&(counter < 10):
+#        i = argsort[symbolindex]
+#        symbol = symbols[i]
+#        s = i
+#        e = i
         
-        sinit = i
-        einit = i    
+#        sinit = i
+#        einit = i    
         
-        if e < len(counts)-1:
-            inext = e + 1        
-            while (symbols[inext] == symbol)|(counts[inext] <= outliers_threshold):
-                e = inext
-                if e == len(counts)-1:
-                    break
-                inext += 1
+#        if e < len(counts)-1:
+#            inext = e + 1        
+#            while (symbols[inext] == symbol)|(counts[inext] <= outliers_threshold):
+#                e = inext
+#                if e == len(counts)-1:
+#                    break
+#                inext += 1
             
-        if s > 0:
-            iprev = s - 1
-            while (counts[iprev] <= outliers_threshold)|(symbols[iprev] == symbol):
-                s = iprev
-                if s == 0:
-                    break
-                iprev -= 1
+#        if s > 0:
+#            iprev = s - 1
+#            while (counts[iprev] <= outliers_threshold)|(symbols[iprev] == symbol):
+#                s = iprev
+#                if s == 0:
+#                    break
+#                iprev -= 1
         
-        if (s == sinit)&(e == einit):
-            symbolindex +=1
-        else:
-            for i in np.arange(counts[:s].sum(),counts[:e+1].sum()):
-                string[i] = symbol.copy()
+#        if (s == sinit)&(e == einit):
+#            symbolindex +=1
+#        else:
+#            for i in np.arange(counts[:s].sum(),counts[:e+1].sum()):
+#                string[i] = symbol.copy()
+#        
+#            symbols, counts = rle_encode (string)
+#            argsort = np.argsort (counts)[-1:0:-1]
+#            symbolindex = 0
         
-            symbols, counts = rle_encode (string)
-            argsort = np.argsort (counts)[-1:0:-1]
-            symbolindex = 0
-        
-    bed = []
-    for i in np.arange(len(counts)):
-        s = counts[:i].sum()
-        e = counts[:i+1].sum()-1
-        bed.append ((s,e))
-    return bed, string
+#    bed = []
+#    for i in np.arange(len(counts)):
+#        s = counts[:i].sum()
+#        e = counts[:i+1].sum()-1
+#        bed.append ((s,e))
+#    return bed, string
 
-def rle_encode (string):
-    i = 0
-    values = []
-    counts = []
-    while i < len(string):
-        cur_char = string[i]
-        count = 1
-        while (i < len(string) - 1 and string[i] == string[i+1]):
-            count += 1
-            i += 1
-        values.append (cur_char)
-        counts.append (count)
-        i += 1
-    return np.array(values), np.array(counts)

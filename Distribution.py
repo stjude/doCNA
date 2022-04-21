@@ -8,9 +8,9 @@ class Distribution:
     Class design to describe the data with either single or double Gauss distributions with managing outliers.
 
     Atributes:
-        parameters (dic):
-        params (dic):
-        key (string): 
+        parameters (dic): Parameters of estimated distribution(s)
+        all_parameters (dic): Parameters estimated for both situations, if done
+        key (string): Resolved to {single/double} distribution
     """
     
     def __init__ (self, values, p_thr = 0.3, thr_z = 1.0):
@@ -19,12 +19,12 @@ class Distribution:
 
         """
         single_G_par = fit_single_G (np.sort(values), alpha = 0.01, r = 0.5)
-        self.params = {}
+        self.all_parameters = {}
         if single_G_par['p'] < p_thr:
             double_G_par = fit_double_G (np.sort(values), alpha = 0.01, r = 0.5)
             self.key = 'double'
             self.parameters = double_G_par
-            self.params ['double'] = double_G_par
+            self.all_parameters ['double'] = double_G_par
             z0 = np.abs(values-double_G_par['m'][0])/double_G_par['s'][0]
             z1 = np.abs(values-double_G_par['m'][1])/double_G_par['s'][1]
             #generate string
@@ -35,7 +35,7 @@ class Distribution:
             #marking D population
             for i in np.where ((z1 < z0)&(z1 < thr_z))[0]:
                 string[i] = 'D'
-            self.string = ''.join(string)
+            self.parameters['string'] = ''.join(string)
         else:
             self.key = 'single'
             self.parameters = single_G_par
@@ -44,11 +44,12 @@ class Distribution:
             for i in np.where ((z < thr_z))[0]:
                 string[i] = 'B'
             self.string = ''.join(string)
-        self.params ['single'] = single_G_par
+        self.parameters['single']['string'] = single_G_par
         
     def fail_normal (self):
         return self.key == 'double'
 
+    #To remove after test
     def combinations (self):
         if self.key == 'single':
             comb = [(0,0),]
@@ -56,6 +57,29 @@ class Distribution:
             comb = [(0,1),(1,0)]
         return comb
         
+    def combinations_of_params (self, dim = 0, reverse = False):
+        """Method to generate """
+        if dim == 1:
+            if (self.key == 'single'):
+                m = self.parameters['m']
+                s = self.parameters['s']
+            else:
+                raise ('Dim 1 only possible for single.')
+        elif dim == 2:
+            if self.key == 'single':
+                m = np.array([self.parameters['m'],self.parameters['m']])
+                s = np.array([self.parameters['s'],self.parameters['s']])
+            else:
+                m = self.parameters['m']
+                s = self.parameters['s']            
+        else:
+            raise (f'Dim can be only 1 or 2. Dim = {dim} not anticipated.')
+        
+        if reverse:
+            return m[:-1:-1], s[:-1:-1]
+        else:
+            return m, s
+    
     def to_string (self):
         return (self.parameters)
         

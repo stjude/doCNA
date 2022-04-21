@@ -1,7 +1,9 @@
 import logging
+import pickle as pkl
 from doCNA import Genome
 
 class WGS:
+    """Class to handle WGS read counts file and create the genome."""
     def __init__ (self, wgs_file_name,  sample_name, parameters, assembly = 'hg19',  
                   no_processes = 1, verbosity = 'INFO'):
         
@@ -53,6 +55,11 @@ class WGS:
         return self.genome.report(type)
 
     def pickle_genome (self):
+        for handle in self.logger.handlers:
+            handle.close()
+            
+        with open (self.sample_name+'.pkl', 'wb') as out:
+            pkl.dump (self.genome, out, 4)
         #test is closing file handlers in logger allows pickling, so sort of destructor
         pass
     
