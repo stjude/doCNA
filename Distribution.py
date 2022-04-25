@@ -57,24 +57,23 @@ class Distribution:
             comb = [(0,1),(1,0)]
         return comb
         
-    def combinations_of_params (self, dim = 0, reverse = False):
-        """Method to generate """
-        if dim == 1:
-            if (self.key == 'single'):
+    def combinations_of_params (self, dim = 1, key = 'single', reverse = False):
+        """Method to generate parameters in desired shape"""
+        
+        if key == 'double':
+            assert key == self.key, "No double distribution!"
+            m = self.parameters['m']
+            s = self.parameters['s']
+        elif key == 'single':
+            if dim == 1:
                 m = self.parameters['m']
                 s = self.parameters['s']
-            else:
-                raise ('Dim 1 only possible for single.')
-        elif dim == 2:
-            if self.key == 'single':
+            elif dim == 2:
                 m = np.array([self.parameters['m'],self.parameters['m']])
                 s = np.array([self.parameters['s'],self.parameters['s']])
             else:
-                m = self.parameters['m']
-                s = self.parameters['s']            
-        else:
-            raise (f'Dim can be only 1 or 2. Dim = {dim} not anticipated.')
-        
+                raise (f'Dim can be only 1 or 2. Dim = {dim} does not make much sense.')
+                
         if reverse:
             return m[:-1:-1], s[:-1:-1]
         else:

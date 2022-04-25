@@ -44,6 +44,7 @@ class Run:
             self.solve_windows ()
             
         else:
+            #not sure what exactly needs to be done
             self.logger.info(f'Run {self.name} is to short to segment.')
             self.solution = Solution(chi2 = 1, chi2_noO = 1, 
                                      positions = [(self.start, self.end)],
@@ -126,7 +127,7 @@ class Run:
                                                       (0.5, 0.95, 5, 1, 0.55, 10)))
                 dvs.append (popt[0])
                 v0s.append (popt[-1])
-            except:
+            except RuntimeError:
                 #the lenghts must be same
                 #adding 0 either makes outlier or not outlir but it is safe value
                 dvs.append (0)
@@ -151,7 +152,7 @@ class Run:
         self.l = np.array (ll)
         self.l_dist = Distribution.Distribution (self.l, thr_z = z_thr, p_thr = 0.3)
     
-    def solve_windows (self, z_thr = 2.5):
+    def solve_windows (self, z_thr = 1.6):
         
         self.solutions = []
         x = np.array([self.dv, self.m, self.l])   
@@ -161,19 +162,23 @@ class Run:
             #z.dim = SNPs * solutions 
         
             #axis = 1 as this is a dimention of solutions
-            labels = self.points['labels'][(z == z.min(axis = 1)).nonzero()[1]]
-            labels [z.min(axis = 1) > z_thr] = 'O'
+            dist_index = (z == z.min(axis = 1)).nonzero()[1]
+            segments = [labels[i] for i in dist_index]
+            
+            segments [z.min(axis = 1) > z_thr**2] = 'O'
         
-            indexes, merged_string = merge_symbols (''.join(labels.tolist()))
+            indexes, merged_segments = merge_symbols (''.join(segments.tolist()))
         
-            chi2 = 
-                
+            chi2 = z[:,dist_index].sum()
+            psl = []
+             
             self.solution.append(Solution (chi2 = chi2.sum(),
-                                 chi2_noO = chi2[labels != 'O'].sum(),
+                                 chi2_noO = chi2[merged_segments != 'O'].sum(),
                                  positions = [(self.windows_positions[si][0], self.windows_positions[ei][1]) for si, ei in indexes],
-                                 ps = ,
-                                 string = ''.join(labels.tolist()),
-                                 merged_string = merged_string))
+                                 #TBD
+                                 #ps = psl,
+                                 segments = ''.join(labels.tolist()),
+                                 merged_segments = merged_segments))
         
         #order by chi2_noO
         
@@ -182,16 +187,16 @@ class Run:
     def get_distributions (self):
         
         
-        dvm, dvs = self.dv_dist.combinations_of_params (dim = 1, reverse = False)
-        mm, ms = self.dv_dist.combinations_of_params (dim = 1, reverse = False)
-        lm, ls = self.dv_dist.combinations_of_params (dim = 1, reverse = False)
-        zml = [np.array ([dvm, mm, lm])]
-        zsl = [np.array ([dvs, ms, ls])]
+        dvm, dvs = self.dv_dist.combinations_of_params (dim = 1, key = 'single', reverse = False)
+        mm, ms = self.dv_dist.combinations_of_params (dim = 1, key = 'single', reverse = False)
+        lm, ls = self.dv_dist.combinations_of_params (dim = 1, key = 'single', reverse = False)
+        zml = [np.array ([dvm, mm, lm].T)]
+        zsl = [np.array ([dvs, ms, ls].T)]
         labels = [('B',)]
         
         ordinal = np.cumsum ([self.dv_dist.fail_normal(), self.m_dist.fail_normal(), self.l_dist.fail_normal()])
         
-        if any (ordinal == 0):
+        if any (ordinal != 0):
             dv_directions = [False]
             m_directions = [False, True] if ordinal[1] > 1 else [False]
             l_directions = [False, True] if ordinal[2] > 1 else [False]
@@ -199,11 +204,11 @@ class Run:
             for dv_d in dv_directions:
                 for m_d  in m_directions:
                     for l_d in l_directions:
-                        dvm, dvs = self.dv_dist.combinations_of_params (dim = 2, reverse = dv_d)
-                        mm, ms = self.dv_dist.combinations_of_params (dim = 2, reverse = m_d)
-                        lm, ls = self.dv_dist.combinations_of_params (dim = 2, reverse = l_d)
-                        zml.append (np.array ([dvm, mm, lm]))
-                        zsl.append (np.array ([dvs, ms, ls]))
+                        dvm, dvs = self.dv_dist.combinations_of_params (dim = 2, key = self.dv_dist.key, reverse = dv_d)
+                        mm, ms = self.m_dist.combinations_of_params (dim = 2, key = self.m_dist.key, reverse = m_d)
+                        lm, ls = self.l_dist.combinations_of_params (dim = 2, key = self.l_dist.key, reverse = l_d)
+                        zml.append (np.array ([dvm, mm, lm]).T)
+                        zsl.append (np.array ([dvs, ms, ls]).T)
                         labels.append (('C','D'))
         return zml, zsl, labels 
 

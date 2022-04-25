@@ -61,7 +61,7 @@ class WGS:
         with open (self.sample_name+'.pkl', 'wb') as out:
             pkl.dump (self.genome, out, 4)
         #test is closing file handlers in logger allows pickling, so sort of destructor
-        pass
+    
     
     def __del__ (self):
         self.wgs_file.close ()

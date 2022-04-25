@@ -125,7 +125,7 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
         dv, v0, a = popt
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'success' : True}
         
-    except:
+    except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False}
     
     return parameters 
@@ -157,7 +157,7 @@ def get_full (data, mG, b):
                                               (0.5, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True} 
-    except:
+    except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False}
     return parameters
 

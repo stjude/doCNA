@@ -38,8 +38,8 @@ class Chromosome:
         self.data['symbol'] = N_SYMBOL       
         indexes = self.data.loc[z < threshold, :].index.values.tolist()
         self.data.loc[indexes, 'symbol'] = E_SYMBOL
-        self.logger.debug (f"""Chromosome {self.name} marked based on 
-                           parameters v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
+        self.ogger.debug (f"""Chromosome {self.name} marked based on parameters
+v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         
     def mark_on_full_model (self):
         self.get_fragments (exclude_symbols = [], n = int(self.config['Segment']['No_SNPs']))
@@ -66,12 +66,29 @@ class Chromosome:
                 self.Uruns.append ((start, end))
     
     #or whatever name
-    def segment (self):
+    def find_segments (self):
         
         self.find_Nruns ()
-        #now we have nicely marked chromosome
+        self.runs = []
+        for nr in self.Nruns:
+            self.runs.append(Run (self.data.loc[(self.data['position'] >= nr[0])&(self.data['position'] <= nr[1])],
+                                  symbol = 'N',
+                                  logger = self.logger,
+                                  genome_medians = self.genome_medians))
         
-        pass
+        for ur in self.Uruns:
+            self.runs.append(Run (self.data.loc[(self.data['position'] >= nr[0])&(self.data['position'] <= nr[1])],
+                                  symbol = 'U',
+                                  logger = self.logger,
+                                  genome_medians = self.genome_medians))
+            
+        #Eruns needs to be found first
+        start = self.data['position'].min ()
+        end = self.data['position'].max ()
+        
+        self.Eruns = []
+        for 
+        
     
     #def get_vaf_shift (self, zero_thr = 0.01, cov_mult = 1.03, p_thr = 0.5, z_thr = 1.5):
     #    tmpf = 1
@@ -120,7 +137,7 @@ class Chromosome:
     #    self.l = np.array (ll)
     #    self.l_dist = Distribution.Distribution (self.l, thr_z = z_thr, p_thr = 0.3)
                     
-    def find_segments (self, z_thr = 2.5):
+    def find_segments_old (self, z_thr = 2.5):
         #if there are any Uruns already processed
         self.find_Nruns ()
         self.solutions = []
@@ -393,7 +410,7 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
         popt, _ = opt.curve_fit (lin, x[ind], y[ind], p0 = [-1,1])
         xt = np.log10 (np.arange(1, hist[0].max()))
         N_thr = 10**(xt[lin(xt, *popt) > np.log10(1)].max())
-    except:
+    except RuntimeError:
         N_thr = DEFAULT_N_THRESHOLD
     
     hist = np.unique(counts[values != N], return_counts = True)
@@ -412,7 +429,7 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
                 E_thr = xt[lin(xt, *popt) > 0].max()
             else:
                 E_thr = DEFAULT_E_THRESHOLD
-    except:
+    except RuntimeError:
         E_thr = DEFAULT_E_THRESHOLD
     
     return Run_treshold (N = N_thr, E = E_thr)
