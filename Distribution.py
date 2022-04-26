@@ -3,6 +3,9 @@ import scipy.optimize as opt
 import scipy.stats as sts
 from doCNA.Testing import get_outliers_thrdist
 
+
+LENGTH_THRESHOLD = 10
+
 class Distribution:
     """
     Class design to describe the data with either single or double Gauss distributions with managing outliers.
@@ -18,6 +21,7 @@ class Distribution:
         Class constructor. Estimates distribution(s)' parameters based on provided values.
 
         """
+        assert len (values) > LENGTH_THRESHOLD, print ("Not enough data points to consider distribution.")
         single_G_par = fit_single_G (np.sort(values), alpha = 0.01, r = 0.5)
         self.all_parameters = {}
         if single_G_par['p'] < p_thr:
@@ -99,7 +103,8 @@ def fit_single_G (values, alpha, r):
     ksp = sts.kstest (a, sts.norm.cdf, args = popt)
 
     #report
-    return {'p' : ksp.pvalue, 'm': np.array([popt[0]]), 's': np.array([popt[1]]), 'thr' : thr, 'a' : np.ones(1)}
+    return {'p' : ksp.pvalue, 'm': np.array([popt[0]]),
+            's': np.array([popt[1]]), 'thr' : thr, 'a' : np.ones(1)}
 
 def fit_double_G (values_all, alpha, r):
     #p0 = (0.5, np.median(values[:int(len(values)/2)]), np.percentile(values,40)-np.percentile(values,10),

@@ -9,52 +9,52 @@ from collections import namedtuple
 from doCNA import Segment
 from doCNA import Distribution
 from doCNA import Testing
+from doCNA import Chromosome
 WINDOWS_THRESHOLD = 9
 SNPS_IN_WINDOW = 1000
 
 
 #Solution keep result of Run segmenting
 #Segments are based on /best/ Solution
-Solution = namedtuple ('Solution', ['chi2', 'chi2_noO', 'positions', 'ps', 'string', 'merged_string'])
+Solution = namedtuple ('Solution', ['chi2', 'chi2_noO', 'positions', 'p_norm', 'segments', 'merged_segments'])
 
 class Run:
     """Class to segment run of E/N/U"""
     def __init__(self, data, symbol, logger, genome_medians) -> None:
-         self.data = data
-         self.symbol = symbol
-         self.genome_medians = genome_medians
-         
-         self.chrom = data['chrom'].values[0]
-         self.start = data['position'].min()
-         self.end = data['position'].max()
-         
-         self.name = self.chrom+ ':'+str(self.start)+'-'+str(self.end)
-         self.logger = logger.getChild(f'{self.__class__.__name__}-{self.name}')
-         self.logger.debug ("Object run created")
-                  
-    def analyse (self):
+        self.data = data
+        self.symbol = symbol
+        self.genome_medians = genome_medians
+        
+        self.chrom = data['chrom'].values[0]
+        self.start = data['position'].min()
+        self.end = data['position'].max()
+        
+        self.name = self.chrom+ ':'+str(self.start)+'-'+str(self.end)
+        self.logger = logger.getChild(f'{self.__class__.__name__}-{self.name}')
+        self.logger.debug ("Object created")
+        self.analyze ()
+        self.logger.info ("Run analyzed")
+        
+    def analyze (self):
         self.get_windows (n = SNPS_IN_WINDOW)
-        if len(self.windows) > WINDOWS_THRESHOLD:
+        self.logger.debug (f'Run divided into {len(self.windows)}')
+        if len(self.windows) >= WINDOWS_THRESHOLD:
             self.get_ai ()
             self.get_coverage ()
-            
-            #stupid name, but no better idea
-            self.find_z0 ()
-            #solving windows adds self.solution
             self.solve_windows ()
-            
         else:
-            #not sure what exactly needs to be done
-            self.logger.info(f'Run {self.name} is to short to segment.')
-            self.solution = Solution(chi2 = 1, chi2_noO = 1, 
-                                     positions = [(self.start, self.end)],
-                                     ps = [np.nan, np.nan, np.nan],
-                                     string = '', merged_string = '')
-
+            self.logger.info (f'Run {self.name} is to short to segment.')
+            self.solutions = (Solution (chi2 = np.nan,
+                                        chi2_noO = np.nan,
+                                        positions = self.windows_positions,
+                                        p_norm = [(np.nan, np.nan, np.nan)],
+                                        segments = '',
+                                        merged_segments = ''))  
+        
     def get_windows (self, n = 1000):
         tmp = self.data.loc[[s == self.symbol for s in self.data['symbol']], ]
+        N = np.max((int(np.floor(len(tmp)/n)),1))
         
-        N = int(np.floor(len(tmp)/n))
         indexes = np.linspace (0,len (tmp), 2*N+2, dtype = int)
 
         self.windows = []
@@ -63,18 +63,18 @@ class Run:
         for i in np.arange (2*N):
             tmpi = tmp.iloc[indexes[i]:indexes[i+2], ]
             self.windows.append(tmpi)
-            self.widows_positions.append ((tmpi['position'].min(), tmpi['position'].max()))
+            self.windows_positions.append ((tmpi['position'].min(), tmpi['position'].max()))
         
     def get_ai (self):
-        if self.symbol == 'E':
+        if self.symbol == Chromosome.E_SYMBOL:
             self.get_ai_sensitive()     
         else:
             self.get_ai_full()
         
-    def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.03, p_thr = 0.5, z_thr = 1.5):
+    def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.0, p_thr = 0.5, z_thr = 1.5):
         tmpf = 1
         s0 = np.sqrt (0.25/self.genome_medians['COV']['m'])
-                
+        print (s0)
         while tmpf > zero_thr:
             dvl = []
             v0l = []
@@ -96,7 +96,7 @@ class Run:
         
         self.dv = np.array (dvl)
         self.v0 = np.array (v0l)
-
+        print (self.dv)
         self.dv_dist = Distribution.Distribution (self.dv, p_thr = 0.5, thr_z = z_thr)
         self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult))        
     
@@ -112,7 +112,8 @@ class Run:
         cov = self.genome_medians['HE']['cov']
         dvs = []
         v0s = []
-        for vaf in self.vafs:
+        for window in self.windows:
+            vaf = window['vaf'].values
             v, c = np.unique(vaf, return_counts = True)
 
             cnor = np.cumsum(c)/np.sum(c)
@@ -128,22 +129,21 @@ class Run:
                 dvs.append (popt[0])
                 v0s.append (popt[-1])
             except RuntimeError:
-                #the lenghts must be same
-                #adding 0 either makes outlier or not outlir but it is safe value
                 dvs.append (0)
                 
         self.dv = np.array(dvs)
         self.v0 = np.array(v0s)
         #p_thr is lower that for sensitive as full is more noisy, but less nosy :D 
-        self.dv_dist = Distribution.Distribution (self.dv[~np.isnan(self.dv)],
+        self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = 0.3, thr_z = z_thr)
     
     def get_coverage (self, z_thr = 1.5):
         ml = []
         ll = []
             
-        for fragment in self.fragments:
-            result = Testing.COV_test (fragment)
+        for window in self.windows:
+            #cov = window['cov'].values
+            result = Testing.COV_test (window)
             ml.append (result.m)
             ll.append (result.l)
 
@@ -160,7 +160,6 @@ class Run:
         for m0, s0, labels in self.get_distributions():
             z = (((x[:,:,np.newaxis] - m0[np.newaxis,:,:])/s0[np.newaxis,:,:])**2).sum(axis = 1)
             #z.dim = SNPs * solutions 
-        
             #axis = 1 as this is a dimention of solutions
             dist_index = (z == z.min(axis = 1)).nonzero()[1]
             segments = [labels[i] for i in dist_index]
@@ -170,19 +169,21 @@ class Run:
             indexes, merged_segments = merge_symbols (''.join(segments.tolist()))
         
             chi2 = z[:,dist_index].sum()
+            
             psl = []
+            for si, ei in indexes:
+                psl.append ((get_norm_p (self.dv[si:ei+1]),
+                             get_norm_p (self.m[si:ei+1],
+                             get_norm_p (self.l[si:ei+1]))))
              
-            self.solution.append(Solution (chi2 = chi2.sum(),
+            self.solutions.append(Solution (chi2 = chi2.sum(),
                                  chi2_noO = chi2[merged_segments != 'O'].sum(),
                                  positions = [(self.windows_positions[si][0], self.windows_positions[ei][1]) for si, ei in indexes],
-                                 #TBD
-                                 #ps = psl,
+                                 p_norm = psl,
                                  segments = ''.join(labels.tolist()),
                                  merged_segments = merged_segments))
         
-        #order by chi2_noO
-        
-        #generate list of segments and return
+        self.solutions.sort (key = lambda x: x['chi2_noO'])        
     
     def get_distributions (self):
         
@@ -212,8 +213,6 @@ class Run:
                         labels.append (('C','D'))
         return zml, zsl, labels 
 
-    
-    
     def __repr__(self) -> str:
         pass
         

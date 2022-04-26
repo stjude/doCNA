@@ -63,7 +63,8 @@ class Genome:
         self.genome_medians['COV'] = self.COV.get_genome_medians()
         self.logger.info ('Starting HE test genome.')                        
         self.HE = Testing.Testing ('HE', 
-                                   {chrom : self.chromosomes[chrom] for chrom in self.COV.get_inliers()},
+                                   #{chrom : self.chromosomes[chrom] for chrom in self.COV.get_inliers()},
+                                   self.chromosomes,
                                    self.logger)
         self.HE.run_test(self.no_processes)
         self.HE.analyze (parameters = self.config['HE'])
@@ -97,7 +98,7 @@ class Genome:
                     self.chromosomes [sc.name] = sc
         else:
             for chrom in self.chromosomes.keys():
-                self.chromosomes[chrom].find_segments()
+                self.chromosomes[chrom].find_runs()
                 self.chromosomes[chrom].generate_segments ()
         self.logger.info ("Segmentation finished.")
         
@@ -110,7 +111,7 @@ class Genome:
         pass     
 
 def f (c):
-    c.find_segments()
+    c.find_runs()
     c.generate_segments ()
     return c    
 

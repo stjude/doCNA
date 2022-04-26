@@ -38,39 +38,45 @@ class Testing:
         self.test = [COV_test, HE_test, VAF_test][i]
         self.chromosomes = chromosomes
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.test.__name__}')
+        self.logger.debug (f'Object {self.test.__name__} created.')
         
     def run_test (self, no_processes = 1, *args):
                 
         if no_processes > 1:
+            self.logger.debug (f'Runnig test in {no_processes} processes.')
             with mpl.Pool (processes = no_processes) as pool:
                 results = pool.starmap (self.test, [(self.chromosomes[chrom].data, args) for chrom in self.chromosomes.keys()])
         else:
             results = []
             for chrom in self.chromosomes.keys():
                 results.append((self.test (self.chromosomes[chrom].data, args)))
+                self.logger.debug (f'Runnig test for {chrom}.')
         self.results = pd.DataFrame.from_records (results, columns = results[0]._fields, 
                                                   index = self.chromosomes.keys())
+        self.logger.info (f'Test finished.')
         
     def analyze (self, parameters = {'alpha' : 0.01, 'r' : 0.5}, q = (5,99)):
         #parameters are not done well here
+        self.logger.debug (f'Starting to analyze test results.')
         self.normal_range = {}
         columns = self.results.columns
         status = {}
         
         for column in columns:
             try:
-                alpha = parameters[column + '_alpha']
-                r = parameters[column + '_r']
-            except:
+                alpha = float(parameters[column + '_alpha'])
+                r = float(parameters[column + '_r'])
+            except: #if not found
                 alpha, r = (0.01, 0.5)
-                
+            #except if not a number
+            self.logger.debug (f'Parameter {column} being analyzed with alpha = {alpha} and r = {r}')
             res = self.results[column].values
             self.results[column + '_status'] = 'outlier'
-            try:
-                range = get_outliers_thrdist (self.results[column].values, alpha, r)
-            except:
-                self.logger.warning ('Range estimation of {} failed. Using percentiles.'.format (column))
-                range = np.percentile (res, q = q)
+            #try:
+            range = get_outliers_thrdist (self.results[column].values, alpha, r)
+            #except:
+            #    self.logger.warning ('Range estimation of {} failed. Using percentiles.'.format (column))
+            #    range = np.percentile (res, q = q)
             
             self.logger.info ('Estimated normal ragne of {} is from {} to {}'.format (column, *range))
             in_or_out = (self.results[column] > range[0]) & (self.results[column] < range[1])
@@ -292,12 +298,13 @@ def find_fb (vafs, m, f_max = FB_F_MAX, eps = FB_EPS):
     return ff
 
 def get_outliers_thrdist (values, alpha = 0.01, r = 0.5):
+    
     n = len (values)
     current = values
     core = values
     mc = np.mean (current)
     sc = np.std (current)
-    for i in range (int(np.floor(len(values)*r))):
+    for i in range (int(np.floor(n*r))):
         m = np.mean (current)
         s = np.std (current)
         R = np.abs ((current -m)/s)
