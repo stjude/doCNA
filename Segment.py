@@ -13,10 +13,12 @@ MIN_CLON_THRESHOLD_FOR_FULL = 0.2
 
 class Segment:
     """Class to calculate clonality and find the model."""
-    def __init__ (self, data, config, logger, genome_medians) -> None:
+    def __init__ (self, data, config, logger, genome_medians, segmentation_score, segmentation_symbol) -> None:
         self.data = data
         self.config = config
         self.genome_medians = genome_medians
+        self.segmentation_score = segmentation_score
+        self.segmentation_symbol = segmentation_symbol
         self.name = data['chrom'].values[0]+ ':'+str(data['position'].min())+'-'+str(data['position'].max())
         #-{self.name}
         self.logger = logger.getChild (f'{self.__class__.__name__}')
@@ -24,7 +26,7 @@ class Segment:
         self.symbol = self.symbols.index[0]
         self.estimate_parameters ()
         self.select_model ()
-        self.test_self ()
+        #self.test_self ()
         self.logger.debug ('Segment created.')
         
     def __repr__(self) -> str:

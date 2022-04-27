@@ -24,6 +24,15 @@ class Distribution:
         assert len (values) > LENGTH_THRESHOLD, print ("Not enough data points to consider distribution.")
         single_G_par = fit_single_G (np.sort(values), alpha = 0.01, r = 0.5)
         self.all_parameters = {}
+        self.all_parameters['single'] = single_G_par
+                
+        z = np.abs(values-single_G_par['m'][0])/single_G_par['s'][0]
+        string = list ('O' * len(values))
+        for i in np.where ((z < thr_z))[0]:
+            string[i] = 'B'
+        
+        self.all_parameters['single']['string'] = string
+                
         if single_G_par['p'] < p_thr:
             double_G_par = fit_double_G (np.sort(values), alpha = 0.01, r = 0.5)
             self.key = 'double'
@@ -40,15 +49,13 @@ class Distribution:
             for i in np.where ((z1 < z0)&(z1 < thr_z))[0]:
                 string[i] = 'D'
             self.parameters['string'] = ''.join(string)
+            self.all_parameters['double']['string'] = string
         else:
             self.key = 'single'
             self.parameters = single_G_par
-            z = np.abs(values-single_G_par['m'][0])/single_G_par['s'][0]
-            string = list ('O' * len(values))
-            for i in np.where ((z < thr_z))[0]:
-                string[i] = 'B'
+            
             self.string = ''.join(string)
-        self.parameters['single']['string'] = single_G_par
+        
         
     def fail_normal (self):
         return self.key == 'double'
@@ -66,15 +73,16 @@ class Distribution:
         
         if key == 'double':
             assert key == self.key, "No double distribution!"
-            m = self.parameters['m']
-            s = self.parameters['s']
+            m = self.all_parameters['double']['m']
+            s = self.all_parameters['double']['s']
         elif key == 'single':
             if dim == 1:
-                m = self.parameters['m']
-                s = self.parameters['s']
+                m = self.all_parameters['single']['m'][0]
+                s = self.all_parameters['single']['s'][0]
             elif dim == 2:
-                m = np.array([self.parameters['m'],self.parameters['m']])
-                s = np.array([self.parameters['s'],self.parameters['s']])
+                #ugly
+                m = np.array([self.all_parameters['single']['m'][0],self.all_parameters['single']['m'][0]])
+                s = np.array([self.all_parameters['single']['s'][0],self.all_parameters['single']['s'][0]])
             else:
                 raise (f'Dim can be only 1 or 2. Dim = {dim} does not make much sense.')
                 

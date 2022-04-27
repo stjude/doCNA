@@ -95,8 +95,18 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         
     def generate_segments (self):
         """Method to generate genomic segments of same CNA status, based on Runs."""
-        pass    
-      
+        # for best solution for each run
+        self.segments = []
+        for run in self.runs:
+            best_solution = run.solutions[0]
+            data_view = self.data.loc[() & () & ()]
+            self.segments.append (Segment.Segment (data = self.data, 
+                                                   config = self.config, 
+                                                   logger = self.logger, 
+                                                   genome_medians = self.genome_medians,
+                                                   segmentation_score = best_solution.p_norm,
+                                                   segmentation_symbol = run.symbol))
+        
     def find_Nruns (self):
         symbol_list = self.data.loc[(self.data['vaf'] < 1) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()
         self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = N_SYMBOL, E = E_SYMBOL)

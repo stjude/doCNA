@@ -74,29 +74,37 @@ class Run:
     def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.0, p_thr = 0.5, z_thr = 1.5):
         tmpf = 1
         s0 = np.sqrt (0.25/self.genome_medians['COV']['m'])
-        print (s0)
+        #print ('s0: ', s0)
+        
+        vafs = []
+        for window in self.windows:
+            vafs.append(np.sort(window['vaf'].values))
+        
         while tmpf > zero_thr:
             dvl = []
             v0l = []
             s = s0/np.sqrt(cov_mult)
+            #print (s) 
             def make_two_gauss (v, dv, v0):
                 a = 0.5
-                return a*sts.norm.cdf (v - dv, s) + (1-a)*sts.norm.cdf (v + dv, s)
+                return a*sts.norm.cdf (v, v0 - dv, s) + (1-a)*sts.norm.cdf (v, v0 + dv, s)
             
-            for window in self.windows:
-                vaf = window['vaf'].values
+            for vaf in vafs:
+                
                 popt, pcov = opt.curve_fit (make_two_gauss, np.sort(vaf), np.linspace (0,1, len(vaf)),
                                             p0 = [0.05, 0.5],
                                             bounds = ((0, 0.4),(0.5, 0.6)))
+                
                 dvl.append (popt[0])
                 v0l.append (popt[1])
         
             tmpf = sum ([d < zero_thr for d in dvl])/len (dvl)
             cov_mult += 0.05
-        
+            #print ('cov_mult', cov_mult)
+            #print ('tmpf: ', tmpf)
+            
         self.dv = np.array (dvl)
         self.v0 = np.array (v0l)
-        print (self.dv)
         self.dv_dist = Distribution.Distribution (self.dv, p_thr = 0.5, thr_z = z_thr)
         self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult))        
     
@@ -111,7 +119,8 @@ class Run:
         b = self.genome_medians['HE']['b']
         cov = self.genome_medians['HE']['cov']
         dvs = []
-        v0s = []
+        v0s = []        
+        
         for window in self.windows:
             vaf = window['vaf'].values
             v, c = np.unique(vaf, return_counts = True)
@@ -155,18 +164,20 @@ class Run:
     def solve_windows (self, z_thr = 1.6):
         
         self.solutions = []
-        x = np.array([self.dv, self.m, self.l])   
+        x = np.array([self.dv, self.m, self.l]).T
         
-        for m0, s0, labels in self.get_distributions():
-            z = (((x[:,:,np.newaxis] - m0[np.newaxis,:,:])/s0[np.newaxis,:,:])**2).sum(axis = 1)
-            #z.dim = SNPs * solutions 
-            #axis = 1 as this is a dimention of solutions
-            dist_index = (z == z.min(axis = 1)).nonzero()[1]
+        for m0, s0, labels in zip(*self.get_distributions()):
+            y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])/s0[np.newaxis,:,:])
+            z = (y**2).sum(axis = 1)
+            
+            dist_index = np.asarray(z == z.min(axis = 1)[:,np.newaxis]).nonzero()[1]
             segments = [labels[i] for i in dist_index]
             
-            segments [z.min(axis = 1) > z_thr**2] = 'O'
-        
-            indexes, merged_segments = merge_symbols (''.join(segments.tolist()))
+             
+            for i in np.where(z.min(axis = 1) > z_thr**2)[0]:
+                segments [i] = 'O'
+            
+            indexes, merged_segments = merge_symbols (''.join(segments))
         
             chi2 = z[:,dist_index].sum()
             
@@ -177,22 +188,21 @@ class Run:
                              get_norm_p (self.l[si:ei+1]))))
              
             self.solutions.append(Solution (chi2 = chi2.sum(),
-                                 chi2_noO = chi2[merged_segments != 'O'].sum(),
-                                 positions = [(self.windows_positions[si][0], self.windows_positions[ei][1]) for si, ei in indexes],
-                                 p_norm = psl,
-                                 segments = ''.join(labels.tolist()),
-                                 merged_segments = merged_segments))
+                                            chi2_noO = chi2[merged_segments != 'O'].sum(),
+                                            positions = [(self.windows_positions[si][0], self.windows_positions[ei][1]) for si, ei in indexes],
+                                            p_norm = psl,
+                                            segments = ''.join(segments),
+                                            merged_segments = merged_segments))
         
-        self.solutions.sort (key = lambda x: x['chi2_noO'])        
+        self.solutions.sort (key = lambda x: x.chi2_noO)        
     
     def get_distributions (self):
-        
-        
+                
         dvm, dvs = self.dv_dist.combinations_of_params (dim = 1, key = 'single', reverse = False)
-        mm, ms = self.dv_dist.combinations_of_params (dim = 1, key = 'single', reverse = False)
-        lm, ls = self.dv_dist.combinations_of_params (dim = 1, key = 'single', reverse = False)
-        zml = [np.array ([dvm, mm, lm].T)]
-        zsl = [np.array ([dvs, ms, ls].T)]
+        mm, ms = self.m_dist.combinations_of_params (dim = 1, key = 'single', reverse = False)
+        lm, ls = self.l_dist.combinations_of_params (dim = 1, key = 'single', reverse = False)
+        zml = [np.array ((dvm, mm, lm))[:, np.newaxis]]
+        zsl = [np.array ((dvs, ms, ls))[:, np.newaxis]]
         labels = [('B',)]
         
         ordinal = np.cumsum ([self.dv_dist.fail_normal(), self.m_dist.fail_normal(), self.l_dist.fail_normal()])
@@ -208,21 +218,16 @@ class Run:
                         dvm, dvs = self.dv_dist.combinations_of_params (dim = 2, key = self.dv_dist.key, reverse = dv_d)
                         mm, ms = self.m_dist.combinations_of_params (dim = 2, key = self.m_dist.key, reverse = m_d)
                         lm, ls = self.l_dist.combinations_of_params (dim = 2, key = self.l_dist.key, reverse = l_d)
-                        zml.append (np.array ([dvm, mm, lm]).T)
-                        zsl.append (np.array ([dvs, ms, ls]).T)
+                        
+                        zml.append (np.array ((dvm, mm, lm)))
+                        zsl.append (np.array ((dvs, ms, ls)))
+                        
                         labels.append (('C','D'))
         return zml, zsl, labels 
 
     def __repr__(self) -> str:
         pass
         
-    def generate_segments (self, list_of_other_runs):
-        
-        pass
-    
-    
-    
-    
 def get_norm_p (values, sinit = 0.05):
     """Tests if normally distributed around zero."""
     def cdf(x,s):
