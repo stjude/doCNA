@@ -54,10 +54,13 @@ class WGS:
     def report (self, type = 'bed'):
         return self.genome.report(type)
 
+    def shutdown_logger(self):
+        handlers = self.logger.handers[:]
+        for handler in handlers:
+            self.logger.removeHandler(handler)
+            handler.close()
+
     def pickle_genome (self):
-        for handle in self.logger.handlers:
-            handle.close()
-            
         with open (self.sample_name+'.pkl', 'wb') as out:
             pkl.dump (self.genome, out, 4)
         #test is closing file handlers in logger allows pickling, so sort of destructor
