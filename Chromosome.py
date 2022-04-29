@@ -65,7 +65,6 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
                                     (self.data['position'] <= end), 'symbol'] = U_SYMBOL
                 self.Uruns.append ((start, end))
     
-        
     #or whatever name
     def find_runs (self):
         """Method to generate runs. Runs segment themselves."""
@@ -99,13 +98,17 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         self.segments = []
         for run in self.runs:
             best_solution = run.solutions[0]
-            data_view = self.data.loc[() & () & ()]
-            self.segments.append (Segment.Segment (data = self.data, 
-                                                   config = self.config, 
-                                                   logger = self.logger, 
-                                                   genome_medians = self.genome_medians,
-                                                   segmentation_score = best_solution.p_norm,
-                                                   segmentation_symbol = run.symbol))
+            for start, end in best_solution.positions:
+                               
+                data_view = self.data.loc[(self.data['position'] >= start) &\
+                                          (self.data['position'] >= end) &\
+                                          (self.data['symbol'] == run.symbol)]
+                self.segments.append (Segment.Segment (data = data_view, 
+                                                       config = self.config, 
+                                                       logger = self.logger, 
+                                                       genome_medians = self.genome_medians,
+                                                       segmentation_score = best_solution.p_norm,
+                                                       segmentation_symbol = run.symbol))
         
     def find_Nruns (self):
         symbol_list = self.data.loc[(self.data['vaf'] < 1) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()

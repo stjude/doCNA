@@ -46,7 +46,7 @@ class Run:
             self.logger.info (f'Run {self.name} is to short to segment.')
             self.solutions = (Solution (chi2 = np.nan,
                                         chi2_noO = np.nan,
-                                        positions = self.windows_positions,
+                                        positions = [(self.windows_positions[0][0], self.windows_positions[-1][1])],
                                         p_norm = [(np.nan, np.nan, np.nan)],
                                         segments = '',
                                         merged_segments = ''))  
@@ -167,8 +167,8 @@ class Run:
         x = np.array([self.dv, self.m, self.l]).T
         
         for m0, s0, labels in zip(*self.get_distributions()):
-            y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])/s0[np.newaxis,:,:])
-            z = (y**2).sum(axis = 1)
+            y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])**2/s0[np.newaxis,:,:])
+            z = y.sum(axis = 1)
             
             dist_index = np.asarray(z == z.min(axis = 1)[:,np.newaxis]).nonzero()[1]
             segments = [labels[i] for i in dist_index]
@@ -192,7 +192,7 @@ class Run:
                                             positions = [(self.windows_positions[si][0], self.windows_positions[ei][1]) for si, ei in indexes],
                                             p_norm = psl,
                                             segments = ''.join(segments),
-                                            merged_segments = merged_segments))
+                                            merged_segments = ''.join(merged_segments)))
         
         self.solutions.sort (key = lambda x: x.chi2_noO)        
     
@@ -235,7 +235,7 @@ def get_norm_p (values, sinit = 0.05):
     
     popt, pcov = opt.curve_fit (cdf, np.sort(values), np.linspace (0,1, len(values)), p0 = [sinit])
     pks = sts.kstest (values, cdf, args = popt).pvalue
-    return -np.log10 (pks)
+    return pks
 
 def vaf_cnai (v, dv, a, vaf,b, cov):
     s = np.sqrt((vaf - dv)*(vaf + dv)/(b*cov))

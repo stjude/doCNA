@@ -61,6 +61,14 @@ class WGS:
             handler.close()
 
     def pickle_genome (self):
+        #del (self.logger)
+        #self.logger.shutdown()
+        for handle in self.logger.handlers:
+            handle.close ()
+            self.logger.removeHandler(handle)
+            del (handle)
+        del (self.logger)
+            
         with open (self.sample_name+'.pkl', 'wb') as out:
             pkl.dump (self.genome, out, 4)
         #test is closing file handlers in logger allows pickling, so sort of destructor
