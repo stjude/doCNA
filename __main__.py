@@ -1,6 +1,6 @@
 import argparse
 import configparser
-import pickle as pkl
+
 
 from doCNA import WGS
 
@@ -25,14 +25,23 @@ def main():
     
     parser.add_argument ('-a', '--assembly', help = 'Assembly', default = 'hg19',
                          required = False)
+    
+    parser.add_argument ('-v', '--verbosity', default = 'INFO', 
+                         choices = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'NOTSET'],
+                         help = 'Level of verbosity for std.err logger.')
 
     args = parser.parse_args()
     ini = configparser.ConfigParser ()
     ini.read (args.config)
     sample = WGS.WGS (args.input_file,  sample_name = args.sample_name, parameters = ini,
-                      assembly = args.assembly, no_processes = args.no_processes)
+                      assembly = args.assembly, no_processes = args.no_processes, verbosity = args.verbosity)
     
     sample.analyze ()
+    sample.shutdown_logger()
+    sample.pickle_genome()
+    
+    with open (args.sample_name + '.bed', 'w') as bed:
+        bed.writelines (sample.report())
     
     print ('All done')
     

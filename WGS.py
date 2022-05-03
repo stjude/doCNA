@@ -1,9 +1,11 @@
 import logging
+import pickle as pkl
 from doCNA import Genome
 
 class WGS:
+    """Class to handle WGS read counts file and create the genome."""
     def __init__ (self, wgs_file_name,  sample_name, parameters, assembly = 'hg19',  
-                  no_processes = 1):
+                  no_processes = 1, verbosity = 'INFO'):
         
         self.sample_name = sample_name
         self.assembly = assembly
@@ -12,17 +14,24 @@ class WGS:
         self.config = parameters
         self.SG_file = open (assembly + self.config['Input']['SuperGood_core_name'], 'rb')
         self.CB_file = open (assembly + self.config['Input']['cytoband_core_name'], 'r')
-        self.logger = self.create_logger ()
+        self.logger = self.create_logger (verbosity)
         self.logger.debug ("WGS object created.")
         
-    def create_logger (self):
+    def create_logger (self, verbosity):
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.DEBUG)
-        fh = logging.FileHandler(self.sample_name + '.log')
+        fh = logging.FileHandler(self.sample_name + '.log', mode = 'w')
         fh.setLevel(logging.DEBUG)
-        fh_formatter = logging.Formatter('%(asctime)s %(name)s: %(funcName)s: %(levelname)s: %(message)s')
+        #%(funcName)s:
+        fh_formatter = logging.Formatter('%(asctime)s %(name)s: %(levelname)s: %(message)s')
         fh.setFormatter(fh_formatter)
         logger.addHandler(fh)
+        
+        sh = logging.StreamHandler ()
+        sh.setLevel (verbosity)
+        sh.setFormatter (fh_formatter)
+        logger.addHandler (sh)
+        
         return logger
             
     def analyze (self):
@@ -33,21 +42,33 @@ class WGS:
                          self.config['InputColumns']['ref_count'],
                          self.config['InputColumns']['alt_count'],
                          self.config['InputColumns']['Type']]
-        
+        self.logger.debug ('Genome object created.')
         self.genome.retrive_counts_create_chromosomes (data_file = self.wgs_file, #SG_file = self.SG_file,
                                                        columns = input_columns)
+        self.logger.debug ('Counts data retrived.')
         self.logger.info ('Segmenting genome.')
         self.genome.segment_genome ()
         self.logger.info ('Ready to report.')
 
     #this probably needs to be split into more functions
-    def report (self):
-        #return self.genome.bed 
-        pass
+    def report (self, type = 'bed'):
+        return self.genome.report(type)
 
+    def shutdown_logger(self):
+        handlers = self.logger.handers[:]
+        for handler in handlers:
+            self.logger.removeHandler(handler)
+            handler.close()
 
+    def pickle_genome (self):
+        with open (self.sample_name+'.pkl', 'wb') as out:
+            pkl.dump (self.genome, out, 4)
+        #test is closing file handlers in logger allows pickling, so sort of destructor
+    
+    
     def __del__ (self):
         self.wgs_file.close ()
         if self.SG_file is not None:
             self.SG_file.close ()
         self.CB_file.close ()
+
