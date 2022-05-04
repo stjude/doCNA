@@ -7,12 +7,18 @@ import scipy.optimize as opt
 from doCNA import Testing
 
 E_SYMBOL = 'E'
+MAX_CLON_THRESHOLD_FOR_SENSITIVE = 0.4
+MIN_CLON_THRESHOLD_FOR_FULL = 0.2
+
 
 class Segment:
-    def __init__ (self, data, config, logger, genome_medians):
+    """Class to calculate clonality and find the model."""
+    def __init__ (self, data, config, logger, genome_medians, segmentation_score, segmentation_symbol) -> None:
         self.data = data
         self.config = config
         self.genome_medians = genome_medians
+        self.segmentation_score = segmentation_score
+        self.segmentation_symbol = segmentation_symbol
         self.name = data['chrom'].values[0]+ ':'+str(data['position'].min())+'-'+str(data['position'].max())
         #-{self.name}
         self.logger = logger.getChild (f'{self.__class__.__name__}')
@@ -20,33 +26,35 @@ class Segment:
         self.symbol = self.symbols.index[0]
         self.estimate_parameters ()
         self.select_model ()
-        self.test_self ()
+        #self.test_self ()
         self.logger.debug ('Segment created.')
         
     def __repr__(self) -> str:
         return '\n'.join ([self.name, str(self.parameters)])
     
     def estimate_parameters (self):
+        #sometimes, even if classified, it's wrong model
+        
         if self.symbol == E_SYMBOL:
             self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL,],
                                              self.genome_medians['VAF']['fb'],
                                              self.genome_medians['COV']['m'])
-                
+            if self.parameters['k'] > MAX_CLON_THRESHOLD_FOR_SENSITIVE:
+                self.logger.info (f"Estimated clonality {self.parameters['k']} above threshold for sensitive model: {MAX_CLON_THRESHOLD_FOR_SENSITIVE}")
+                self.parameters = get_full (self.data,
+                                            self.genome_medians['VAF']['fb'],
+                                            self.genome_medians['HE']['b'])
+            self.logger.info (f"Estimated clonality {self.parameters['k']}")
         else:
             self.parameters = get_full (self.data,
                                         self.genome_medians['VAF']['fb'],
                                         self.genome_medians['HE']['b'])
-        
-    def test_self (self):
-        if self.parameters['success']:
-            m0 = self.parameters['m']
-            v = self.data['vaf'].values
-            m = self.data['cov'].values
-        
-            self.self_test_p = [get_norm_p (v - np.median(v)),
-                                  get_norm_p (m - m0)]
-        else:
-            self.self_test_p = [np.nan, np.nan]
+            if self.parameters['k'] < MIN_CLON_THRESHOLD_FOR_FULL:
+                self.logger.info (f"Estimated clonality {self.parameters['k']} below threshold for full model: {MIN_CLON_THRESHOLD_FOR_FULL}")
+                self.parameters = get_sensitive (self.data.loc[self.data['vaf'] < 1 - 1/self.genome_medians['COV']['m']],
+                                                 self.genome_medians['VAF']['fb'],
+                                                 self.genome_medians['COV']['m'])
+            self.logger.info (f"Estimated clonality {self.parameters['k']}.")
     
     def report (self, type = 'bed'):
         namestr = self.name.replace (':', '\t').replace ('-', '\t')
@@ -57,7 +65,8 @@ class Segment:
         return string
     
     def select_model (self):
-        #add 'model' and 'clonality' and 'distance' keys to self.parameters
+        #add 'model' and 'clonality' and 'd(istance)' keys to self.parameters
+        
         if self.parameters['success']:
             m = self.parameters['m']
             v = self.parameters['ai']
@@ -65,23 +74,17 @@ class Segment:
         
             self.distances = np.array ([calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
         
+            #ordering of presets will prioritize models
+            # cn2 should be before cn4, for example
             picked = np.where(self.distances == self.distances.min())[0][0]
-                
+            
+            self.parameters['d'] = self.distances.min()
             self.parameters['model'] = list(model_presets.keys())[picked]
             self.parameters['k'] = model_presets[self.parameters['model']].k(m,v,m0)
         else:
             self.parameters['model'] = 'NA'
             self.parameters['k'] = np.nan
             
-def get_norm_p (values, sinit = 0.05):
-    """Tests if normally distributed around zero."""
-    def cdf(x,s):
-        return sts.norm.cdf (x, 0, s)
-    
-    popt, pcov = opt.curve_fit (cdf, np.sort(values), np.linspace (0,1, len(values)), p0 = [sinit])
-    pks = sts.kstest (values, cdf, args = popt).pvalue
-    return -np.log10 (pks)
-
 def calculate_distance (preset, m, ai, m0):
     return np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
     
@@ -124,7 +127,7 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
         dv, v0, a = popt
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'success' : True}
         
-    except:
+    except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False}
     
     return parameters 
@@ -156,7 +159,7 @@ def get_full (data, mG, b):
                                               (0.5, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True} 
-    except:
+    except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False}
     return parameters
 

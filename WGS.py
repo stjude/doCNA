@@ -1,7 +1,9 @@
 import logging
+import pickle as pkl
 from doCNA import Genome
 
 class WGS:
+    """Class to handle WGS read counts file and create the genome."""
     def __init__ (self, wgs_file_name,  sample_name, parameters, assembly = 'hg19',  
                   no_processes = 1, verbosity = 'INFO'):
         

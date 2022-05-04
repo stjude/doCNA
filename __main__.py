@@ -37,6 +37,11 @@ def main():
                       assembly = args.assembly, no_processes = args.no_processes, verbosity = args.verbosity)
     
     sample.analyze ()
+    sample.shutdown_logger()
+    sample.pickle_genome()
+    
+    with open (args.sample_name + '.bed', 'w') as bed:
+        bed.writelines (sample.report())
     
     with open (args.sample_name + '.bed', 'w') as bed:
         bed.writelines (sample.report())

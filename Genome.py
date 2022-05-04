@@ -8,6 +8,7 @@ from doCNA import Chromosome
 SEX_CHROMS = ['chrX', 'chrY']
 
 class Genome:
+    """Class to run genome wide tests of HE and create chromosomes."""
     def __init__(self, sample_name, logger, config, CB_file = None, no_processes = 1):
         self.sample_name = sample_name
         self.no_processes = no_processes
@@ -62,7 +63,8 @@ class Genome:
         self.genome_medians['COV'] = self.COV.get_genome_medians()
         self.logger.info ('Starting HE test genome.')                        
         self.HE = Testing.Testing ('HE', 
-                                   {chrom : self.chromosomes[chrom] for chrom in self.COV.get_inliers()},
+                                   #{chrom : self.chromosomes[chrom] for chrom in self.COV.get_inliers()},
+                                   self.chromosomes,
                                    self.logger)
         self.HE.run_test(self.no_processes)
         self.HE.analyze (parameters = self.config['HE'])
@@ -96,19 +98,21 @@ class Genome:
                     self.chromosomes [sc.name] = sc
         else:
             for chrom in self.chromosomes.keys():
-                self.chromosomes[chrom].find_segments()
-                self.chromosomes[chrom].generate_segments ()
+                self.chromosomes[chrom].find_runs()
+                #self.chromosomes[chrom].generate_segments ()
         self.logger.info ("Segmentation finished.")
         
     def report (self, type = 'bed'):
         keys = list(self.chromosomes.keys())
         keys.sort(key = lambda x: int(x[3:]))
         return '\n'.join([self.chromosomes[key].report() for key in keys])
-        
+   
+    def get_genome_wide_threshold (self):
+        pass     
 
 def f (c):
-    c.find_segments()
-    c.generate_segments ()
+    c.find_runs()
+    #c.generate_segments ()
     return c    
 
     
