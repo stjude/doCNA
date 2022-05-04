@@ -26,7 +26,7 @@ class Distribution:
         self.all_parameters = {}
         self.all_parameters['single'] = single_G_par
                 
-        z = np.abs(values-single_G_par['m'][0])/single_G_par['s'][0]
+        z = np.abs(values-single_G_par['m'])/single_G_par['s']
         string = list ('O' * len(values))
         for i in np.where ((z < thr_z))[0]:
             string[i] = 'B'
@@ -59,38 +59,26 @@ class Distribution:
         
     def fail_normal (self):
         return self.key == 'double'
-
-    #To remove after test
-    def combinations (self):
-        if self.key == 'single':
-            comb = [(0,0),]
-        else:
-            comb = [(0,1),(1,0)]
-        return comb
         
-    def combinations_of_params (self, dim = 1, key = 'single', reverse = False):
+    def combinations_of_params (self, size = 1, key = 'single', reverse = False):
         """Method to generate parameters in desired shape"""
+        try:
+            parameters_sets = self.all_parameters[key]
+        except KeyError:
+            raise (f'The key: {key} not in solutions. Go away!')
         
-        if key == 'double':
-            assert key == self.key, "No double distribution!"
-            m = self.all_parameters['double']['m']
-            s = self.all_parameters['double']['s']
-        elif key == 'single':
-            if dim == 1:
-                m = self.all_parameters['single']['m'][0]
-                s = self.all_parameters['single']['s'][0]
-            elif dim == 2:
-                #ugly
-                m = np.array([self.all_parameters['single']['m'][0],self.all_parameters['single']['m'][0]])
-                s = np.array([self.all_parameters['single']['s'][0],self.all_parameters['single']['s'][0]])
-            else:
-                raise (f'Dim can be only 1 or 2. Dim = {dim} does not make much sense.')
-                
+        try:
+            m = parameters_sets[str(size)]['m']
+            s = parameters_sets[str(size)]['s']
+        except KeyError:
+            raise (f'The size: {size} and key: {key} not available. Go away!')
+        
         if reverse:
-            return m[:-1:-1], s[:-1:-1]
+            return m[::-1], s[::-1]
         else:
             return m, s
-    
+        
+            
     def to_string (self):
         return (self.parameters)
         
@@ -111,8 +99,14 @@ def fit_single_G (values, alpha, r):
     ksp = sts.kstest (a, sts.norm.cdf, args = popt)
 
     #report
-    return {'p' : ksp.pvalue, 'm': np.array([popt[0]]),
-            's': np.array([popt[1]]), 'thr' : thr, 'a' : np.ones(1)}
+    return {'p' : ksp.pvalue, 
+            'm': popt[0],
+            's': popt[1],
+            '1' : {'m': np.array(popt[0]),
+                   's': np.array(popt[1])},
+            '2' : {'m': np.array([popt[0], popt[0]]),
+                   's': np.array([popt[1], popt[1]])},
+            'thr' : thr, 'a' : np.ones(1)}
 
 def fit_double_G (values_all, alpha, r):
     #p0 = (0.5, np.median(values[:int(len(values)/2)]), np.percentile(values,40)-np.percentile(values,10),
@@ -155,8 +149,11 @@ def fit_double_G (values_all, alpha, r):
     da0,dm0,ds0,dm1,ds1 = np.sqrt(np.diag(pcov))
     ksp = sts.kstest (a, gaus2, args = popt)
 
-    return {'p' : ksp.pvalue, 'm': np.array([m0,m1]), 
-            's': np.array([s0,s1]), 'a' : np.array([a0, 1-a0]),
+    return {'p' : ksp.pvalue,
+            'm' : np.array([m0,m1]),
+            's' : np.array([s0,s1]),
+            '2':{'m': np.array([m0,m1]), 
+                 's': np.array([s0,s1]), 'a' : np.array([a0, 1-a0])},
             'thr' : (out_min, out_max)}
 
 def gaus2 (v, a, m0, s0, m1, s1):

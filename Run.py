@@ -167,6 +167,11 @@ class Run:
         x = np.array([self.dv, self.m, self.l]).T
         
         for m0, s0, labels in zip(*self.get_distributions()):
+            print ('m0.shape: ', m0)
+            print ('m0 = ', m0)
+            print('s0.shape: ', s0.shape)
+            print ('s0 = ', s0)
+            
             y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])**2/s0[np.newaxis,:,:])
             z = y.sum(axis = 1)
             
@@ -198,9 +203,9 @@ class Run:
     
     def get_distributions (self):
                 
-        dvm, dvs = self.dv_dist.combinations_of_params (dim = 1, key = 'single', reverse = False)
-        mm, ms = self.m_dist.combinations_of_params (dim = 1, key = 'single', reverse = False)
-        lm, ls = self.l_dist.combinations_of_params (dim = 1, key = 'single', reverse = False)
+        dvm, dvs = self.dv_dist.combinations_of_params (size = 1, key = 'single', reverse = False)
+        mm, ms = self.m_dist.combinations_of_params (size = 1, key = 'single', reverse = False)
+        lm, ls = self.l_dist.combinations_of_params (size = 1, key = 'single', reverse = False)
         zml = [np.array ((dvm, mm, lm))[:, np.newaxis]]
         zsl = [np.array ((dvs, ms, ls))[:, np.newaxis]]
         labels = [('B',)]
@@ -215,9 +220,9 @@ class Run:
             for dv_d in dv_directions:
                 for m_d  in m_directions:
                     for l_d in l_directions:
-                        dvm, dvs = self.dv_dist.combinations_of_params (dim = 2, key = self.dv_dist.key, reverse = dv_d)
-                        mm, ms = self.m_dist.combinations_of_params (dim = 2, key = self.m_dist.key, reverse = m_d)
-                        lm, ls = self.l_dist.combinations_of_params (dim = 2, key = self.l_dist.key, reverse = l_d)
+                        dvm, dvs = self.dv_dist.combinations_of_params (size = 2, key = self.dv_dist.key, reverse = dv_d)
+                        mm, ms = self.m_dist.combinations_of_params (size = 2, key = self.m_dist.key, reverse = m_d)
+                        lm, ls = self.l_dist.combinations_of_params (size = 2, key = self.l_dist.key, reverse = l_d)
                         
                         zml.append (np.array ((dvm, mm, lm)))
                         zsl.append (np.array ((dvs, ms, ls)))

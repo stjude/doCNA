@@ -17,8 +17,9 @@ class Genome:
         self.logger = logger.getChild (f'{self.__class__.__name__}')
         self.genome_medians = {}
         self.logger.debug ("Object genome created.")
-    #reads-in and filters through SuperGood
+    
     def retrive_counts_create_chromosomes (self, data_file, columns, SG_file = None):
+        """Reads the data in and filters through SuperGood list, if not None"""
         alldata = pd.read_csv (data_file, sep = '\t', usecols = columns)[columns]
         alldata.columns = ['chrom','position','ref_count', 'alt_count', 'Type']           
 

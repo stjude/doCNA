@@ -38,6 +38,7 @@ class Chromosome:
         self.data['symbol'] = N_SYMBOL       
         indexes = self.data.loc[z < threshold, :].index.values.tolist()
         self.data.loc[indexes, 'symbol'] = E_SYMBOL
+        self.data['subsymbol'] = ''
         self.logger.debug (f"""Chromosome {self.name} marked based on parameters
 v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         
@@ -65,7 +66,6 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
                                     (self.data['position'] <= end), 'symbol'] = U_SYMBOL
                 self.Uruns.append ((start, end))
     
-    #or whatever name
     def find_runs (self):
         """Method to generate runs. Runs segment themselves."""
         self.find_Nruns ()
@@ -73,24 +73,24 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         self.runs = []
         for nr in self.Nruns:
             self.runs.append(Run.Run (self.data.loc[(self.data['position'] >= nr[0])&(self.data['position'] <= nr[1])],
-                                  symbol = 'N',
-                                  logger = self.logger,
-                                  genome_medians = self.genome_medians))
+                                      symbol = 'N',
+                                      logger = self.logger,
+                                      genome_medians = self.genome_medians))
         
         for ur in self.Uruns:
             self.runs.append(Run.Run (self.data.loc[(self.data['position'] >= nr[0])&(self.data['position'] <= nr[1])],
-                                  symbol = 'U',
-                                  logger = self.logger,
-                                  genome_medians = self.genome_medians))
+                                      symbol = 'U',
+                                      logger = self.logger,
+                                      genome_medians = self.genome_medians))
             
         #Eruns needs to be found first
-        start = self.data['position'].min ()
-        end = self.data['position'].max ()
+        #start = self.data['position'].min ()
+        #end = self.data['position'].max ()
         
         self.runs.append (Run.Run (self.data.loc[self.data['symbol'] == 'E'],
-                               symbol = 'E',
-                               logger = self.logger,
-                               genome_medians = self.genome_medians))
+                                   symbol = 'E',
+                                   logger = self.logger,
+                                   genome_medians = self.genome_medians))
         
     def generate_segments (self):
         """Method to generate genomic segments of same CNA status, based on Runs."""
