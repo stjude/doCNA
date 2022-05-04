@@ -226,7 +226,10 @@ def VAF_test (data, m, **kwargs):
     
     
     counts = []
-    for c,d in data.loc[data['symbol'] == E_SYMBOL].groupby (by = 'cov'):
+    cov_min = m[0] - 2*np.sqrt(m[0])
+    cov_max = m[0] + 2*np.sqrt(m[0])
+    filt = (data['symbol'] == E_SYMBOL) & (data['cov'] > cov_min) & (data['cov'] < cov_max)
+    for c,d in data.loc[filt].groupby (by = 'cov'):
         h = np.histogram(d['alt_count'].values, bins = np.arange(0,c+2)-0.5)
         n = len(d)
         counts.append ((c, h[0], n))
