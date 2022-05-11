@@ -33,7 +33,7 @@ class Run:
         self.logger = logger.getChild(f'{self.__class__.__name__}-{self.name}')
         self.logger.debug ("Object created")
         self.analyze ()
-        self.logger.info ("Run analyzed")
+        self.logger.info (f"Run analyzed, {len(self.solutions)} solutions")
         
     def analyze (self):
         self.get_windows (n = SNPS_IN_WINDOW)
@@ -44,12 +44,12 @@ class Run:
             self.solve_windows ()
         else:
             self.logger.info (f'Run {self.name} is to short to segment.')
-            self.solutions = (Solution (chi2 = np.nan,
+            self.solutions = [Solution (chi2 = np.nan,
                                         chi2_noO = np.nan,
                                         positions = [(self.windows_positions[0][0], self.windows_positions[-1][1])],
                                         p_norm = [(np.nan, np.nan, np.nan)],
                                         segments = '',
-                                        merged_segments = ''))  
+                                        merged_segments = '')]
         
     def get_windows (self, n = 1000):
         tmp = self.data.loc[[s == self.symbol for s in self.data['symbol']], ]
@@ -167,10 +167,10 @@ class Run:
         x = np.array([self.dv, self.m, self.l]).T
         
         for m0, s0, labels in zip(*self.get_distributions()):
-            print ('m0.shape: ', m0)
-            print ('m0 = ', m0)
-            print('s0.shape: ', s0.shape)
-            print ('s0 = ', s0)
+            #print ('m0.shape: ', m0)
+            #print ('m0 = ', m0)
+            #print('s0.shape: ', s0.shape)
+            #print ('s0 = ', s0)
             
             y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])**2/s0[np.newaxis,:,:])
             z = y.sum(axis = 1)
@@ -198,8 +198,11 @@ class Run:
                                             p_norm = psl,
                                             segments = ''.join(segments),
                                             merged_segments = ''.join(merged_segments)))
-        
         self.solutions.sort (key = lambda x: x.chi2_noO)        
+    
+    def test_windows (self):
+        """Function that tests if found runs can be further subdivided."""
+        pass
     
     def get_distributions (self):
                 
@@ -230,8 +233,11 @@ class Run:
                         labels.append (('C','D'))
         return zml, zsl, labels 
 
+    def tostring (self):
+        return self.name + '-' + self.symbol
+    
     def __repr__(self) -> str:
-        pass
+        return self.tostring()
         
 def get_norm_p (values, sinit = 0.05):
     """Tests if normally distributed around zero."""

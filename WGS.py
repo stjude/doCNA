@@ -51,8 +51,8 @@ class WGS:
         self.logger.info ('Ready to report.')
 
     #this probably needs to be split into more functions
-    def report (self, type = 'bed'):
-        return self.genome.report(type)
+    def report (self, report_type = 'bed'):
+        return self.genome.report(report_type)
 
     def shutdown_logger(self):
         handlers = self.logger.handers[:]

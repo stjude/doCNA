@@ -100,20 +100,20 @@ class Genome:
         else:
             for chrom in self.chromosomes.keys():
                 self.chromosomes[chrom].find_runs()
-                #self.chromosomes[chrom].generate_segments ()
+                self.chromosomes[chrom].generate_segments ()
         self.logger.info ("Segmentation finished.")
         
-    def report (self, type = 'bed'):
+    def report (self, report_type = 'bed'):
         keys = list(self.chromosomes.keys())
         keys.sort(key = lambda x: int(x[3:]))
-        return '\n'.join([self.chromosomes[key].report() for key in keys])
+        return '\n'.join([self.chromosomes[key].report(report_type) for key in keys])
    
     def get_genome_wide_threshold (self):
         pass     
 
 def f (c):
     c.find_runs()
-    #c.generate_segments ()
+    c.generate_segments ()
     return c    
 
     

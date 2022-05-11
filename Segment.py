@@ -28,7 +28,10 @@ class Segment:
         self.select_model ()
         #self.test_self ()
         self.logger.debug ('Segment created.')
-        
+    
+    def tostring(self) -> str:
+        return '\n'.join ([self.name, str(self.parameters)])
+            
     def __repr__(self) -> str:
         return '\n'.join ([self.name, str(self.parameters)])
     
@@ -39,31 +42,30 @@ class Segment:
             self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL,],
                                              self.genome_medians['VAF']['fb'],
                                              self.genome_medians['COV']['m'])
-            if self.parameters['k'] > MAX_CLON_THRESHOLD_FOR_SENSITIVE:
-                self.logger.info (f"Estimated clonality {self.parameters['k']} above threshold for sensitive model: {MAX_CLON_THRESHOLD_FOR_SENSITIVE}")
+            if self.parameters['ai'] > MAX_CLON_THRESHOLD_FOR_SENSITIVE:
+                self.logger.info (f"Estimated clonality {self.parameters['ai']} above threshold for sensitive model: {MAX_CLON_THRESHOLD_FOR_SENSITIVE}")
                 self.parameters = get_full (self.data,
                                             self.genome_medians['VAF']['fb'],
                                             self.genome_medians['HE']['b'])
-            self.logger.info (f"Estimated clonality {self.parameters['k']}")
+            self.logger.info (f"Estimated clonality {self.parameters['ai']}")
         else:
             self.parameters = get_full (self.data,
                                         self.genome_medians['VAF']['fb'],
                                         self.genome_medians['HE']['b'])
-            if self.parameters['k'] < MIN_CLON_THRESHOLD_FOR_FULL:
-                self.logger.info (f"Estimated clonality {self.parameters['k']} below threshold for full model: {MIN_CLON_THRESHOLD_FOR_FULL}")
+            if self.parameters['ai'] < MIN_CLON_THRESHOLD_FOR_FULL:
+                self.logger.info (f"Estimated clonality {self.parameters['ai']} below threshold for full model: {MIN_CLON_THRESHOLD_FOR_FULL}")
                 self.parameters = get_sensitive (self.data.loc[self.data['vaf'] < 1 - 1/self.genome_medians['COV']['m']],
                                                  self.genome_medians['VAF']['fb'],
                                                  self.genome_medians['COV']['m'])
-            self.logger.info (f"Estimated clonality {self.parameters['k']}.")
+            self.logger.info (f"Estimated clonality {self.parameters['ai']}.")
     
-    def report (self, type = 'bed'):
+    def report (self, report_type = 'bed'):
         namestr = self.name.replace (':', '\t').replace ('-', '\t')
-        #print (namestr + [self.parameters['m'], self.parameters['ai'],self.parameters['model'], self.parameters['k']])
-        string = '\t'.join([namestr] + [str(self.parameters['m']), str(self.parameters['ai']),
-                                      self.parameters['model'], str(self.parameters['k'])])
+        if report_type == 'bed':
+            report = '\t'.join([self.parameters['m'], self.parameters['model'], self.parameters['ai']])
         
-        return string
-    
+        return namestr + '\t' + report
+        
     def select_model (self):
         #add 'model' and 'clonality' and 'd(istance)' keys to self.parameters
         
@@ -144,6 +146,7 @@ def get_full (data, mG, b):
         return vaf_cdf_c (v, dv, a, lerr, f, vaf, b, cov)
     
     v0 = 0.5
+    #why on earth there is 0.09?!    
     s0 = np.sqrt (0.09/m)
     v, c = np.unique(vafs[~np.isnan(vafs)], return_counts = True)
 
@@ -154,13 +157,18 @@ def get_full (data, mG, b):
     dv0 = v0 - np.median (v[v < v0])
 
     try:
-        popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = [dv0, ones0/c.sum(), 2, f0, 0.5, b], 
+        p0 = [dv0, ones0/c.sum(), 2, f0, 0.5, b]
+        popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
                                               (0.5, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True} 
     except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False}
+    except ValueError:
+        print (p0)
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False}
+        
     return parameters
 
 def vaf_cnai (v, dv, a, vaf,b, cov):

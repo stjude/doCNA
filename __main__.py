@@ -41,7 +41,10 @@ def main():
     #sample.pickle_genome()
     
     with open (args.sample_name + '.bed', 'w') as bed:
-        bed.writelines (sample.report())
+        bed.writelines (sample.report(report_type = 'bed'))
+    
+    with open (args.sample_name + '.run', 'w') as full:
+        bed.writelines (sample.report(report_type = 'run'))
     
     #sample.pickle_genome ()
     
