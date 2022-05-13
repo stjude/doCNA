@@ -61,6 +61,8 @@ class Genome:
             self.logger.critical (f"Coverage is below threshold {self.COV.medians['m']} < {self.config['COV']['min_cov']}")
             exit (0)
         
+        self.logger.info ("Genomewide coverage: " + f"\n" + str(self.COV.results))
+        
         self.genome_medians['COV'] = self.COV.get_genome_medians()
         self.logger.info ('Starting HE test genome.')                        
         self.HE = Testing.Testing ('HE', 
@@ -69,17 +71,21 @@ class Genome:
                                    self.logger)
         self.HE.run_test(self.no_processes)
         self.HE.analyze (parameters = self.config['HE'])
+       
+        self.logger.info ("Genomewide heterozygosity:" + "\n" + str(self.HE.results))
         self.genome_medians['HE'] = self.HE.get_genome_medians()        
               
         self.logger.info ('First round of H/E marking.')
         for chrom in self.chromosomes.keys():
             self.chromosomes[chrom].markE_onHE (self.HE.get_parameters(chrom), float(self.config['HE']['z_thr']))
-        
         self.logger.info ('Testing first round of H/E marking.')    
         self.VAF = Testing.Testing ('VAF', self.chromosomes, self.logger)
         self.VAF.run_test (self.no_processes, self.COV.medians['m'])
         self.VAF.analyze (parameters = self.config['VAF'])
+        self.logger.info("Genomewide VAF:" + " \n" + str(self.VAF.results))
         self.genome_medians['VAF'] = self.VAF.get_genome_medians()
+        
+        self.logger.info("Genome medians:" + " \n" + str(self.genome_medians))
         
         #those that fail need to be marked on full model
         for chrom in self.chromosomes.keys():

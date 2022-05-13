@@ -62,7 +62,7 @@ class Segment:
     def report (self, report_type = 'bed'):
         namestr = self.name.replace (':', '\t').replace ('-', '\t')
         if report_type == 'bed':
-            report = '\t'.join([self.parameters['m'], self.parameters['model'], self.parameters['ai']])
+            report = '\t'.join([str(p) for p in [self.parameters['m'], self.parameters['model'], self.parameters['ai']]])
         
         return namestr + '\t' + report
         
@@ -152,7 +152,13 @@ def get_full (data, mG, b):
 
     cnor = np.cumsum(c)/np.sum(c)
     ones0 = c[v >= (cov-1)/cov].sum()
-    f0 = c[v < v0].sum()/(c.sum() - ones0) 
+    
+    #####
+    #####
+    try:
+        f0 = c[v < v0].sum()/(c.sum() - ones0) 
+    except RuntimeWarning:
+        print (c.sum(), v.min())
 
     dv0 = v0 - np.median (v[v < v0])
 

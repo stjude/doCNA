@@ -1,6 +1,6 @@
 import argparse
 import configparser
-
+import pandas as pd
 
 from doCNA import WGS
 
@@ -44,9 +44,13 @@ def main():
         bed.writelines (sample.report(report_type = 'bed'))
     
     with open (args.sample_name + '.run', 'w') as full:
-        bed.writelines (sample.report(report_type = 'run'))
+        full.writelines (sample.report(report_type = 'run'))
     
-    #sample.pickle_genome ()
+    #move that to WGS.py
+    keys = sample.genome.chromosomes.keys()
+    data = pd.concat ([sample.genome.chromosomes[k].data for k in keys])
+    
+    data.to_csv (args.sample_name + '.dat', index = None, sep = '\t')
     
     print ('All done')
     

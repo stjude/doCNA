@@ -38,7 +38,6 @@ class Chromosome:
         self.data['symbol'] = N_SYMBOL       
         indexes = self.data.loc[z < threshold, :].index.values.tolist()
         self.data.loc[indexes, 'symbol'] = E_SYMBOL
-        self.data['subsymbol'] = ''
         self.logger.debug (f"""Chromosome {self.name} marked based on parameters
 v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         
@@ -120,21 +119,24 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
                 
             for start, end in startsandends:
                     data_view = self.data.loc[(self.data['position'] >= start) &\
-                                              (self.data['position'] >= end) &\
+                                              (self.data['position'] <= end) &\
                                               (self.data['symbol'] == run.symbol)]
-                    self.segments.append (Segment.Segment (data = data_view, 
-                                                           config = self.config, 
-                                                           logger = self.logger, 
-                                                           genome_medians = self.genome_medians,
-                                                           segmentation_score = best_solution.p_norm,
-                                                           segmentation_symbol = run.symbol))
+                    if len(data_view) == 0:
+                        self.logger.error(f"Wrong segment {start}-{end} in {run.name})")
+                    else:
+                        self.segments.append (Segment.Segment (data = data_view, 
+                                                               config = self.config, 
+                                                               logger = self.logger, 
+                                                               genome_medians = self.genome_medians,
+                                                               segmentation_score = best_solution.p_norm,
+                                                               segmentation_symbol = run.symbol))
                 
     def find_Nruns (self):
         symbol_list = self.data.loc[(self.data['vaf'] < 1) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()
         self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = N_SYMBOL, E = E_SYMBOL)
         
         for run in self.Nruns_indexes:
-            tmp = self.data.loc[self.data['vaf'] < 1,].iloc[run[0]:run[1]].position.agg((min,max))
+            tmp = self.data.loc[self.data['vaf'] < 1,].iloc[run[0]:run[1],:].position.agg((min,max))
             self.data.loc[(self.data.position >= tmp['min'])&(self.data.position <= tmp['max']), 'symbol'] = N_SYMBOL
             self.Nruns.append ((tmp['min'], tmp['max']))
     
@@ -142,7 +144,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         if report_type == 'bed':
             data = '\n'.join([s.report(report_type = 'bed') for s in self.segments])
         elif report_type == 'run':
-            data = '\n'.join([s.tostring() for s in self.runs])        
+            data = '\n'.join([s.report(report_type = 'short') for s in self.runs])        
         return data
     
 def analyze_string_N (symbol_list, N = 'N', E = 'E'):

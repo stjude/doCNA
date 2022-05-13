@@ -71,17 +71,14 @@ class Testing:
             #except if not a number
             self.logger.debug (f'Parameter {column} being analyzed with alpha = {alpha} and r = {r}')
             res = self.results[column].values
-            self.results[column + '_status'] = 'outlier'
-            #try:
             range = get_outliers_thrdist (self.results[column].values, alpha, r)
-            #except:
-            #    self.logger.warning ('Range estimation of {} failed. Using percentiles.'.format (column))
-            #    range = np.percentile (res, q = q)
             
             self.logger.info ('Estimated normal ragne of {} is from {} to {}'.format (column, *range))
             in_or_out = (self.results[column] > range[0]) & (self.results[column] < range[1])
-            status[column] = ['inlier' if iou else 'outlier' for iou in in_or_out]
+            self.results[column + '_status'] = in_or_out
             
+            status[column] = ['inlier' if iou else 'outlier' for iou in in_or_out]
+            self.logger.info (f"{sum(in_or_out)} chromosomes' {column} within range.")
             self.normal_range[column] = range
         
         self.status = pd.DataFrame.from_dict (status)
@@ -93,16 +90,17 @@ class Testing:
     def get_parameters (self, chromosome):
         #get chromosome parameters 
         try:
-            test_results = self.results['chromosome']
+            test_results = self.results.T[chromosome].T
         #or return medians
-        except:
+        except KeyError:
             test_results = self.medians
+            self.logger.debug (f"No parameters for chromosome {chromosome}")
         return test_results
     
     def get_status (self, chromosome):
         try:
             status = self.status[chromosome]
-        except:
+        except KeyError:
             status = 'NA'
         return status
     

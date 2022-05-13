@@ -5,6 +5,7 @@ import pandas as pd
 import scipy.optimize as opt
 
 from collections import namedtuple
+import warnings as warn
 
 from doCNA import Segment
 from doCNA import Distribution
@@ -67,9 +68,11 @@ class Run:
         
     def get_ai (self):
         if self.symbol == Chromosome.E_SYMBOL:
-            self.get_ai_sensitive()     
+            self.get_ai_sensitive()
+            print ('Pass get_ai_sensitive')     
         else:
             self.get_ai_full()
+            print ('Pass get_ai_full')
         
     def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.0, p_thr = 0.5, z_thr = 1.5):
         tmpf = 1
@@ -99,7 +102,7 @@ class Run:
                 v0l.append (popt[1])
         
             tmpf = sum ([d < zero_thr for d in dvl])/len (dvl)
-            cov_mult += 0.05
+            cov_mult += 0.01
             #print ('cov_mult', cov_mult)
             #print ('tmpf: ', tmpf)
             
@@ -107,7 +110,9 @@ class Run:
         self.v0 = np.array (v0l)
         self.dv_dist = Distribution.Distribution (self.dv, p_thr = 0.5, thr_z = z_thr)
         self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult))        
-    
+        print ('Out of get_ai_sensitive.')
+        
+        
     def get_ai_full (self, z_thr = 2.5):
         
         def vaf_cdf (v, dv, a, lerr, f, vaf, b):
@@ -127,7 +132,10 @@ class Run:
 
             cnor = np.cumsum(c)/np.sum(c)
             ones0 = c[v >= (cov-1)/cov].sum()
-            f0 = c[v < v0].sum()/(c.sum() - ones0) 
+            try:
+                f0 = c[v < v0].sum()/(c.sum() - ones0) 
+            except RuntimeWarning: 
+                print (c.sum(), ones0)
 
             dv0 = v0 - np.median (v[v < v0])
 
@@ -236,6 +244,22 @@ class Run:
     def tostring (self):
         return self.name + '-' + self.symbol
     
+    def report (self, report_type = 'short'):
+        report_types = ['short', 'full']
+        if report_type not in report_types:
+            warn.warn ('Unknown report type. Use "short" instead.')
+            report_type = 'short'
+        
+        if report_type == 'short':
+            report = ';'.join([self.name, self.symbol, 
+                               f'#solutions: {len(self.solutions)}',
+                               f'#segments: {len(self.solutions[0].positions)}'])
+        elif report_type == 'full':
+            report = ';'.join([self.name, self.symbol,
+                               f'#solutions: {len(self.solutions)}',
+                               f'#segments: {len(self.solutions[0].positions)}'])
+        return report
+    
     def __repr__(self) -> str:
         return self.tostring()
         
@@ -260,7 +284,7 @@ def merge_symbols (in_string, outliers_threshold = 2):
     string = list(in_string)
     symbols, counts = rle_encode (string)
 
-    argsort = np.argsort (counts)[-1:0:-1]
+    argsort = np.argsort (counts)[::-1]
     symbolindex = 0
 
     while symbolindex < len(symbols)-1:  #(min(counts) <= outliers_threshold)&(counter < 10):
@@ -295,7 +319,7 @@ def merge_symbols (in_string, outliers_threshold = 2):
                 string[i] = symbol.copy()
         
             symbols, counts = rle_encode (string)
-            argsort = np.argsort (counts)[-1:0:-1]
+            argsort = np.argsort (counts)[::-1]
             symbolindex = 0
         
     bed = []
