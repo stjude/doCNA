@@ -51,7 +51,8 @@ class Run:
                                         p_norm = [(np.nan, np.nan, np.nan)],
                                         segments = '',
                                         merged_segments = '')]
-        
+            self.logger.info (f'One solution devised for unsegmented run.')
+    
     def get_windows (self, n = 1000):
         tmp = self.data.loc[[s == self.symbol for s in self.data['symbol']], ]
         N = np.max((int(np.floor(len(tmp)/n)),1))
@@ -69,15 +70,12 @@ class Run:
     def get_ai (self):
         if self.symbol == Chromosome.E_SYMBOL:
             self.get_ai_sensitive()
-            print ('Pass get_ai_sensitive')     
         else:
             self.get_ai_full()
-            print ('Pass get_ai_full')
         
     def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.0, p_thr = 0.5, z_thr = 1.5):
         tmpf = 1
         s0 = np.sqrt (0.25/self.genome_medians['COV']['m'])
-        #print ('s0: ', s0)
         
         vafs = []
         for window in self.windows:
@@ -87,7 +85,6 @@ class Run:
             dvl = []
             v0l = []
             s = s0/np.sqrt(cov_mult)
-            #print (s) 
             def make_two_gauss (v, dv, v0):
                 a = 0.5
                 return a*sts.norm.cdf (v, v0 - dv, s) + (1-a)*sts.norm.cdf (v, v0 + dv, s)
@@ -103,16 +100,12 @@ class Run:
         
             tmpf = sum ([d < zero_thr for d in dvl])/len (dvl)
             cov_mult += 0.01
-            #print ('cov_mult', cov_mult)
-            #print ('tmpf: ', tmpf)
             
         self.dv = np.array (dvl)
         self.v0 = np.array (v0l)
         self.dv_dist = Distribution.Distribution (self.dv, p_thr = 0.5, thr_z = z_thr)
         self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult))        
-        print ('Out of get_ai_sensitive.')
-        
-        
+            
     def get_ai_full (self, z_thr = 2.5):
         
         def vaf_cdf (v, dv, a, lerr, f, vaf, b):
@@ -134,12 +127,9 @@ class Run:
             ones0 = c[v >= (cov-1)/cov].sum()
             try:
                 f0 = c[v < v0].sum()/(c.sum() - ones0) 
-            except RuntimeWarning: 
-                print (c.sum(), ones0)
-
-            dv0 = v0 - np.median (v[v < v0])
-
-            try:
+            
+                dv0 = v0 - np.median (v[v < v0])
+              
                 popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = [dv0, ones0/c.sum(), 2, f0, 0.5, b], 
                                             bounds = ((0,   0,   1, 0, 0.45, 1),
                                                       (0.5, 0.95, 5, 1, 0.55, 10)))
@@ -175,31 +165,26 @@ class Run:
         x = np.array([self.dv, self.m, self.l]).T
         
         for m0, s0, labels in zip(*self.get_distributions()):
-            #print ('m0.shape: ', m0)
-            #print ('m0 = ', m0)
-            #print('s0.shape: ', s0.shape)
-            #print ('s0 = ', s0)
             
             y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])**2/s0[np.newaxis,:,:])
             z = y.sum(axis = 1)
             
             dist_index = np.asarray(z == z.min(axis = 1)[:,np.newaxis]).nonzero()[1]
             segments = [labels[i] for i in dist_index]
-            
              
             for i in np.where(z.min(axis = 1) > z_thr**2)[0]:
                 segments [i] = 'O'
-            
             indexes, merged_segments = merge_symbols (''.join(segments))
-        
-            chi2 = z[:,dist_index].sum()
+            chi2 = z[:,dist_index].sum(axis = 0)
             
             psl = []
             for si, ei in indexes:
                 psl.append ((get_norm_p (self.dv[si:ei+1]),
                              get_norm_p (self.m[si:ei+1],
                              get_norm_p (self.l[si:ei+1]))))
-             
+            
+            print ((merged_segments == 'O'))
+                        
             self.solutions.append(Solution (chi2 = chi2.sum(),
                                             chi2_noO = chi2[merged_segments != 'O'].sum(),
                                             positions = [(self.windows_positions[si][0], self.windows_positions[ei][1]) for si, ei in indexes],
@@ -207,7 +192,9 @@ class Run:
                                             segments = ''.join(segments),
                                             merged_segments = ''.join(merged_segments)))
         self.solutions.sort (key = lambda x: x.chi2_noO)        
-    
+        best_runs = ','.join (['(' + str(s)+ ',' + str(e)+ ')' for s,e in self.solutions[0].positions])
+        self.logger.info ('Best solution: ' + best_runs)
+        
     def test_windows (self):
         """Function that tests if found runs can be further subdivided."""
         pass
@@ -245,7 +232,7 @@ class Run:
         return self.name + '-' + self.symbol
     
     def report (self, report_type = 'short'):
-        report_types = ['short', 'full']
+        report_types = ['short', 'full', 'solution']
         if report_type not in report_types:
             warn.warn ('Unknown report type. Use "short" instead.')
             report_type = 'short'
@@ -258,6 +245,12 @@ class Run:
             report = ';'.join([self.name, self.symbol,
                                f'#solutions: {len(self.solutions)}',
                                f'#segments: {len(self.solutions[0].positions)}'])
+        elif report_type == 'solution':
+            reports = [self.name]
+            for solution in self.solutions:
+                sol_str = '    ' + '; '.join([str(solution.chi2), str(solution.chi2_noO), str(solution.positions), solution.merged_segments])
+                reports.append (sol_str)
+            report = '\n'.join (reports)
         return report
     
     def __repr__(self) -> str:
@@ -268,8 +261,11 @@ def get_norm_p (values, sinit = 0.05):
     def cdf(x,s):
         return sts.norm.cdf (x, 0, s)
     
-    popt, pcov = opt.curve_fit (cdf, np.sort(values), np.linspace (0,1, len(values)), p0 = [sinit])
-    pks = sts.kstest (values, cdf, args = popt).pvalue
+    try:
+        popt, pcov = opt.curve_fit (cdf, np.sort(values), np.linspace (0,1, len(values)), p0 = [sinit])
+        pks = sts.kstest (values, cdf, args = popt).pvalue
+    except opt.OptimizeWarning:
+        pks = np.nan    
     return pks
 
 def vaf_cnai (v, dv, a, vaf,b, cov):

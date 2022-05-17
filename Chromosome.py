@@ -100,18 +100,19 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         for ur in self.Uruns:
             unr.append ((ur[0], ur[1]))
         unr.sort (key = lambda x: x[0] )
-               
+        
+        startsandends = []
+        
         for run in self.runs:
             best_solution = run.solutions[0]
             #print (best_solution)
             if run.symbol != 'E':
-                startsandends = best_solution.positions
+                startsandends+= best_solution.positions
             else:
-                startsandends = []
                 for start, end in best_solution.positions:
                     current_start = start
                     for rstart, rend in unr:
-                        if (rstart < end):
+                        if (rstart < end) & (rend > start):
                             startsandends.append((current_start,rstart))
                             current_start = rend
                     if current_start < end:
@@ -130,7 +131,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
                                                                genome_medians = self.genome_medians,
                                                                segmentation_score = best_solution.p_norm,
                                                                segmentation_symbol = run.symbol))
-                
+    
     def find_Nruns (self):
         symbol_list = self.data.loc[(self.data['vaf'] < 1) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()
         self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = N_SYMBOL, E = E_SYMBOL)
@@ -144,7 +145,10 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         if report_type == 'bed':
             data = '\n'.join([s.report(report_type = 'bed') for s in self.segments])
         elif report_type == 'run':
-            data = '\n'.join([s.report(report_type = 'short') for s in self.runs])        
+            data = '\n'.join([s.report(report_type = 'short') for s in self.runs])
+        elif report_type == 'solution':
+            data = '\n'.join([s.report(report_type = 'solution') for s in self.runs])
+            
         return data
     
 def analyze_string_N (symbol_list, N = 'N', E = 'E'):

@@ -5,7 +5,7 @@ import pandas as pd
 from doCNA import WGS
 
 _description = "Scan chromosomes in search for non-HE segments. Assigns copy numbers if can."
-__version__ = '0.6.8'
+__version__ = '0.1.0'
 
 def main():
     parser = argparse.ArgumentParser (description = _description)
@@ -29,7 +29,9 @@ def main():
     parser.add_argument ('-v', '--verbosity', default = 'INFO', 
                          choices = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'NOTSET'],
                          help = 'Level of verbosity for std.err logger.')
-
+    #parser.add_argument ('-r', '--report', help = 'Generate report with estimated parameters',
+    #                     action = 'store_true')
+    
     args = parser.parse_args()
     ini = configparser.ConfigParser ()
     ini.read (args.config)
@@ -45,6 +47,9 @@ def main():
     
     with open (args.sample_name + '.run', 'w') as full:
         full.writelines (sample.report(report_type = 'run'))
+    
+    with open (args.sample_name + '.solutions', 'w') as full:
+        full.writelines (sample.report(report_type = 'solution'))
     
     #move that to WGS.py
     keys = sample.genome.chromosomes.keys()

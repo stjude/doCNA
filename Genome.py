@@ -1,9 +1,12 @@
 import pandas as pd
 import numpy as np
 import multiprocessing as mpl
+import scipy.stats as sts
+#from Chromosome import E_SYMBOL
 
 from doCNA import Testing
 from doCNA import Chromosome
+from doCNA import Run
 
 SEX_CHROMS = ['chrX', 'chrY']
 
@@ -85,8 +88,6 @@ class Genome:
         self.logger.info("Genomewide VAF:" + " \n" + str(self.VAF.results))
         self.genome_medians['VAF'] = self.VAF.get_genome_medians()
         
-        self.logger.info("Genome medians:" + " \n" + str(self.genome_medians))
-        
         #those that fail need to be marked on full model
         for chrom in self.chromosomes.keys():
             status = self.VAF.get_status (chrom)
@@ -109,14 +110,34 @@ class Genome:
                 self.chromosomes[chrom].generate_segments ()
         self.logger.info ("Segmentation finished.")
         
+        self.genome_medians['clonality'] = self.get_clonality_thr ()
+        
+        self.logger.info("Genome medians:" + " \n" + str(self.genome_medians))
+        
+        
+    def get_clonality_thr (self, alpha = 0.05, percentiles = (10,80)):
+        zs = []
+        for chrom in self.chromosomes.keys():
+            for seg in self.chromosomes[chrom].segments:
+                if seg.symbol == Chromosome.E_SYMBOL:
+                    zs.append (seg.parameters['k']*np.sqrt(seg.parameters['n']/Run.SNPS_IN_WINDOW))
+        
+        z = np.array(zs)
+        pp = np.percentile (z, percentiles)
+        res = sts.truncnorm.fit (z[(z >= pp[0])&(z <= pp[1])])
+        self.logger.info ('Clonality threshold: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
+        
+        return {'m' : res[2], 's' : res[3]}
+        
+        #self.genome_medians['clon_score'] = {'m' : res[2]}
+        #self.genome_medians['clon_score']['s'] = res[3]
+    
     def report (self, report_type = 'bed'):
         keys = list(self.chromosomes.keys())
         keys.sort(key = lambda x: int(x[3:]))
         return '\n'.join([self.chromosomes[key].report(report_type) for key in keys])
-   
-    def get_genome_wide_threshold (self):
-        pass     
-
+    
+    
 def f (c):
     c.find_runs()
     c.generate_segments ()

@@ -5,6 +5,8 @@ from collections import namedtuple
 import scipy.optimize as opt
 
 from doCNA import Testing
+from doCNA import Run
+
 
 E_SYMBOL = 'E'
 MAX_CLON_THRESHOLD_FOR_SENSITIVE = 0.4
@@ -21,14 +23,16 @@ class Segment:
         self.segmentation_symbol = segmentation_symbol
         self.name = data['chrom'].values[0]+ ':'+str(data['position'].min())+'-'+str(data['position'].max())
         #-{self.name}
-        self.logger = logger.getChild (f'{self.__class__.__name__}')
+        self.logger = logger.getChild (f'{self.__class__.__name__}-{self.name}')
+        self.logger.debug ('Segment created.')
         self.symbols = self.data.loc[self.data['vaf'] < 1, 'symbol'].value_counts()
         self.symbol = self.symbols.index[0]
         self.estimate_parameters ()
+        self.logger.debug ('Parameters estimated.')
         self.select_model ()
+        self.logger.debug ('Model selected.')
         #self.test_self ()
-        self.logger.debug ('Segment created.')
-    
+        
     def tostring(self) -> str:
         return '\n'.join ([self.name, str(self.parameters)])
             
@@ -61,9 +65,15 @@ class Segment:
     
     def report (self, report_type = 'bed'):
         namestr = self.name.replace (':', '\t').replace ('-', '\t')
-        if report_type == 'bed':
-            report = '\t'.join([str(p) for p in [self.parameters['m'], self.parameters['model'], self.parameters['ai']]])
         
+        if report_type == 'bed':
+            gmm = self.genome_medians['clonality']['m']
+            gms = self.genome_medians['clonality']['s']
+            n = self.parameters['n']/Run.SNPS_IN_WINDOW
+            score = np.abs(self.parameters['ai'] - gmm)*np.sqrt(n/2)/gms
+            report = '\t'.join([str(p) for p in [self.parameters['m'], self.parameters['model'], self.parameters['ai'], score]])
+        else:
+            report = ''
         return namestr + '\t' + report
         
     def select_model (self):
@@ -115,7 +125,8 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
     covs = data['cov'].values
     
     #this only works for E
-    def ai (v, dv, v0, a):
+    def ai (v, dv, a):
+        v0 = 0.5
         return a*sts.norm.cdf (v, v0 - dv, smin) + (1-a)*sts.norm.cdf (v, v0 + dv, smin)
     
     m, dm, l, dl = Testing.COV_test (data)
@@ -123,14 +134,14 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
            
     v,c = np.unique (vafs, return_counts = True)
     try:
-        popt, pcov = opt.curve_fit (ai, v, np.cumsum(c)/np.sum(c), p0 = [0.05, 0.5, 0.5],
-                                    bounds = ((0.0, 0.4, 0.0),
-                                              (0.5, 0.6, 1.0)))
-        dv, v0, a = popt
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'success' : True}
+        popt, pcov = opt.curve_fit (ai, v, np.cumsum(c)/np.sum(c), p0 = [0.05, 0.5],
+                                    bounds = ((0.0, 0.0),
+                                              (0.5, 1.0)))
+        dv, a = popt
+        parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'success' : True, 'n' : len (data)}
         
     except RuntimeError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False}
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
     
     return parameters 
 
@@ -150,30 +161,22 @@ def get_full (data, mG, b):
     s0 = np.sqrt (0.09/m)
     v, c = np.unique(vafs[~np.isnan(vafs)], return_counts = True)
 
-    cnor = np.cumsum(c)/np.sum(c)
-    ones0 = c[v >= (cov-1)/cov].sum()
-    
-    #####
-    #####
     try:
+        cnor = np.cumsum(c)/np.sum(c)
+        ones0 = c[v >= (cov-1)/cov].sum()
         f0 = c[v < v0].sum()/(c.sum() - ones0) 
-    except RuntimeWarning:
-        print (c.sum(), v.min())
+        dv0 = v0 - np.median (v[v < v0])
 
-    dv0 = v0 - np.median (v[v < v0])
-
-    try:
         p0 = [dv0, ones0/c.sum(), 2, f0, 0.5, b]
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
                                               (0.5, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True} 
+        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 'n' : len (data)} 
     except RuntimeError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False}
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
     except ValueError:
-        print (p0)
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False}
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
         
     return parameters
 

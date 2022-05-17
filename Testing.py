@@ -291,9 +291,9 @@ def find_fb (vafs, m, f_max = FB_F_MAX, eps = FB_EPS):
             df = -np.abs(df/2)
         
     if f < f_max:
-         ff = f
+         ff = f - df
     else:
-        print (f)
+        #print (f)
         ff = np.nan
     
     return ff
