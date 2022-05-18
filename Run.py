@@ -166,16 +166,23 @@ class Run:
         
         for m0, s0, labels in zip(*self.get_distributions()):
             
-            y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])**2/s0[np.newaxis,:,:])
-            z = y.sum(axis = 1)
+            #print ('m0: ', m0)
+            #print ('s0: ', s0)
             
-            dist_index = np.asarray(z == z.min(axis = 1)[:,np.newaxis]).nonzero()[1]
-            segments = [labels[i] for i in dist_index]
+            y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])/s0[np.newaxis,:,:])**2
+            z = y.sum(axis = 1)
+            #print ('y.shape: ', y.shape)
+            #print ('z.shape: ', z.shape)
+            dist_index = np.asarray(z == z.min(axis = 1)[:,np.newaxis]).nonzero()
+            #print ('d.shape: ', dist_index.shape)
+            segments = [labels[i] for i in dist_index[1]]
              
             for i in np.where(z.min(axis = 1) > z_thr**2)[0]:
                 segments [i] = 'O'
             indexes, merged_segments = merge_symbols (''.join(segments))
-            chi2 = z[:,dist_index].sum(axis = 0)
+            chi2 = z[dist_index]
+            #print ('chi2.shape: ', chi2.shape)
+            #print (min(chi2),np.median(chi2), max (chi2))
             
             psl = []
             for si, ei in indexes:
@@ -183,21 +190,22 @@ class Run:
                              get_norm_p (self.m[si:ei+1],
                              get_norm_p (self.l[si:ei+1]))))
             
-            print ((merged_segments == 'O'))
-                        
-            self.solutions.append(Solution (chi2 = chi2.sum(),
-                                            chi2_noO = chi2[merged_segments != 'O'].sum(),
+            noOfilter = [s != 'O' for s in merged_segments]                                   
+                   
+            df = 2*(np.array([self.dv_dist.fail_normal(), 
+                              self.m_dist.fail_normal(),
+                              self.l_dist.fail_normal()], dtype = int)+1).sum()
+            
+            self.solutions.append(Solution (chi2 = chi2.sum()/(3*len(self.dv)-df),
+                                            chi2_noO = chi2[noOfilter].sum()/(3*sum(noOfilter)-df),
                                             positions = [(self.windows_positions[si][0], self.windows_positions[ei][1]) for si, ei in indexes],
                                             p_norm = psl,
                                             segments = ''.join(segments),
-                                            merged_segments = ''.join(merged_segments)))
+                                            merged_segments = make_rle_string(''.join(merged_segments))))
+        
         self.solutions.sort (key = lambda x: x.chi2_noO)        
         best_runs = ','.join (['(' + str(s)+ ',' + str(e)+ ')' for s,e in self.solutions[0].positions])
-        self.logger.info ('Best solution: ' + best_runs)
-        
-    def test_windows (self):
-        """Function that tests if found runs can be further subdivided."""
-        pass
+        self.logger.info ('Best solution: ' + best_runs + str(df) + ',' + str(sum(noOfilter)))
     
     def get_distributions (self):
                 
@@ -339,3 +347,19 @@ def rle_encode (string):
         counts.append (count)
         i += 1
     return np.array(values), np.array(counts)
+
+def make_rle_string(string, sep = ';'):
+    values, counts = rle_encode (string)
+    rle_string = []
+    for v,c in zip(values, counts):
+        rle_string.append (str(c)+v)        
+    return sep.join(rle_string)
+
+#def test_windows (indexes,dv):
+#    new_indexes = []
+#    for si, ei in indexes:
+#        new_indexes += (test_arms (dv, si, ei))
+#    return new_indexes
+    
+#def test_arms (values):
+#    pass

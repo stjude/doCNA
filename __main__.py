@@ -1,6 +1,7 @@
 import argparse
 import configparser
 import pandas as pd
+from Run import Solution
 
 from doCNA import WGS
 
@@ -29,8 +30,8 @@ def main():
     parser.add_argument ('-v', '--verbosity', default = 'INFO', 
                          choices = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'NOTSET'],
                          help = 'Level of verbosity for std.err logger.')
-    #parser.add_argument ('-r', '--report', help = 'Generate report with estimated parameters',
-    #                     action = 'store_true')
+    parser.add_argument ('-r', '--report_solutions', help = 'Generate report with all solutions.',
+                         action = 'store_true')
     
     args = parser.parse_args()
     ini = configparser.ConfigParser ()
@@ -48,8 +49,9 @@ def main():
     with open (args.sample_name + '.run', 'w') as full:
         full.writelines (sample.report(report_type = 'run'))
     
-    with open (args.sample_name + '.solutions', 'w') as full:
-        full.writelines (sample.report(report_type = 'solution'))
+    if args.report_solutions:
+        with open (args.sample_name + '.solutions', 'w') as full:
+            full.writelines (sample.report(report_type = 'solution'))
     
     #move that to WGS.py
     keys = sample.genome.chromosomes.keys()
