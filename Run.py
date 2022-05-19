@@ -6,14 +6,17 @@ import scipy.optimize as opt
 
 from collections import namedtuple
 import warnings as warn
+from numpy.random import default_rng
 
 from doCNA import Segment
 from doCNA import Distribution
 from doCNA import Testing
 from doCNA import Chromosome
+
 WINDOWS_THRESHOLD = 9
 SNPS_IN_WINDOW = 1000
-
+WINDOWS_TO_TEST_THRESHOLD = 20
+UNIFORMITY_THRESHOLD = 1e-5
 
 #Solution keep result of Run segmenting
 #Segments are based on /best/ Solution
@@ -166,24 +169,20 @@ class Run:
         
         for m0, s0, labels in zip(*self.get_distributions()):
             
-            #print ('m0: ', m0)
-            #print ('s0: ', s0)
-            
             y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])/s0[np.newaxis,:,:])**2
             z = y.sum(axis = 1)
-            #print ('y.shape: ', y.shape)
-            #print ('z.shape: ', z.shape)
             dist_index = np.asarray(z == z.min(axis = 1)[:,np.newaxis]).nonzero()
-            #print ('d.shape: ', dist_index.shape)
             segments = [labels[i] for i in dist_index[1]]
              
             for i in np.where(z.min(axis = 1) > z_thr**2)[0]:
                 segments [i] = 'O'
             indexes, merged_segments = merge_symbols (''.join(segments))
             chi2 = z[dist_index]
-            #print ('chi2.shape: ', chi2.shape)
-            #print (min(chi2),np.median(chi2), max (chi2))
             
+            #TBD
+            #old_indexes = indexes
+            #indexes = test_segments (indexes, self.dv)
+
             psl = []
             for si, ei in indexes:
                 psl.append ((get_norm_p (self.dv[si:ei+1]),
@@ -355,11 +354,59 @@ def make_rle_string(string, sep = ';'):
         rle_string.append (str(c)+v)        
     return sep.join(rle_string)
 
-#def test_windows (indexes,dv):
-#    new_indexes = []
-#    for si, ei in indexes:
-#        new_indexes += (test_arms (dv, si, ei))
-#    return new_indexes
+def test_segments (indexes,dv):
+    new_indexes = []
+    for si, ei in indexes:
+        if ei - si > WINDOWS_TO_TEST_THRESHOLD:
+            if compare_uniformity (dv,si,ei) < UNIFORMITY_THRESHOLD:
+                new_indexes += divide_segment (dv, si, ei)
+            else:
+                new_indexes.append ((si,ei))
+        else:
+            new_indexes.append((si,ei))
+    return new_indexes
+   
+def compare_uniformity (dv,si,ei):
+    p = []
+    for i in range (si+10,ei-10):
+        p.append (sts.ks_2samp (dv[si:i+1], dv[i+1: ei]).pvalue)
+    return min(p)
+
+def divide_segment (dv, si, ei):
+    parameters = Distribution.fit_double_G (dv[si:ei], alpha = 0.05, r = 0.1)
+    threshold = get_two_G_threshold (parameters)
+    random_length = get_random_lenghts (parameters, ei-si, threshold)
     
-#def test_arms (values):
-#    pass
+    values, counts = rle_encode (['A' if v < threshold else 'B' for v in dv[si:ei]])
+    #merge those regions
+
+    #return []
+
+def get_two_G_threshold (params):
+
+    a = params['a']
+    m = params['m']
+    s = params['s']
+    
+    x = np.arange (m[0] - 2*s[0], m[1] + 2*s[1], 0.001)
+    g0sf = a[0]*sts.norm.sf (x, m[0], s[0])
+    g1cdf = a[1]*sts.norm.cdf (x, m[1], s[1])
+
+    thr = x[np.where(g0sf < g1cdf)[1].min[0]]
+    return thr
+
+def get_random_lenghts (params, size, thr, tries = 1000):
+    maxs = []
+    for _ in range(tries):
+        rng = default_rng()
+        vals = rng.uniform(size = 71)
+        rdv = ppf (vals, params)
+        values, counts = rle_encode (['A' if v < thr else 'B' for v in rdv])
+        maxs.append ((counts[values == 'A'].max(), counts[values == 'B'].max()))
+    return np.array(maxs).max(axis = 0)
+
+def ppf (x, p):
+    a = p['a']
+    m = p['m']
+    s = p['s']
+    return a[0]*sts.norm.ppf (x, m[0], s[0]) + a[1]*sts.norm.ppf (x, m[1], s[1])
