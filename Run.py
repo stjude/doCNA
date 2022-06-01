@@ -36,8 +36,14 @@ class Run:
         self.name = self.chrom+ ':'+str(self.start)+'-'+str(self.end)
         self.logger = logger.getChild(f'{self.__class__.__name__}-{self.name}')
         self.logger.debug ("Object created")
+     
         self.analyze ()
         self.logger.info (f"Run analyzed, {len(self.solutions)} solutions")
+         
+        #    self.logger.info ("Analysis error. No meaningful solutions.")
+        #    self.solutions = [Solution(chi2 = np.nan, chi2_noO = np.nan, positions = [(self.start, self.end)],
+        #                               p_norm = (np.nan, np.nan, np.nan), segments = 'N',
+        #                               merged_segments = 'N')]
         
     def analyze (self):
         self.get_windows (n = SNPS_IN_WINDOW)
@@ -104,9 +110,12 @@ class Run:
             tmpf = sum ([d < zero_thr for d in dvl])/len (dvl)
             cov_mult += 0.01
             
-        self.dv = np.array (dvl)
+        dva = np.array(dvl)
+        median = np.median (dva[dva > 0])
+        dva[dva == 0] = median
+        self.dv = dva
         self.v0 = np.array (v0l)
-        self.dv_dist = Distribution.Distribution (self.dv, p_thr = 0.5, thr_z = z_thr)
+        self.dv_dist = Distribution.Distribution (self.dv, p_thr = 0.3, thr_z = z_thr)
         self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult))        
             
     def get_ai_full (self, z_thr = 2.5):
@@ -140,12 +149,16 @@ class Run:
                 v0s.append (popt[-1])
             except RuntimeError:
                 dvs.append (0)
-                
-        self.dv = np.array(dvs)
+            except ValueError:
+                dvs.append (0)
+        dva = np.array (dvs)
+        median = np.median (dva[dva > 0])
+        dva[dva == 0] = median        
+        self.dv = dva
         self.v0 = np.array(v0s)
         #p_thr is lower that for sensitive as full is more noisy, but less nosy :D 
         self.dv_dist = Distribution.Distribution (self.dv,
-                                                  p_thr = 0.3, thr_z = z_thr)
+                                                  p_thr = 0.1, thr_z = z_thr)
     
     def get_coverage (self, z_thr = 1.5):
         ml = []
@@ -162,19 +175,19 @@ class Run:
         self.l = np.array (ll)
         self.l_dist = Distribution.Distribution (self.l, thr_z = z_thr, p_thr = 0.3)
     
-    def solve_windows (self, z_thr = 1.6):
+    def solve_windows (self, chi2_thr = 13.6):
         
         self.solutions = []
         x = np.array([self.dv, self.m, self.l]).T
         
         for m0, s0, labels in zip(*self.get_distributions()):
-            
+            self.logger.debug (f'Calculating solution: m = {m0}, s = {s0}') 
             y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])/s0[np.newaxis,:,:])**2
             z = y.sum(axis = 1)
             dist_index = np.asarray(z == z.min(axis = 1)[:,np.newaxis]).nonzero()
             segments = [labels[i] for i in dist_index[1]]
              
-            for i in np.where(z.min(axis = 1) > z_thr**2)[0]:
+            for i in np.where(z.min(axis = 1) > chi2_thr)[0]:
                 segments [i] = 'O'
             indexes, merged_segments = merge_symbols (''.join(segments))
             chi2 = z[dist_index]

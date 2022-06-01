@@ -84,6 +84,7 @@ class Genome:
         self.logger.info ('Testing first round of H/E marking.')    
         self.VAF = Testing.Testing ('VAF', self.chromosomes, self.logger)
         self.VAF.run_test (self.no_processes, self.COV.medians['m'])
+        self.logger.info("Genomewide VAF:" + " \n" + str(self.VAF.results))
         self.VAF.analyze (parameters = self.config['VAF'])
         self.logger.info("Genomewide VAF:" + " \n" + str(self.VAF.results))
         self.genome_medians['VAF'] = self.VAF.get_genome_medians()

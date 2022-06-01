@@ -1,7 +1,7 @@
 import argparse
 import configparser
 import pandas as pd
-from Run import Solution
+from doCNA.Run import Solution
 
 from doCNA import WGS
 

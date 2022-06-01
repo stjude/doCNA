@@ -43,7 +43,7 @@ class WGS:
                          self.config['InputColumns']['alt_count'],
                          self.config['InputColumns']['Type']]
         self.logger.debug ('Genome object created.')
-        self.genome.retrive_counts_create_chromosomes (data_file = self.wgs_file, #SG_file = self.SG_file,
+        self.genome.retrive_counts_create_chromosomes (data_file = self.wgs_file, SG_file = self.SG_file,
                                                        columns = input_columns)
         self.logger.debug ('Counts data retrived.')
         self.logger.info ('Segmenting genome.')
@@ -60,23 +60,24 @@ class WGS:
             self.logger.removeHandler(handler)
             handler.close()
 
-    def pickle_genome (self):
+    #def pickle_genome (self):
         #del (self.logger)
         #self.logger.shutdown()
-        for handle in self.logger.handlers:
-            handle.close ()
-            self.logger.removeHandler(handle)
-            del (handle)
-        del (self.logger)
+    #    for handle in self.logger.handlers:
+    #        handle.close ()
+    #        self.logger.removeHandler(handle)
+    #        del (handle)
+    #    del (self.logger)
             
-        with open (self.sample_name+'.pkl', 'wb') as out:
-            pkl.dump (self.genome, out, 4)
+    #    with open (self.sample_name+'.pkl', 'wb') as out:
+    #        pkl.dump (self.genome, out, 4)
         #test is closing file handlers in logger allows pickling, so sort of destructor
     
     
-    def __del__ (self):
-        self.wgs_file.close ()
-        if self.SG_file is not None:
-            self.SG_file.close ()
-        self.CB_file.close ()
+    #def __del__ (self):
+    #    self.wgs_file.close ()
+    #    if self.SG_file is not None:
+    #       
+    #        self.SG_file.close ()
+    #    self.CB_file.close ()
 

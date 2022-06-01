@@ -47,21 +47,21 @@ class Segment:
                                              self.genome_medians['VAF']['fb'],
                                              self.genome_medians['COV']['m'])
             if self.parameters['ai'] > MAX_CLON_THRESHOLD_FOR_SENSITIVE:
-                self.logger.info (f"Estimated clonality {self.parameters['ai']} above threshold for sensitive model: {MAX_CLON_THRESHOLD_FOR_SENSITIVE}")
+                self.logger.info (f"Estimated ai: {self.parameters['ai']} above threshold for sensitive model: {MAX_CLON_THRESHOLD_FOR_SENSITIVE}")
                 self.parameters = get_full (self.data,
                                             self.genome_medians['VAF']['fb'],
                                             self.genome_medians['HE']['b'])
-            self.logger.info (f"Estimated clonality {self.parameters['ai']}")
+            self.logger.info (f"Estimated ai: {self.parameters['ai']}")
         else:
             self.parameters = get_full (self.data,
                                         self.genome_medians['VAF']['fb'],
                                         self.genome_medians['HE']['b'])
             if self.parameters['ai'] < MIN_CLON_THRESHOLD_FOR_FULL:
-                self.logger.info (f"Estimated clonality {self.parameters['ai']} below threshold for full model: {MIN_CLON_THRESHOLD_FOR_FULL}")
+                self.logger.info (f"Estimated ai {self.parameters['ai']} below threshold for full model: {MIN_CLON_THRESHOLD_FOR_FULL}")
                 self.parameters = get_sensitive (self.data.loc[self.data['vaf'] < 1 - 1/self.genome_medians['COV']['m']],
                                                  self.genome_medians['VAF']['fb'],
                                                  self.genome_medians['COV']['m'])
-            self.logger.info (f"Estimated clonality {self.parameters['ai']}.")
+            self.logger.info (f"Estimated ai: {self.parameters['ai']}.")
     
     def report (self, report_type = 'bed'):
         namestr = self.name.replace (':', '\t').replace ('-', '\t')
@@ -70,8 +70,8 @@ class Segment:
             gmm = self.genome_medians['clonality']['m']
             gms = self.genome_medians['clonality']['s']
             n = self.parameters['n']/Run.SNPS_IN_WINDOW
-            score = np.abs(self.parameters['ai'] - gmm)*np.sqrt(n/2)/gms
-            report = '\t'.join([str(p) for p in [self.parameters['m'], self.parameters['model'], self.parameters['ai'], score]])
+            score = np.abs(self.parameters['k'] - gmm)*np.sqrt(n/2)/gms
+            report = '\t'.join([str(p) for p in [self.parameters['m'], self.parameters['model'], self.parameters['k'], score]])
         else:
             report = ''
         return namestr + '\t' + report
@@ -96,7 +96,8 @@ class Segment:
         else:
             self.parameters['model'] = 'NA'
             self.parameters['k'] = np.nan
-            
+            self.logger            
+
 def calculate_distance (preset, m, ai, m0):
     return np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
     
