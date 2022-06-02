@@ -110,10 +110,7 @@ class Run:
             tmpf = sum ([d < zero_thr for d in dvl])/len (dvl)
             cov_mult += 0.01
             
-        dva = np.array(dvl)
-        median = np.median (dva[dva > 0])
-        dva[dva == 0] = median
-        self.dv = dva
+        self.dv = np.array(dvl)
         self.v0 = np.array (v0l)
         self.dv_dist = Distribution.Distribution (self.dv, p_thr = 0.3, thr_z = z_thr)
         self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult))        

@@ -57,7 +57,7 @@ class Genome:
         
         self.logger.info ('Starting COV test genome.')
         self.COV = Testing.Testing ('COV', self.chromosomes, self.logger)
-        self.COV.run_test(self.no_processes)
+        self.COV.run_test(no_processes = self.no_processes)
         self.COV.analyze (parameters = self.config['COV'])
                 
         if self.COV.medians['m'] < float(self.config['COV']['min_cov']):
@@ -72,7 +72,7 @@ class Genome:
                                    #{chrom : self.chromosomes[chrom] for chrom in self.COV.get_inliers()},
                                    self.chromosomes,
                                    self.logger)
-        self.HE.run_test(self.no_processes)
+        self.HE.run_test(no_processes = self.no_processes)
         self.HE.analyze (parameters = self.config['HE'])
        
         self.logger.info ("Genomewide heterozygosity:" + "\n" + str(self.HE.results))
@@ -83,8 +83,8 @@ class Genome:
             self.chromosomes[chrom].markE_onHE (self.HE.get_parameters(chrom), float(self.config['HE']['z_thr']))
         self.logger.info ('Testing first round of H/E marking.')    
         self.VAF = Testing.Testing ('VAF', self.chromosomes, self.logger)
-        self.VAF.run_test (self.no_processes, self.COV.medians['m'])
-        self.logger.info("Genomewide VAF:" + " \n" + str(self.VAF.results))
+        self.VAF.run_test (self.COV.medians['m'], no_processes = self.no_processes)
+        #self.logger.info("Genomewide VAF:" + " \n" + str(self.VAF.results))
         self.VAF.analyze (parameters = self.config['VAF'])
         self.logger.info("Genomewide VAF:" + " \n" + str(self.VAF.results))
         self.genome_medians['VAF'] = self.VAF.get_genome_medians()
@@ -92,11 +92,13 @@ class Genome:
         #those that fail need to be marked on full model
         for chrom in self.chromosomes.keys():
             status = self.VAF.get_status (chrom)
-            if status == 'outlier':
+            self.logger.info (f'Chromosome {chrom} status: {status}')
+            if status:
                 params = self.VAF.get_parameters (chrom)
                 if params['chi2'] >= float(self.config['VAF']['chi2_high']):
                     self.logger.info (f'Chromosome {chrom} marked on full model.')
-                    self.chromosomes[chrom].mark_on_full_model ()
+                    print ('m: ', self.COV.medians['m']) 
+                    self.chromosomes[chrom].mark_on_full_model (self.COV.medians['m'])
 
         #segment_chromosomes
         self.logger.info ("Starting segmentation.")
@@ -117,6 +119,7 @@ class Genome:
         
         
     def get_clonality_thr (self, alpha = 0.05, percentiles = (10,80)):
+
         zs = []
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:

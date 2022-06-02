@@ -41,19 +41,16 @@ class Chromosome:
         self.logger.debug (f"""Chromosome {self.name} marked based on parameters
 v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         
-    def mark_on_full_model (self):
-        self.get_fragments (exclude_symbols = [], n = int(self.config['Segment']['No_SNPs']))
+    def mark_on_full_model (self, m):
+        print ('FM m: ', m)
+        self.get_fragments (n = int(self.config['Segmenting']['No_SNPs']))
         self.get_vaf_shift_full ()
-        self.Uruns = []
         
         indexes, merged_string = Run.merge_symbols (self.dv_dist.string, outliers_threshold = 4)
-
         for r in indexes:
-            start = self.positions [r[0]][0]
-            end = self.positions [r[1]][1]
-            chi2, vaf = Testing.VAF_test (self.data.loc[(self.data['symbol'] != N_SYMBOL)&\
-                                                        (self.data['position'] >= start)&\
-                                                        (self.data['position'] <= end)])
+            start = self.windows_positions[r[0]][0]
+            end = self.windows_positions [r[1]][1]
+            chi2, vaf = Testing.VAF_test (self.data.loc[(self.data['symbol'] == E_SYMBOL)&(self.data['position'] >= start)&(self.data['position'] <= end),], m)
             
             #test chi2
             outlier = (chi2 > float(self.config['Tests']['VAF']['chi2_high'])) | (chi2 == 0) |\
@@ -65,6 +62,62 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
                                     (self.data['position'] <= end), 'symbol'] = U_SYMBOL
                 self.Uruns.append ((start, end))
     
+    def get_fragments (self, n = 1000):
+        tmp = self.data
+        N = np.max((int(np.floor(len(tmp)/n)),1))
+        
+        indexes = np.linspace (0,len (tmp), 2*N+2, dtype = int)
+        self.indexes = indexes
+        self.windows = []
+        self.windows_positions = []
+
+        for i in np.arange (2*N):
+            tmpi = tmp.iloc[indexes[i]:indexes[i+2], ]
+            self.windows.append(tmpi)
+            self.windows_positions.append ((tmpi['position'].min(), tmpi['position'].max()))
+
+
+    def get_vaf_shift_full (self, z_thr = 2.5):
+        
+        def vaf_cdf (v, dv, a, lerr, f, vaf, b):
+            cnai = vaf_cnai (v, dv, f, vaf, b, cov)
+            cnHO = vaf_HO (v, lerr)
+            return a*cnHO + (1 - a)*cnai 
+        
+        v0 = self.genome_medians['HE']['vaf']
+        b = self.genome_medians['HE']['b']
+        cov = self.genome_medians['HE']['cov']
+        dvs = []
+        v0s = []        
+        
+        for window in self.windows:
+            vaf = window['vaf'].values
+            v, c = np.unique(vaf, return_counts = True)
+
+            cnor = np.cumsum(c)/np.sum(c)
+            ones0 = c[v >= (cov-1)/cov].sum()
+            try:
+                f0 = c[v < v0].sum()/(c.sum() - ones0) 
+            
+                dv0 = v0 - np.median (v[v < v0])
+              
+                popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = [dv0, ones0/c.sum(), 2, f0, 0.5, b], 
+                                            bounds = ((0,   0,   1, 0, 0.45, 1),
+                                                      (0.5, 0.95, 5, 1, 0.55, 10)))
+                dvs.append (popt[0])
+                v0s.append (popt[-1])
+            except RuntimeError:
+                dvs.append (0)
+                
+        self.dv = np.array(dvs)
+        self.v0 = np.array(v0s)
+        #p_thr is lower that for sensitive as full is more noisy, but less nosy :D 
+        self.dv_dist = Distribution.Distribution (self.dv,
+                                                  p_thr = 0.1, thr_z = z_thr)
+
+
+
+
     def find_runs (self):
         """Method to generate runs. Runs segment themselves."""
         self.find_Nruns ()
@@ -85,7 +138,6 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         #Eruns needs to be found first
         #start = self.data['position'].min ()
         #end = self.data['position'].max ()
-        
         self.runs.append (Run.Run (self.data.loc[self.data['symbol'] == 'E'],
                                    symbol = 'E',
                                    logger = self.logger,
@@ -150,7 +202,16 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
             data = '\n'.join([s.report(report_type = 'solution') for s in self.runs])
             
         return data
-    
+
+def vaf_cnai (v, dv, a, vaf,b, cov):
+    s = np.sqrt((vaf - dv)*(vaf + dv)/(b*cov))
+    return a*sts.norm.cdf (v, vaf - dv, s) + (1-a)*sts.norm.cdf (v, vaf + dv, s)
+
+def vaf_HO (v, lerr):
+    err = 10**lerr
+    return np.exp ((v-1)*err)
+
+
 def analyze_string_N (symbol_list, N = 'N', E = 'E'):
     """Finds runs of Ns"""                    
     
@@ -160,6 +221,7 @@ def analyze_string_N (symbol_list, N = 'N', E = 'E'):
         
     for si,ei in runsi:
         for i in range(si,ei):
+            symbol_list[i] = N
             symbol_list[i] = N
     
     values, counts = Run.rle_encode (symbol_list)

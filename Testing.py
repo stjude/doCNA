@@ -40,7 +40,7 @@ class Testing:
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.test.__name__}')
         self.logger.debug (f'Object {self.test.__name__} created.')
         
-    def run_test (self, no_processes = 1, *args):
+    def run_test (self, *args, no_processes = 1):
                 
         if no_processes > 1:
             self.logger.debug (f'Runnig test in {no_processes} processes.')
@@ -99,9 +99,9 @@ class Testing:
     
     def get_status (self, chromosome):
         try:
-            status = self.status[chromosome]
+            status = self.status.T[chromosome].all(axis = 0)
         except KeyError:
-            status = 'NA'
+            status = False
         return status
     
     def get_genome_medians (self):
@@ -221,11 +221,12 @@ def VAF_test (data, m, **kwargs):
         if cc == 0: 
             cc = 1        
         return chi2/cc
-    
-    
+
     counts = []
-    cov_min = m[0] - 2*np.sqrt(m[0])
-    cov_max = m[0] + 2*np.sqrt(m[0])
+    if hasattr(m, '__len__'):
+        m = m[0]
+    cov_min = m - 2*np.sqrt(m)
+    cov_max = m + 2*np.sqrt(m)
     filt = (data['symbol'] == E_SYMBOL) & (data['cov'] > cov_min) & (data['cov'] < cov_max)
     for c,d in data.loc[filt].groupby (by = 'cov'):
         h = np.histogram(d['alt_count'].values, bins = np.arange(0,c+2)-0.5)
@@ -236,7 +237,7 @@ def VAF_test (data, m, **kwargs):
     res = opt.minimize (chi2, x0 = (0.5) , args = (counts), method = 'L-BFGS-B',
                         bounds = (vaf_bounds,))        
     
-    fb = find_fb (np.sort(data.loc[data['symbol'] == E_SYMBOL, 'vaf'].values), m[0], f_max = FB_F_MAX, eps = FB_EPS)    
+    fb = find_fb (np.sort(data.loc[data['symbol'] == E_SYMBOL, 'vaf'].values), m, f_max = FB_F_MAX, eps = FB_EPS)    
     
     return VAF_results (chi2 = res.fun, vaf = res.x[0], fb = fb)
 
