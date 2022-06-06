@@ -57,11 +57,11 @@ class Segment:
             self.parameters = get_full (self.data,
                                         self.genome_medians['VAF']['fb'],
                                         self.genome_medians['HE']['b'])
-            if self.parameters['ai'] < MIN_CLON_THRESHOLD_FOR_FULL:
-                self.logger.info (f"Estimated ai {self.parameters['ai']} below threshold for full model: {MIN_CLON_THRESHOLD_FOR_FULL}")
-                self.parameters = get_sensitive (self.data.loc[self.data['vaf'] < 1 - 1/self.genome_medians['COV']['m']],
-                                                 self.genome_medians['VAF']['fb'],
-                                                 self.genome_medians['COV']['m'])
+            #if self.parameters['ai'] < MIN_CLON_THRESHOLD_FOR_FULL:
+            #    self.logger.info (f"Estimated ai {self.parameters['ai']} below threshold for full model: {MIN_CLON_THRESHOLD_FOR_FULL}")
+            #    self.parameters = get_sensitive (self.data.loc[self.data['vaf'] < 1 - 1/self.genome_medians['COV']['m']],
+            #                                     self.genome_medians['VAF']['fb'],
+            #                                     self.genome_medians['COV']['m'])
             self.logger.info (f"Estimated, by full method, ai: {self.parameters['ai']}.")
     
     def report (self, report_type = 'bed'):
@@ -124,7 +124,7 @@ model_presets = {'cn1' : Preset(A = lambda m,dv,m0: -m0/2,
                                 B = lambda m,dv,m0: 1,
                                 C = lambda m,dv,m0: 2*dv,
                                 D = lambda m,dv,m0: 0,
-                                k = lambda m,dv,m0: m/m0 - 1)}
+                                k = lambda m,dv,m0: np.abs(m/m0 - 1))}
     
 def get_sensitive (data, fb, mG, z_thr = 1.5):
     
@@ -165,10 +165,10 @@ def get_full (data, mG, b):
     
     v0 = 0.5
     #why on earth there is 0.09?!    
-    s0 = np.sqrt (0.09/m)
+    #s0 = np.sqrt (0.09/m)
     v, c = np.unique(vafs[~np.isnan(vafs)], return_counts = True)
 
-    try:
+    if 1:
         cnor = np.cumsum(c)/np.sum(c)
         ones0 = c[v >= (cov-1)/cov].sum()
         f0 = c[v < v0].sum()/(c.sum() - ones0) 
@@ -181,12 +181,12 @@ def get_full (data, mG, b):
                                               (0.5, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 'n' : len (data)} 
-    except RuntimeError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
-        print ('Initial parameters: ', p0)
-    except ValueError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
-        print ('Initial parameters: ', p0)
+    #except RuntimeError:
+    #    parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
+    #    print ('Initial parameters: ', p0)
+    #except ValueError:
+    #    parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
+    #    print ('Initial parameters: ', p0)
         
     return parameters
 

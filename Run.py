@@ -160,6 +160,11 @@ class Run:
     def get_coverage (self, z_thr = 1.5):
         ml = []
         ll = []
+        
+        if self.symbol == Chromosome.E_SYMBOL:
+            p_thr = 0.3
+        else:
+            p_thr = 0.1
             
         for window in self.windows:
             #cov = window['cov'].values
@@ -168,9 +173,9 @@ class Run:
             ll.append (result.l)
 
         self.m = np.array (ml)
-        self.m_dist = Distribution.Distribution (self.m, thr_z = z_thr, p_thr = 0.3)
+        self.m_dist = Distribution.Distribution (self.m, thr_z = z_thr, p_thr = p_thr)
         self.l = np.array (ll)
-        self.l_dist = Distribution.Distribution (self.l, thr_z = z_thr, p_thr = 0.3)
+        self.l_dist = Distribution.Distribution (self.l, thr_z = z_thr, p_thr = p_thr)
     
     def solve_windows (self, chi2_thr = 13.6):
         
