@@ -54,9 +54,9 @@ class Segment:
                                             self.genome_medians['HE']['b'])
             self.logger.info (f"Estimated, by sensitive method, ai: {self.parameters['ai']}")
         else:
-            self.parameters = get_full (self.data,
-                                        self.genome_medians['VAF']['fb'],
-                                        self.genome_medians['HE']['b'])
+            self.parameters = get_full (self.data)
+                                        #self.genome_medians['VAF']['fb'],
+                                        #self.genome_medians['HE']['b'])
             #if self.parameters['ai'] < MIN_CLON_THRESHOLD_FOR_FULL:
             #    self.logger.info (f"Estimated ai {self.parameters['ai']} below threshold for full model: {MIN_CLON_THRESHOLD_FOR_FULL}")
             #    self.parameters = get_sensitive (self.data.loc[self.data['vaf'] < 1 - 1/self.genome_medians['COV']['m']],
@@ -158,7 +158,7 @@ def get_full (data, b = 1.01):
     covs = data['cov'].values
     
     m, dm, l, dl = Testing.COV_test (data)
-    cov = mG
+    #cov = mG
     
     def vaf_cdf (v, dv, a, lerr, f, vaf, b):
         return vaf_cdf_c (v, dv, a, lerr, f, vaf, b, m)
