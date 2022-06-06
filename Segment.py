@@ -152,7 +152,7 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
     
     return parameters 
 
-def get_full (data, mG, b):
+def get_full (data, b = 1.01):
     
     vafs = data['vaf'].values
     covs = data['cov'].values
@@ -168,9 +168,9 @@ def get_full (data, mG, b):
     #s0 = np.sqrt (0.09/m)
     v, c = np.unique(vafs[~np.isnan(vafs)], return_counts = True)
 
-    if 1:
+    try:
         cnor = np.cumsum(c)/np.sum(c)
-        ones0 = c[v >= (cov-1)/cov].sum()
+        ones0 = c[v >= (m-1)/m].sum()
         f0 = c[v < v0].sum()/(c.sum() - ones0) 
         dv0 = v0 - np.median (v[v < v0])
 
@@ -181,12 +181,12 @@ def get_full (data, mG, b):
                                               (0.5, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 'n' : len (data)} 
-    #except RuntimeError:
-    #    parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
-    #    print ('Initial parameters: ', p0)
-    #except ValueError:
-    #    parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
-    #    print ('Initial parameters: ', p0)
+    except RuntimeError:
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
+        print ('Runtime: Initial parameters: ', p0)
+    except ValueError:
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
+        print ('Value: Initial parameters: ', p0)
         
     return parameters
 
