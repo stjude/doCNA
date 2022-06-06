@@ -220,7 +220,7 @@ class Run:
         self.solutions.sort (key = lambda x: x.chi2_noO)        
         best_runs = ','.join (['(' + str(s)+ ',' + str(e)+ ')' for s,e in self.solutions[0].positions])
         self.logger.info ('Best solution: ' + best_runs + str(df) + ',' + str(sum(noOfilter)))
-    
+       
     def get_distributions (self):
                 
         dvm, dvs = self.dv_dist.combinations_of_params (size = 1, key = 'single', reverse = False)

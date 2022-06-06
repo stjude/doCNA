@@ -44,14 +44,14 @@ class Segment:
         #sometimes, even if classified, it's wrong model
         
         if self.symbol == E_SYMBOL:
-            self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL,])
-                                             #self.genome_medians['VAF']['fb'],
-                                             #self.genome_medians['COV']['m'])
+            self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL,],
+                                             self.genome_medians['VAF']['fb'],
+                                             self.genome_medians['COV']['m'])
             if self.parameters['ai'] > MAX_CLON_THRESHOLD_FOR_SENSITIVE:
                 self.logger.info (f"Estimated ai: {self.parameters['ai']} above threshold for sensitive model: {MAX_CLON_THRESHOLD_FOR_SENSITIVE}")
-                self.parameters = get_full (self.data,
-                                            self.genome_medians['VAF']['fb'],
-                                            self.genome_medians['HE']['b'])
+                self.parameters = get_full (self.data)
+                                            #self.genome_medians['VAF']['fb'],
+                                            #self.genome_medians['HE']['b'])
             self.logger.info (f"Estimated, by sensitive method, ai: {self.parameters['ai']}")
         else:
             self.parameters = get_full (self.data)
@@ -180,13 +180,13 @@ def get_full (data, b = 1.01):
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
                                               (0.5, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 'n' : len (data)} 
+        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 'n' : len (data), 'status' : 'valid'} 
     except RuntimeError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
-        print ('Runtime: Initial parameters: ', p0)
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0, 'status' : 'Fit failed'}
+        #print ('Runtime: Initial parameters: ', p0)
     except ValueError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
-        print ('Value: Initial parameters: ', p0)
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0, 'status' : 'Parameters failed'}
+        #print ('Value: Initial parameters: ', p0)
         
     return parameters
 
