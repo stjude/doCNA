@@ -39,12 +39,7 @@ class Run:
      
         self.analyze ()
         self.logger.info (f"Run analyzed, {len(self.solutions)} solutions")
-         
-        #    self.logger.info ("Analysis error. No meaningful solutions.")
-        #    self.solutions = [Solution(chi2 = np.nan, chi2_noO = np.nan, positions = [(self.start, self.end)],
-        #                               p_norm = (np.nan, np.nan, np.nan), segments = 'N',
-        #                               merged_segments = 'N')]
-        
+                
     def analyze (self):
         self.get_windows (n = SNPS_IN_WINDOW)
         self.logger.debug (f'Run divided into {len(self.windows)}')
@@ -194,10 +189,12 @@ class Run:
             indexes, merged_segments = merge_symbols (''.join(segments))
             chi2 = z[dist_index]
             
-            #TBD
-            #old_indexes = indexes
-            #indexes = test_segments (indexes, self.dv)
+            new_indexes = []
+            for i in indexes:
+                new_indexes.append(self.dv, *i)
 
+            self.logger.debug (f'Segment further divided: {len(new_indexes) > len(indexes)}')
+            
             psl = []
             for si, ei in indexes:
                 psl.append ((get_norm_p (self.dv[si:ei+1]),
@@ -368,31 +365,30 @@ def make_rle_string(string, sep = ';'):
     for v,c in zip(values, counts):
         rle_string.append (str(c)+v)        
     return sep.join(rle_string)
-
-def test_segments (indexes,dv):
-    new_indexes = []
-    for si, ei in indexes:
-        if ei - si > WINDOWS_TO_TEST_THRESHOLD:
-            if compare_uniformity (dv,si,ei) < UNIFORMITY_THRESHOLD:
-                new_indexes += divide_segment (dv, si, ei)
-            else:
-                new_indexes.append ((si,ei))
-        else:
-            new_indexes.append((si,ei))
-    return new_indexes
    
-def compare_uniformity (dv,si,ei):
-    p = []
-    for i in range (si+10,ei-10):
-        p.append (sts.ks_2samp (dv[si:i+1], dv[i+1: ei]).pvalue)
-    return min(p)
-
 def divide_segment (dv, si, ei):
     parameters = Distribution.fit_double_G (dv[si:ei], alpha = 0.05, r = 0.1)
     threshold = get_two_G_threshold (parameters)
     random_length = get_random_lenghts (parameters, ei-si, threshold)
-    
+         
     values, counts = rle_encode (['A' if v < threshold else 'B' for v in dv[si:ei]])
+    
+    new_segments = []
+    
+    indexes = np.where(counts[values == 'B'] > threshold[1])[0]
+    i = 0
+    start = si
+    while i < len (indexes):
+        end = counts[:i].sum()
+        new_segments.append((start, end))
+        start = end+1
+    
+    if start < ei:
+        new_segments.append ((start, ei))
+    
+    return new_segments
+    
+    
     #merge those regions
 
     #return []

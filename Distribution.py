@@ -50,6 +50,7 @@ class Distribution:
                 string[i] = 'D'
             self.parameters['string'] = ''.join(string)
             self.all_parameters['double']['string'] = string
+            self.string = ''.join(string)
         else:
             self.key = 'single'
             self.parameters = single_G_par
