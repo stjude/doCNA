@@ -44,9 +44,9 @@ class Segment:
         #sometimes, even if classified, it's wrong model
         
         if self.symbol == E_SYMBOL:
-            self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL,],
-                                             self.genome_medians['VAF']['fb'],
-                                             self.genome_medians['COV']['m'])
+            self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL,])
+                                             #self.genome_medians['VAF']['fb'],
+                                             #self.genome_medians['COV']['m'])
             if self.parameters['ai'] > MAX_CLON_THRESHOLD_FOR_SENSITIVE:
                 self.logger.info (f"Estimated ai: {self.parameters['ai']} above threshold for sensitive model: {MAX_CLON_THRESHOLD_FOR_SENSITIVE}")
                 self.parameters = get_full (self.data,
