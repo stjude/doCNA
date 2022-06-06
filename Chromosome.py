@@ -13,18 +13,21 @@ E_SYMBOL = 'E'
 U_SYMBOL = 'U'
 DEFAULT_N_THRESHOLD = 10
 DEFAULT_E_THRESHOLD = 3
+N_STR_LEN_THR = 100
 
 Run_treshold =  namedtuple('Run_treshold', [N_SYMBOL, E_SYMBOL])
 
 
 class Chromosome:
     """Class to contain data, and find runs."""
-    def __init__ (self, name, data, config, logger, genome_medians):
+    def __init__ (self, name, data, config, logger, genome_medians, CB_file = None):
         self.name = name
         self.data = data
         self.config = config
         self.logger = logger.getChild(f'{self.__class__.__name__}-{self.name}')
         self.genome_medians = genome_medians
+         
+        self.CB_file = CB_file
         self.Eruns = []
         self.Uruns = []
         self.Nruns = []
@@ -42,7 +45,6 @@ class Chromosome:
 v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         
     def mark_on_full_model (self, m):
-        print ('FM m: ', m)
         self.get_fragments (n = int(self.config['Segmenting']['No_SNPs']))
         self.get_vaf_shift_full ()
         
@@ -50,11 +52,10 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         for r in indexes:
             start = self.windows_positions[r[0]][0]
             end = self.windows_positions [r[1]][1]
-            chi2, vaf = Testing.VAF_test (self.data.loc[(self.data['symbol'] == E_SYMBOL)&(self.data['position'] >= start)&(self.data['position'] <= end),], m)
+            chi2, vaf, fb = Testing.VAF_test (self.data.loc[(self.data['position'] >= start)&(self.data['position'] <= end),], m)
             
             #test chi2
-            outlier = (chi2 > float(self.config['Tests']['VAF']['chi2_high'])) | (chi2 == 0) |\
-                      (vaf < self.genome_medians['VAF']['vaf_thr'][0])
+            outlier = (chi2 > float(self.config['VAF']['chi2_high'])) | (chi2 == 0)
                       
             self.logger.info (f'Marking on full model {self.name}:{start}-{end} chi2 = {chi2}')            
             if outlier:
@@ -106,10 +107,13 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
                                                       (0.5, 0.95, 5, 1, 0.55, 10)))
                 dvs.append (popt[0])
                 v0s.append (popt[-1])
-            except RuntimeError:
+            except (RuntimeError, ValueError):
                 dvs.append (0)
                 
-        self.dv = np.array(dvs)
+        dva = np.array (dvs)
+        median = np.median(dva[dva > 0])
+        dva[dva == 0] = median
+        self.dv = dva
         self.v0 = np.array(v0s)
         #p_thr is lower that for sensitive as full is more noisy, but less nosy :D 
         self.dv_dist = Distribution.Distribution (self.dv,
@@ -130,18 +134,17 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
                                       genome_medians = self.genome_medians))
         
         for ur in self.Uruns:
-            self.runs.append(Run.Run (self.data.loc[(self.data['position'] >= nr[0])&(self.data['position'] <= nr[1])],
+            self.runs.append(Run.Run (self.data.loc[(self.data['position'] >= ur[0])&(self.data['position'] <= ur[1])],
                                       symbol = 'U',
                                       logger = self.logger,
                                       genome_medians = self.genome_medians))
-            
-        #Eruns needs to be found first
-        #start = self.data['position'].min ()
-        #end = self.data['position'].max ()
-        self.runs.append (Run.Run (self.data.loc[self.data['symbol'] == 'E'],
-                                   symbol = 'E',
-                                   logger = self.logger,
-                                   genome_medians = self.genome_medians))
+        
+        data_view = self.data.loc[self.data['symbol'] == 'E']
+        if len(data_view) > 0:
+            self.runs.append (Run.Run (self.data.loc[self.data['symbol'] == 'E'],
+                                       symbol = 'E',
+                                       logger = self.logger,
+                                       genome_medians = self.genome_medians))
         
     def generate_segments (self):
         """Method to generate genomic segments of same CNA status, based on Runs."""
@@ -156,8 +159,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         startsandends = []
         
         for run in self.runs:
-            best_solution = run.solutions[0]
-            #print (best_solution)
+            best_solution = run.solutions[0]       
             if run.symbol != 'E':
                 startsandends+= best_solution.positions
             else:
@@ -186,7 +188,11 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
     
     def find_Nruns (self):
         symbol_list = self.data.loc[(self.data['vaf'] < 1) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()
-        self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = N_SYMBOL, E = E_SYMBOL)
+        if len (symbol_list) >= N_STR_LEN_THR:    
+            self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = N_SYMBOL, E = E_SYMBOL)
+        else:
+            self.Nruns_indexes = []
+            self.Nruns_threshold = []
         
         for run in self.Nruns_indexes:
             tmp = self.data.loc[self.data['vaf'] < 1,].iloc[run[0]:run[1],:].position.agg((min,max))
@@ -221,15 +227,14 @@ def analyze_string_N (symbol_list, N = 'N', E = 'E'):
         
     for si,ei in runsi:
         for i in range(si,ei):
-            symbol_list[i] = N
-            symbol_list[i] = N
+            symbol_list[i] = N          
     
     values, counts = Run.rle_encode (symbol_list)
     threshold = find_runs_thr (values, counts, N = N, E = E)
     runsi = get_N_runs_indexes (values, counts, threshold = threshold, N = N, E = E)
         
     return runsi, threshold 
-    #[(counts[:si].sum(), counts[:ei+1].sum()) for s, e in runsi], threshold 
+     
     
 def find_runs_thr (values, counts, N = 'N', E = 'E'):
     assert len (values) == len (counts), 'Wrong input!! Go away!'

@@ -149,8 +149,8 @@ class Run:
             except ValueError:
                 dvs.append (0)
         dva = np.array (dvs)
-        median = np.median (dva[dva > 0])
-        dva[dva == 0] = median        
+        #median = np.median (dva[dva > 0])
+        #dva[dva == 0] = median        
         self.dv = dva
         self.v0 = np.array(v0s)
         #p_thr is lower that for sensitive as full is more noisy, but less nosy :D 

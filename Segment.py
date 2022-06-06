@@ -24,9 +24,10 @@ class Segment:
         self.name = data['chrom'].values[0]+ ':'+str(data['position'].min())+'-'+str(data['position'].max())
         #-{self.name}
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.name}')
-        self.logger.debug ('Segment created.')
+        self.logger.debug (f'Segment created: {self.segmentation_symbol} .')
         self.symbols = self.data.loc[self.data['vaf'] < 1, 'symbol'].value_counts()
         self.symbol = self.symbols.index[0]
+        self.logger.debug (f'Segment symbol: {self.symbol}')
         self.estimate_parameters ()
         self.logger.debug ('Parameters estimated.')
         self.select_model ()
@@ -51,7 +52,7 @@ class Segment:
                 self.parameters = get_full (self.data,
                                             self.genome_medians['VAF']['fb'],
                                             self.genome_medians['HE']['b'])
-            self.logger.info (f"Estimated ai: {self.parameters['ai']}")
+            self.logger.info (f"Estimated, by sensitive method, ai: {self.parameters['ai']}")
         else:
             self.parameters = get_full (self.data,
                                         self.genome_medians['VAF']['fb'],
@@ -61,7 +62,7 @@ class Segment:
                 self.parameters = get_sensitive (self.data.loc[self.data['vaf'] < 1 - 1/self.genome_medians['COV']['m']],
                                                  self.genome_medians['VAF']['fb'],
                                                  self.genome_medians['COV']['m'])
-            self.logger.info (f"Estimated ai: {self.parameters['ai']}.")
+            self.logger.info (f"Estimated, by full method, ai: {self.parameters['ai']}.")
     
     def report (self, report_type = 'bed'):
         namestr = self.name.replace (':', '\t').replace ('-', '\t')
@@ -76,9 +77,7 @@ class Segment:
             report = ''
         return namestr + '\t' + report
         
-    def select_model (self):
-        #add 'model' and 'clonality' and 'd(istance)' keys to self.parameters
-        
+    def select_model (self):        
         if self.parameters['success']:
             m = self.parameters['m']
             v = self.parameters['ai']
@@ -92,7 +91,8 @@ class Segment:
             
             self.parameters['d'] = self.distances.min()
             self.parameters['model'] = list(model_presets.keys())[picked]
-            self.parameters['k'] = model_presets[self.parameters['model']].k(m,v,m0)
+            k = model_presets[self.parameters['model']].k(m,v,m0) 
+            self.parameters['k'] = k if k < 1 else np.nan
         else:
             self.parameters['model'] = 'NA'
             self.parameters['k'] = np.nan
@@ -118,7 +118,13 @@ model_presets = {'cn1' : Preset(A = lambda m,dv,m0: -m0/2,
                                 B = lambda m,dv,m0: -1,
                                 C = lambda m,dv,m0: m0,
                                 D = lambda m,dv,m0: -m0*(2*dv/(0.5-dv))/2+m,
-                                k = lambda m,dv,m0: 2*dv/(0.5-dv))}
+                                k = lambda m,dv,m0: 2*dv/(0.5-dv)),
+
+                 'cnB' : Preset(A = lambda m,dv,m0: 0,
+                                B = lambda m,dv,m0: 1,
+                                C = lambda m,dv,m0: 2*dv,
+                                D = lambda m,dv,m0: 0,
+                                k = lambda m,dv,m0: m/m0 - 1)}
     
 def get_sensitive (data, fb, mG, z_thr = 1.5):
     
@@ -155,7 +161,7 @@ def get_full (data, mG, b):
     cov = mG
     
     def vaf_cdf (v, dv, a, lerr, f, vaf, b):
-        return vaf_cdf_c (v, dv, a, lerr, f, vaf, b, cov)
+        return vaf_cdf_c (v, dv, a, lerr, f, vaf, b, m)
     
     v0 = 0.5
     #why on earth there is 0.09?!    
@@ -168,7 +174,8 @@ def get_full (data, mG, b):
         f0 = c[v < v0].sum()/(c.sum() - ones0) 
         dv0 = v0 - np.median (v[v < v0])
 
-        p0 = [dv0, ones0/c.sum(), 2, f0, 0.5, b]
+        p0 = [dv0, ones0/c.sum(), 2, 0.5, 0.5, b]
+        #print ('Initial parameters: ', p0)
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
                                               (0.5, 0.95, 5, 1, 0.55, 10)))
@@ -176,8 +183,10 @@ def get_full (data, mG, b):
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 'n' : len (data)} 
     except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
+        print ('Initial parameters: ', p0)
     except ValueError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0}
+        print ('Initial parameters: ', p0)
         
     return parameters
 

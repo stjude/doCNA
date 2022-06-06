@@ -24,30 +24,27 @@ class Genome:
     def retrive_counts_create_chromosomes (self, data_file, columns, SG_file = None):
         """Reads the data in and filters through SuperGood list, if not None"""
         alldata = pd.read_csv (data_file, sep = '\t', usecols = columns)[columns]
-        alldata.columns = ['chrom','position','ref_count', 'alt_count', 'Type']           
+        alldata.columns = ['chrom','position','ref_count', 'alt_count', 'Type']
+        alldata['chrom'] = np.where(alldata['chrom'].str.contains("chr") == False, "chr"+alldata['chrom'], alldata['chrom'])
 
         if SG_file is not None:
             SGlist = pd.read_csv (SG_file, compression = 'gzip',
                                 header = None, sep = '\t', names = ['chrom','position','Ref', 'Alt', 'Status'],
                                 dtype = {'chrom' : str, 'position' : np.int32, 'Ref' : str, 'Alt' : str, 'Status' : str})
-            data = alldata.loc [alldata['Type'] == 'SNP'].merge (SGlist[['chrom','position']], how = 'inner')
+            self.data = alldata.loc [alldata['Type'] == 'SNP'].merge (SGlist[['chrom','position']], how = 'inner')
             del (SGlist)
             del (alldata)
             self.logger.info ("Input file filtered through SG list.")
         else:
-            data = alldata
+            self.data = alldata
             self.logger.info ("Entire input file pass for analysis.")
 
-        self.data = data
         self.data['cov'] = self.data['ref_count'] + self.data['alt_count']
         self.data['vaf'] = self.data['alt_count']/self.data['cov']
         
         self.chromosomes = {}
-        for chrom, data in data.groupby (by = 'chrom'):
+        for chrom, data in self.data.groupby (by = 'chrom'):
             if chrom not in SEX_CHROMS:
-                #c_start = self.cyto.loc[(self.cyto['#chrom'] == chrom)&((self.cyto['gieStain'] == 'acen')|(self.cyto['gieStain'] == 'gvar')), 'chromStart'].min()
-                #c_end = self.cyto.loc[(self.cyto['#chrom'] == chrom)&((self.cyto['gieStain'] == 'acen')|(self.cyto['gieStain'] == 'gvar')), 'chromEnd'].max()                
-                #centromere = (c_start, c_end)
                 self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
                                                                  self.config, self.logger,
                                                                  self.genome_medians)
@@ -97,7 +94,6 @@ class Genome:
                 params = self.VAF.get_parameters (chrom)
                 if params['chi2'] >= float(self.config['VAF']['chi2_high']):
                     self.logger.info (f'Chromosome {chrom} marked on full model.')
-                    print ('m: ', self.COV.medians['m']) 
                     self.chromosomes[chrom].mark_on_full_model (self.COV.medians['m'])
 
         #segment_chromosomes
