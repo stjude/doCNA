@@ -191,7 +191,7 @@ class Run:
             
             new_indexes = []
             for i in indexes:
-                new_indexes.append(self.dv, *i)
+                new_indexes.append(divide_segment(self.dv, *i))
 
             self.logger.debug (f'Segment further divided: {len(new_indexes) > len(indexes)}')
             
