@@ -395,7 +395,7 @@ def divide_segment (dv, si, ei):
 
 def get_two_G_threshold (params):
 
-    a = params['2']['a'][0]
+    a = params['2']['a']
     m = params['m']
     s = params['s']
     
