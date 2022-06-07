@@ -403,7 +403,7 @@ def get_two_G_threshold (params):
     g0sf = a[0]*sts.norm.sf (x, m[0], s[0])
     g1cdf = a[1]*sts.norm.cdf (x, m[1], s[1])
 
-    thr = x[np.where(g0sf < g1cdf)[1].min[0]]
+    thr = x[np.where(g0sf < g1cdf)[1].min()]
     return thr
 
 def get_random_lenghts (params, size, thr, tries = 1000):
