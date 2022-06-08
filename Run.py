@@ -17,6 +17,7 @@ WINDOWS_THRESHOLD = 9
 SNPS_IN_WINDOW = 1000
 WINDOWS_TO_TEST_THRESHOLD = 20
 UNIFORMITY_THRESHOLD = 1e-5
+LENGTH_THRESHOLD = 10
 
 #Solution keep result of Run segmenting
 #Segments are based on /best/ Solution
@@ -33,7 +34,7 @@ class Run:
         self.start = data['position'].min()
         self.end = data['position'].max()
         
-        self.name = self.chrom+ ':'+str(self.start)+'-'+str(self.end)
+        self.name = self.chrom+ ':'+str(self.start)+'-'+str(self.end)+':'+self.symbol
         self.logger = logger.getChild(f'{self.__class__.__name__}-{self.name}')
         self.logger.debug ("Object created")
      
@@ -44,19 +45,29 @@ class Run:
         self.get_windows (n = SNPS_IN_WINDOW)
         self.logger.debug (f'Run divided into {len(self.windows)}')
         if len(self.windows) >= WINDOWS_THRESHOLD:
-            self.get_ai ()
-            self.get_coverage ()
-            self.solve_windows ()
+            try:
+                self.get_ai ()
+                self.get_coverage ()
+                self.solve_windows ()
+            except:
+                self.logger.info (f"Run {self.name} can't be describe by model.")
+                self.dumy_solution ()
+                self.logger.info ('One solution devised for crazy run')
+            
         else:
             self.logger.info (f'Run {self.name} is to short to segment.')
-            self.solutions = [Solution (chi2 = np.nan,
-                                        chi2_noO = np.nan,
-                                        positions = [(self.windows_positions[0][0], self.windows_positions[-1][1])],
-                                        p_norm = [(np.nan, np.nan, np.nan)],
-                                        segments = '',
-                                        merged_segments = '')]
+            self.dumy_solution ()
             self.logger.info (f'One solution devised for unsegmented run.')
     
+    def dumy_solution (self):
+        self.solutions = [Solution (chi2 = np.nan,
+                                    chi2_noO = np.nan,
+                                    positions = [(self.windows_positions[0][0], self.windows_positions[-1][1])],
+                                    p_norm = [(np.nan, np.nan, np.nan)],
+                                    segments = '',
+                                    merged_segments = '')]
+
+
     def get_windows (self, n = 1000):
         tmp = self.data.loc[[s == self.symbol for s in self.data['symbol']], ]
         N = np.max((int(np.floor(len(tmp)/n)),1))
@@ -174,6 +185,7 @@ class Run:
     
     def solve_windows (self, chi2_thr = 13.6):
         
+        #print (self.name)
         self.solutions = []
         x = np.array([self.dv, self.m, self.l]).T
         
@@ -186,17 +198,20 @@ class Run:
              
             for i in np.where(z.min(axis = 1) > chi2_thr)[0]:
                 segments [i] = 'O'
-            indexes, merged_segments = merge_symbols (''.join(segments))
+            old_indexes, merged_segments = merge_symbols (''.join(segments))
             chi2 = z[dist_index]
-            
-            new_indexes = []
-            for i in indexes:
-                new_indexes.append(divide_segment(self.dv, *i))
-
-            self.logger.debug (f'Segment further divided: {len(new_indexes) > len(indexes)}')
+            self.logger.debug ('Solution calculated') 
+            indexes = []
+            for i in old_indexes:
+                indexes += (divide_segment(self.dv, *i))
+            if len(indexes) > len(old_indexes):
+                self.logger.debug (f'Run further divided, {len(indexes) - len(old_indexes)} more segment(s).')
+                self.logger.debug (f'Old runs: {old_indexes}')
+                self.logger.debug (f'New runs: {indexes}')
             
             psl = []
-            for si, ei in indexes:
+            #print (indexes)
+            for (si, ei) in indexes:
                 psl.append ((get_norm_p (self.dv[si:ei+1]),
                              get_norm_p (self.m[si:ei+1],
                              get_norm_p (self.l[si:ei+1]))))
@@ -284,6 +299,8 @@ def get_norm_p (values, sinit = 0.05):
         popt, pcov = opt.curve_fit (cdf, np.sort(values), np.linspace (0,1, len(values)), p0 = [sinit])
         pks = sts.kstest (values, cdf, args = popt).pvalue
     except opt.OptimizeWarning:
+        pks = np.nan
+    except RuntimeError:
         pks = np.nan    
     return pks
 
@@ -367,25 +384,37 @@ def make_rle_string(string, sep = ';'):
     return sep.join(rle_string)
    
 def divide_segment (dv, si, ei):
-    parameters = Distribution.fit_double_G (dv[si:ei], alpha = 0.05, r = 0.1)
-    threshold = get_two_G_threshold (parameters)
-    random_length = get_random_lenghts (parameters, ei-si, threshold)
-         
-    values, counts = rle_encode (['A' if v < threshold else 'B' for v in dv[si:ei]])
-    
-    new_segments = []
-    
-    indexes = np.where(counts[values == 'B'] > threshold[1])[0]
-    i = 0
-    start = si
-    while i < len (indexes):
-        end = counts[:i].sum()
-        new_segments.append((start, end))
-        start = end+1
-    
-    if start < ei:
-        new_segments.append ((start, ei))
-    
+    if ei - si > 2*LENGTH_THRESHOLD:
+        parameters = Distribution.fit_double_G (dv[si:ei], alpha = 0.05, r = 0.1)
+        #print ('double gauss parameters: ', parameters)
+        z = np.abs(parameters['m'][1] - parameters['m'][0])/(parameters['s'][0] + parameters['s'][1])
+        #print (z)
+        if (parameters['a'][0] < 0.9)&(parameters['a'][1] < 0.9)&(z > 0.3):
+            threshold = get_two_G_threshold (parameters)
+            #print ('threshold: ', threshold)
+            random_length = get_random_lenghts (parameters, ei-si, threshold)
+            #print (random_length)
+            values, counts = rle_encode (['A' if v < threshold else 'B' for v in dv[si:ei]])
+            #print ('v,c: ', values, counts)   
+            new_segments = []
+            js = np.where ((counts > random_length[1])&(values == 'B'))[0]
+            indexes = np.concatenate([np.array([0]), np.cumsum(counts)])
+        
+            start = 0
+            for i in js:
+                end = indexes[i]
+                if start < end:
+                    new_segments.append((si+start,si+end))
+                start = end + 1
+                end = indexes[i+1]
+                new_segments.append((si+start,si+end))
+                start = end + 1
+            if start < (ei - si):
+                new_segments.append((si+start,ei))
+        else:
+            new_segments = [(si, ei)]
+    else:
+        new_segments = [(si, ei)]
     return new_segments
     
     
@@ -395,15 +424,17 @@ def divide_segment (dv, si, ei):
 
 def get_two_G_threshold (params):
 
-    a = params['2']['a']
+    a = params['a']
     m = params['m']
     s = params['s']
     
-    x = np.arange (m[0] - 2*s[0], m[1] + 2*s[1], 0.001)
+    #x = np.arange (m[0] - 2*s[0], m[1] + 2*s[1], 0.001)
+    x = np.arange (min(m[0] - 2*s[0], m[1] - 2*s[1]),
+                   max(m[1] + 2*s[1], m[0] + 2*s[0]), 0.0001)
     g0sf = a[0]*sts.norm.sf (x, m[0], s[0])
     g1cdf = a[1]*sts.norm.cdf (x, m[1], s[1])
 
-    thr = x[np.where(g0sf < g1cdf)[1].min()]
+    thr = x[np.where(g0sf < g1cdf)[0].min()]
     return thr
 
 def get_random_lenghts (params, size, thr, tries = 1000):
@@ -413,8 +444,17 @@ def get_random_lenghts (params, size, thr, tries = 1000):
         vals = rng.uniform(size = 71)
         rdv = ppf (vals, params)
         values, counts = rle_encode (['A' if v < thr else 'B' for v in rdv])
-        maxs.append ((counts[values == 'A'].max(), counts[values == 'B'].max()))
+        maxs.append ((safemax(counts[values == 'A']), 
+                      safemax(counts[values == 'B'])))
     return np.array(maxs).max(axis = 0)
+
+def safemax (x):
+    try:
+        y = np.max(x)
+    except ValueError:
+        y = 0
+    return y
+
 
 def ppf (x, p):
     a = p['a']

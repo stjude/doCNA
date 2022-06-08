@@ -70,6 +70,7 @@ class Genome:
                                    self.chromosomes,
                                    self.logger)
         self.HE.run_test(no_processes = self.no_processes)
+        #self.logger.info (str(self.HE.results))
         self.HE.analyze (parameters = self.config['HE'])
        
         self.logger.info ("Genomewide heterozygosity:" + "\n" + str(self.HE.results))
