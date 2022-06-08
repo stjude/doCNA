@@ -7,6 +7,7 @@ from doCNA import Testing
 from doCNA import Distribution
 from doCNA import Segment
 from doCNA import Run
+from doCNA.Report import Report
 
 N_SYMBOL = 'N'
 E_SYMBOL = 'E'
@@ -200,14 +201,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
             self.Nruns.append ((tmp['min'], tmp['max']))
     
     def report (self, report_type = 'bed'):
-        if report_type == 'bed':
-            data = '\n'.join([s.report(report_type = 'bed') for s in self.segments])
-        elif report_type == 'run':
-            data = '\n'.join([s.report(report_type = 'short') for s in self.runs])
-        elif report_type == 'solution':
-            data = '\n'.join([s.report(report_type = 'solution') for s in self.runs])
-            
-        return data
+        return Report(report_type).chromosome_report(self.segments, self.runs)
 
 def vaf_cnai (v, dv, a, vaf,b, cov):
     s = np.sqrt((vaf - dv)*(vaf + dv)/(b*cov))

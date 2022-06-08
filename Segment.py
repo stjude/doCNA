@@ -5,7 +5,7 @@ from collections import namedtuple
 import scipy.optimize as opt
 
 from doCNA import Testing
-from doCNA import Run
+from doCNA.Report import Report
 
 
 E_SYMBOL = 'E'
@@ -65,17 +65,7 @@ class Segment:
             self.logger.info (f"Estimated, by full method, ai: {self.parameters['ai']}.")
     
     def report (self, report_type = 'bed'):
-        namestr = self.name.replace (':', '\t').replace ('-', '\t')
-        
-        if report_type == 'bed':
-            gmm = self.genome_medians['clonality']['m']
-            gms = self.genome_medians['clonality']['s']
-            n = self.parameters['n']/Run.SNPS_IN_WINDOW
-            score = np.abs(self.parameters['k'] - gmm)*np.sqrt(n/2)/gms
-            report = '\t'.join([str(p) for p in [self.parameters['m'], self.parameters['model'], self.parameters['k'], score]])
-        else:
-            report = ''
-        return namestr + '\t' + report
+        return Report(report_type).segment_report(self.name, self.genome_medians, self.parameters)
         
     def select_model (self):        
         if self.parameters['success']:

@@ -7,6 +7,7 @@ import scipy.stats as sts
 from doCNA import Testing
 from doCNA import Chromosome
 from doCNA import Run
+from doCNA.Report import Report
 
 SEX_CHROMS = ['chrX', 'chrY']
 
@@ -133,10 +134,7 @@ class Genome:
         #self.genome_medians['clon_score']['s'] = res[3]
     
     def report (self, report_type = 'bed'):
-        keys = list(self.chromosomes.keys())
-        keys.sort(key = lambda x: int(x[3:]))
-        return '\n'.join([self.chromosomes[key].report(report_type) for key in keys])
-    
+        return Report.genome_report(self.chromosomes)
     
 def f (c):
     c.find_runs()

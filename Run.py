@@ -12,6 +12,7 @@ from doCNA import Segment
 from doCNA import Distribution
 from doCNA import Testing
 from doCNA import Chromosome
+from doCNA.Report import Report
 
 WINDOWS_THRESHOLD = 9
 SNPS_IN_WINDOW = 1000
@@ -251,26 +252,7 @@ class Run:
         return self.name + '-' + self.symbol
     
     def report (self, report_type = 'short'):
-        report_types = ['short', 'full', 'solution']
-        if report_type not in report_types:
-            warn.warn ('Unknown report type. Use "short" instead.')
-            report_type = 'short'
-        
-        if report_type == 'short':
-            report = ';'.join([self.name, self.symbol, 
-                               f'#solutions: {len(self.solutions)}',
-                               f'#segments: {len(self.solutions[0].positions)}'])
-        elif report_type == 'full':
-            report = ';'.join([self.name, self.symbol,
-                               f'#solutions: {len(self.solutions)}',
-                               f'#segments: {len(self.solutions[0].positions)}'])
-        elif report_type == 'solution':
-            reports = [self.name]
-            for solution in self.solutions:
-                sol_str = '    ' + '; '.join([str(solution.chi2), str(solution.chi2_noO), str(solution.positions), solution.merged_segments])
-                reports.append (sol_str)
-            report = '\n'.join (reports)
-        return report
+        return Report(report_type).run_report(self.name, self.symbol, self.solutions)
     
     def __repr__(self) -> str:
         return self.tostring()
