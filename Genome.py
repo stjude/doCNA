@@ -131,9 +131,7 @@ class Genome:
         
         return {'m' : res[2], 's' : res[3]}
         
-        #self.genome_medians['clon_score'] = {'m' : res[2]}
-        #self.genome_medians['clon_score']['s'] = res[3]
-    
+            
     def report (self, report_type = 'bed'):
         return Report(report_type).genome_report(self.chromosomes)
     
