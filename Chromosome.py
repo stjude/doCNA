@@ -21,14 +21,16 @@ Run_treshold =  namedtuple('Run_treshold', [N_SYMBOL, E_SYMBOL])
 
 class Chromosome:
     """Class to contain data, and find runs."""
-    def __init__ (self, name, data, config, logger, genome_medians, CB_file = None):
+    def __init__ (self, name, data, config, logger, genome_medians, CB):
         self.name = name
         self.data = data
         self.config = config
         self.logger = logger.getChild(f'{self.__class__.__name__}-{self.name}')
         self.genome_medians = genome_medians
          
-        self.CB_file = CB_file
+        self.CB = CB.loc[CB['gieStain'] != 'acen']
+        self.cent = CB.loc[CB['gieStain'] == 'acen' ].agg({'chromStart' : min, 'chromEnd' : max}).values
+        
         self.Eruns = []
         self.Uruns = []
         self.Nruns = []
@@ -78,7 +80,6 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
             self.windows.append(tmpi)
             self.windows_positions.append ((tmpi['position'].min(), tmpi['position'].max()))
 
-
     def get_vaf_shift_full (self, z_thr = 2.5):
         
         def vaf_cdf (v, dv, a, lerr, f, vaf, b):
@@ -119,9 +120,6 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         #p_thr is lower that for sensitive as full is more noisy, but less nosy :D 
         self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = 0.1, thr_z = z_thr)
-
-
-
 
     def find_runs (self):
         """Method to generate runs. Runs segment themselves."""
@@ -180,12 +178,21 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
                     if len(data_view) == 0:
                         self.logger.error(f"Wrong segment {start}-{end} in {run.name})")
                     else:
+                        centromere_fraction = (end - self.cent[0])/(end - start)
+                        cytobands = self.CB[(self.CB['chromStart'] < end)&(self.CB['chromEnd'])].sort_values (by = 'chromStart')['name'].values
+                        if len(cytobands) > 1:
+                            cytobands_str = cytobands[0] + '-' + cytobands[-1]
+                        else:
+                            cytobands_str = cytobands[0]
+                            
                         self.segments.append (Segment.Segment (data = data_view, 
                                                                config = self.config, 
                                                                logger = self.logger, 
                                                                genome_medians = self.genome_medians,
                                                                segmentation_score = best_solution.p_norm,
-                                                               segmentation_symbol = run.symbol))
+                                                               segmentation_symbol = run.symbol,
+                                                               centromere_fraction = 0 if (centromere_fraction < 0) | (centromere_fraction > 1) else centromere_fraction,
+                                                               cytobands = cytobands_str))
     
     def find_Nruns (self):
         symbol_list = self.data.loc[(self.data['vaf'] < 1) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()
@@ -211,7 +218,6 @@ def vaf_HO (v, lerr):
     err = 10**lerr
     return np.exp ((v-1)*err)
 
-
 def analyze_string_N (symbol_list, N = 'N', E = 'E'):
     """Finds runs of Ns"""                    
     
@@ -228,7 +234,6 @@ def analyze_string_N (symbol_list, N = 'N', E = 'E'):
     runsi = get_N_runs_indexes (values, counts, threshold = threshold, N = N, E = E)
         
     return runsi, threshold 
-     
     
 def find_runs_thr (values, counts, N = 'N', E = 'E'):
     assert len (values) == len (counts), 'Wrong input!! Go away!'
