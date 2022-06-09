@@ -33,7 +33,7 @@ E_SYMBOL = 'E'
 class Testing:
     def __init__  (self, test_name, chromosomes, logger):
         assert test_name in ['COV', 'HE', 'VAF'], f"Unknown test: {test_name}!"
-        
+        self.test_name = test_name
         i = np.where([t == test_name for t in ['COV', 'HE', 'VAF']])[0][0]
         self.test = [COV_test, HE_test, VAF_test][i]
         self.chromosomes = chromosomes
@@ -71,15 +71,18 @@ class Testing:
             #except if not a number
             self.logger.debug (f'Parameter {column} being analyzed with alpha = {alpha} and r = {r}')
             res = self.results.loc[self.results.notna().all(axis = 1), column].values
-            range = get_outliers_thrdist (res, alpha, r)
-            
-            self.logger.info ('Estimated normal ragne of {} is from {} to {}'.format (column, *range))
-            in_or_out = (self.results[column] > range[0]) & (self.results[column] < range[1])
+            try:
+                param_range = get_outliers_thrdist (res, alpha, r)
+            except:
+                self.logger.critical (f'Test {self.test_name}: estimation of {column} distribution failed. Maybe BMT?')
+                exit (1)
+            self.logger.info ('Estimated normal ragne of {} is from {} to {}'.format (column, *param_range))
+            in_or_out = (self.results[column] > param_range[0]) & (self.results[column] < param_range[1])
             self.results[column + '_status'] = in_or_out
             
             status[column] = ['inlier' if iou else 'outlier' for iou in in_or_out]
             self.logger.info (f"{sum(in_or_out)} chromosomes' {column} within range.")
-            self.normal_range[column] = range
+            self.normal_range[column] = param_range
         
         self.status = pd.DataFrame.from_dict (status)
         self.status['chrom'] = self.results.index

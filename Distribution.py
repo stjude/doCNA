@@ -153,6 +153,7 @@ def fit_double_G (values_all, alpha, r):
     return {'p' : ksp.pvalue,
             'm' : np.array([m0,m1]),
             's' : np.array([s0,s1]),
+            'a' : np.array([a0, 1-a0]),
             '2':{'m': np.array([m0,m1]), 
                  's': np.array([s0,s1]), 'a' : np.array([a0, 1-a0])},
             'thr' : (out_min, out_max)}
