@@ -186,12 +186,11 @@ class Run:
     
     def solve_windows (self, chi2_thr = 13.6):
         
-        #print (self.name)
         self.solutions = []
         x = np.array([self.dv, self.m, self.l]).T
         
         for m0, s0, labels in zip(*self.get_distributions()):
-            self.logger.debug (f'Calculating solution: m = {m0}, s = {s0}') 
+            self.logger.debug (f'Calculating solution ...') 
             y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])/s0[np.newaxis,:,:])**2
             z = y.sum(axis = 1)
             dist_index = np.asarray(z == z.min(axis = 1)[:,np.newaxis]).nonzero()
@@ -211,7 +210,6 @@ class Run:
                 self.logger.debug (f'New runs: {indexes}')
             
             psl = []
-            #print (indexes)
             for (si, ei) in indexes:
                 psl.append ((get_norm_p (self.dv[si:ei+1]),
                              get_norm_p (self.m[si:ei+1],

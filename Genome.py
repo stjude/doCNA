@@ -64,7 +64,7 @@ class Genome:
             exit (0)
         
         self.logger.info ("Genomewide coverage: " + f"\n" + str(self.COV.results))
-        
+                 
         self.genome_medians['COV'] = self.COV.get_genome_medians()
         self.logger.info ('Starting HE test genome.')                        
         self.HE = Testing.Testing ('HE', 
@@ -76,6 +76,7 @@ class Genome:
         self.HE.analyze (parameters = self.config['HE'])
        
         self.logger.info ("Genomewide heterozygosity:" + "\n" + str(self.HE.results))
+        
         self.genome_medians['HE'] = self.HE.get_genome_medians()        
               
         self.logger.info ('First round of H/E marking.')

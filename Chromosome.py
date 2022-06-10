@@ -127,6 +127,10 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         self.find_Nruns ()
                 
         self.runs = []
+        #print (self.name)
+        #print ("N: ", len (self.Nruns))
+        #print ("U: ", len (self.Uruns))
+
         for nr in self.Nruns:
             self.runs.append(Run.Run (self.data.loc[(self.data['position'] >= nr[0])&(self.data['position'] <= nr[1])],
                                       symbol = 'N',
@@ -155,9 +159,11 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         for ur in self.Uruns:
             unr.append ((ur[0], ur[1]))
         unr.sort (key = lambda x: x[0] )
-        
+        #print (self.name, unr)
         startsandends = []
         
+        #print (self.name, 'seg')
+
         for run in self.runs:
             best_solution = run.solutions[0]       
             if run.symbol != 'E':
@@ -171,33 +177,32 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
                             current_start = rend
                     if current_start < end:
                         startsandends.append((current_start,end))
-                
-            for start, end in startsandends:
-                    data_view = self.data.loc[(self.data['position'] >= start) &\
-                                              (self.data['position'] <= end) &\
-                                              (self.data['symbol'] == run.symbol)]
-                    if len(data_view) == 0:
-                        self.logger.error(f"Wrong segment {start}-{end} in {run.name})")
-                    else:
-                        #print (self.cent, (start,end))
-                        centromere_fraction = min((end - self.cent[0]),(self.cent[1]))/(end - start)
-                        #print (centromere_fraction)
-                        cytobands = self.CB[(self.CB['chromStart'] < end)&(self.CB['chromEnd'] > start)].sort_values (by = 'chromStart')['name'].values
-                        #print (cytobands)
+        
+        #print (self.name, startsandends)
 
-                        if len(cytobands) > 1:
-                            cytobands_str = cytobands[0] + '-' + cytobands[-1]
-                        else:
-                            cytobands_str = cytobands[0]
+        for start, end in startsandends:
+            data_view = self.data.loc[(self.data['position'] >= start) &\
+                                      (self.data['position'] <= end) &\
+                                      (self.data['symbol'] == run.symbol)]
+            if len(data_view) == 0:
+                self.logger.error(f"Wrong segment {start}-{end} in {run.name})")
+            else:
+                centromere_fraction = min((end - self.cent[0]),(self.cent[1]-start))/(end - start)
+                cytobands = self.CB[(self.CB['chromStart'] < end)&(self.CB['chromEnd'] > start)].sort_values (by = 'chromStart')['name'].values
+                        
+                if len(cytobands) > 1:
+                    cytobands_str = cytobands[0] + '-' + cytobands[-1]
+                else:
+                    cytobands_str = cytobands[0]
                             
-                        self.segments.append (Segment.Segment (data = data_view, 
-                                                               config = self.config, 
-                                                               logger = self.logger, 
-                                                               genome_medians = self.genome_medians,
-                                                               segmentation_score = best_solution.p_norm,
-                                                               segmentation_symbol = run.symbol,
-                                                               centromere_fraction = 0 if (centromere_fraction < 0) | (centromere_fraction > 1) else centromere_fraction,
-                                                               cytobands = cytobands_str))
+                self.segments.append (Segment.Segment (data = data_view, 
+                                                       config = self.config, 
+                                                       logger = self.logger, 
+                                                       genome_medians = self.genome_medians,
+                                                       segmentation_score = best_solution.p_norm,
+                                                       segmentation_symbol = run.symbol,
+                                                       centromere_fraction = 0 if (centromere_fraction < 0) | (centromere_fraction > 1) else centromere_fraction,
+                                                       cytobands = cytobands_str))
     
     def find_Nruns (self):
         symbol_list = self.data.loc[(self.data['vaf'] < 1) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()
