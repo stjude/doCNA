@@ -27,10 +27,11 @@ class Chromosome:
         self.config = config
         self.logger = logger.getChild(f'{self.__class__.__name__}-{self.name}')
         self.genome_medians = genome_medians
-         
-        self.CB = CB.loc[CB['gieStain'] != 'acen']
-        self.cent = CB.loc[CB['gieStain'] == 'acen' ].agg({'chromStart' : min, 'chromEnd' : max}).values
         
+        self.CB = CB #.loc[CB['gieStain'] != 'acen']
+        self.cent = (CB.loc[(CB['gieStain'] == 'acen'),'chromStart'].min(),
+                     CB.loc[(CB['gieStain'] == 'acen'),'chromEnd'].max())
+         
         self.Eruns = []
         self.Uruns = []
         self.Nruns = []
@@ -178,8 +179,12 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
                     if len(data_view) == 0:
                         self.logger.error(f"Wrong segment {start}-{end} in {run.name})")
                     else:
-                        centromere_fraction = (end - self.cent[0])/(end - start)
-                        cytobands = self.CB[(self.CB['chromStart'] < end)&(self.CB['chromEnd'])].sort_values (by = 'chromStart')['name'].values
+                        #print (self.cent, (start,end))
+                        centromere_fraction = min((end - self.cent[0]),(self.cent[1]))/(end - start)
+                        #print (centromere_fraction)
+                        cytobands = self.CB[(self.CB['chromStart'] < end)&(self.CB['chromEnd'] > start)].sort_values (by = 'chromStart')['name'].values
+                        #print (cytobands)
+
                         if len(cytobands) > 1:
                             cytobands_str = cytobands[0] + '-' + cytobands[-1]
                         else:
@@ -238,7 +243,6 @@ def analyze_string_N (symbol_list, N = 'N', E = 'E'):
 def find_runs_thr (values, counts, N = 'N', E = 'E'):
     assert len (values) == len (counts), 'Wrong input!! Go away!'
     hist = np.unique(counts[values == N], return_counts = True)
-    # print (hist)
     x = np.log10 (hist[0])
     y = np.log10 (hist[1])
     
@@ -277,8 +281,6 @@ def lin (x,a,b):
 def get_N_runs_indexes (values, counts, threshold, N = N_SYMBOL, E = E_SYMBOL):
     bed = []
     Nindexes = np.where ((values == N)&(counts >= threshold.N))[0]
-    #counts[(counts > threshold.N)& (values == N_SYMBOL)]
-    #print (Nindexes)
     for i in Nindexes:
         if any ([(i>=s)&(i <= e) for s,e in bed]):
             continue

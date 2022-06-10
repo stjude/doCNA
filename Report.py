@@ -53,7 +53,7 @@ class Report:
                                f'#solutions: {len(solutions)}',
                                f'#segments: {len(solutions[0].positions)}'])
         elif self._report_type == 'solution':
-            reports = name
+            reports = [name]
             for solution in solutions:
                 sol_str = '    ' + '; '.join([str(solution.chi2), str(solution.chi2_noO), str(solution.positions), solution.merged_segments])
                 reports.append(sol_str)
