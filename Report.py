@@ -24,7 +24,7 @@ class Report:
             data = '\n'.join([s.report(report_type='solution') for s in runs])
         return data
 
-    def segment_report(self, name, genome_medians, parameters):
+    def segment_report(self, name, genome_medians, parameters, cytoband, fraction):
         """ Generates a report for Segment objects """
         namestr = name.replace(':', '\t').replace ('-', '\t')
         if self._report_type == 'bed':
@@ -32,7 +32,7 @@ class Report:
             gms = genome_medians['clonality']['s']
             n = parameters['n']/Run.SNPS_IN_WINDOW
             score = np.abs(parameters['k'] - gmm)*np.sqrt(n/2)/gms
-            report = '\t'.join([str(p) for p in [parameters['m'], parameters['model'], parameters['k'], score]])
+            report = '\t'.join([str(p) for p in [parameters['m'], parameters['model'], parameters['k'], score, cytoband, fraction]])
         else:
             report = ''
         return '\t'.join([namestr, report])

@@ -13,11 +13,11 @@ SEX_CHROMS = ['chrX', 'chrY']
 
 class Genome:
     """Class to run genome wide tests of HE and create chromosomes."""
-    def __init__(self, sample_name, logger, config, CB_file = None, no_processes = 1):
+    def __init__(self, sample_name, logger, config, CB_file, no_processes = 1):
         self.sample_name = sample_name
         self.no_processes = no_processes
         self.config = config
-        self.CB_file = CB_file
+        self.CB = pd.read_csv (CB_file, sep = '\t')
         self.logger = logger.getChild (f'{self.__class__.__name__}')
         self.genome_medians = {}
         self.logger.debug ("Object genome created.")
@@ -48,7 +48,8 @@ class Genome:
             if chrom not in SEX_CHROMS:
                 self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
                                                                  self.config, self.logger,
-                                                                 self.genome_medians)
+                                                                 self.genome_medians, 
+                                                                 self.CB.loc[self.CB['chrom'] == chrom])
             
     #run COV test, run HE test, creates chromosomes with proper parameters
     def segment_genome (self):
