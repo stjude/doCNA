@@ -9,8 +9,8 @@ from doCNA.Report import Report
 
 
 E_SYMBOL = 'E'
-MAX_CLON_THRESHOLD_FOR_SENSITIVE = 0.4
-MIN_CLON_THRESHOLD_FOR_FULL = 0.2
+MAX_AI_THRESHOLD_FOR_SENSITIVE = 0.4
+#MIN_CLON_THRESHOLD_FOR_FULL = 0.2
 
 
 class Segment:
@@ -49,8 +49,8 @@ class Segment:
             self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL,],
                                              self.genome_medians['VAF']['fb'],
                                              self.genome_medians['COV']['m'])
-            if self.parameters['ai'] > MAX_CLON_THRESHOLD_FOR_SENSITIVE:
-                self.logger.info (f"Estimated ai: {self.parameters['ai']} above threshold for sensitive model: {MAX_CLON_THRESHOLD_FOR_SENSITIVE}")
+            if self.parameters['ai'] > MAX_AI_THRESHOLD_FOR_SENSITIVE:
+                self.logger.info (f"Estimated ai: {self.parameters['ai']} above threshold for sensitive model: {MAX_AI_THRESHOLD_FOR_SENSITIVE}")
                 self.parameters = get_full (self.data)
                                             #self.genome_medians['VAF']['fb'],
                                             #self.genome_medians['HE']['b'])
@@ -67,8 +67,9 @@ class Segment:
             self.logger.info (f"Estimated, by full method, ai: {self.parameters['ai']}.")
     
     def report (self, report_type = 'bed'):
-        return Report(report_type).segment_report(self.name, self.genome_medians, self.parameters, self.cytobands, self.centromere_fraction)
-        
+        #return Report(report_type).segment_report(self.name, self.genome_medians, self.parameters, self.cytobands, self.centromere_fraction)
+        return Report(report_type).segment_report(self)
+                                                  
     def select_model (self):        
         if self.parameters['success']:
             m = self.parameters['m']
@@ -86,6 +87,7 @@ class Segment:
             k = model_presets[self.parameters['model']].k(m,v,m0) 
             self.parameters['k'] = k if k < 1 else np.nan
         else:
+            self.parameters['d'] = np.nan
             self.parameters['model'] = 'NA'
             self.parameters['k'] = np.nan
             self.logger            
@@ -114,7 +116,7 @@ model_presets = {'cn1' : Preset(A = lambda m,dv,m0: -m0/2,
 
                  'cnB' : Preset(A = lambda m,dv,m0: 0,
                                 B = lambda m,dv,m0: 1,
-                                C = lambda m,dv,m0: 2*dv,
+                                C = lambda m,dv,m0: dv,
                                 D = lambda m,dv,m0: 0,
                                 k = lambda m,dv,m0: np.abs(m/m0 - 1))}
     

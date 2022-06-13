@@ -24,15 +24,17 @@ class Report:
             data = '\n'.join([s.report(report_type='solution') for s in runs])
         return data
 
-    def segment_report(self, name, genome_medians, parameters, cytoband, fraction):
+    def segment_report(self, segment):
         """ Generates a report for Segment objects """
-        namestr = name.replace(':', '\t').replace ('-', '\t')
+        namestr = segment.name.replace(':', '\t').replace ('-', '\t')
         if self._report_type == 'bed':
-            gmm = genome_medians['clonality']['m']
-            gms = genome_medians['clonality']['s']
-            n = parameters['n']/Run.SNPS_IN_WINDOW
-            score = np.abs(parameters['k'] - gmm)*np.sqrt(n/2)/gms
-            report = '\t'.join([str(p) for p in [parameters['m'], parameters['model'], parameters['k'], score, cytoband, fraction]])
+            gmm = segment.genome_medians['clonality']['m']
+            gms = segment.genome_medians['clonality']['s']
+            n = segment.parameters['n']/Run.SNPS_IN_WINDOW
+            score = np.abs(segment.parameters['k'] - gmm)*np.sqrt(n/2)/gms
+            report = '\t'.join([str(p) for p in [segment.parameters['m'], segment.parameters['model'],
+                                                 segment.parameters['k'], score, segment.cytoband, 
+                                                 segment.fraction, segment.parameters['d']]])
         else:
             report = ''
         return '\t'.join([namestr, report])

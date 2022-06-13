@@ -117,19 +117,19 @@ class Genome:
         
         self.logger.info("Genome medians:" + " \n" + str(self.genome_medians))
         
-        
     def get_clonality_thr (self, alpha = 0.05, percentiles = (10,80)):
 
         zs = []
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
                 if seg.symbol == Chromosome.E_SYMBOL:
-                    zs.append (seg.parameters['k']*np.sqrt(seg.parameters['n']/Run.SNPS_IN_WINDOW))
-        
+                    #zs.append (seg.parameters['k']*np.sqrt(seg.parameters['n']/Run.SNPS_IN_WINDOW))
+                    zs.append (seg.parameters['ai']*np.sqrt(seg.parameters['n']/Run.SNPS_IN_WINDOW))
         z = np.array(zs)
         pp = np.percentile (z, percentiles)
         res = sts.truncnorm.fit (z[(z >= pp[0])&(z <= pp[1])])
-        self.logger.info ('Clonality threshold: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
+        #self.logger.info ('Clonality threshold: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
+        self.logger.info ('AI threshold: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
         
         return {'m' : res[2], 's' : res[3]}
         
