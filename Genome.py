@@ -113,27 +113,54 @@ class Genome:
                 self.chromosomes[chrom].generate_segments ()
         self.logger.info ("Segmentation finished.")
         
-        self.genome_medians['clonality'] = self.get_clonality_thr ()
+        self.genome_medians['model_d'] = self.get_distance_params ()
+        self.logger.info("Model distance /d/:" + " \n" + str(self.genome_medians['model_d']))
         
-        self.logger.info("Genome medians:" + " \n" + str(self.genome_medians))
+        self.genome_medians['clonality'] = self.get_clonality_params ()
+        self.logger.info("Sample clonality /k/:" + " \n" + str(self.genome_medians['clonality']))
+    
+        self.logger.info (str(self.genome_medians))
+     
+    def get_clonality_params (self, alpha = 0.05, percentiles = (10,80)):
+    
+        ks = []
+        for chrom in self.chromosomes.keys():
+            for seg in self.chromosomes[chrom].segments:
+                if seg.symbol == Chromosome.E_SYMBOL:
+                    gmm = seg.genome_medians['clonality']['m']
+                    gms = seg.genome_medians['clonality']['s']
+                    n = seg.parameters['n']/Run.SNPS_IN_WINDOW
+                    score = np.abs(seg.parameters['d'] - gmm)/(gms*np.sqrt(n))
+                    if score < self.genome_medians['model_d']['thr']:
+                        ks.append (seg.parameters['k'])
+                            
+        z = np.array(ks)
+        pp = np.percentile (z, percentiles)
+        res = sts.truncnorm.fit (z[(z >= pp[0])&(z <= pp[1])])
+        self.logger.info ('Distance from model /d/ threshold: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
         
-    def get_clonality_thr (self, alpha = 0.05, percentiles = (10,80)):
+        thr = sts.norm.ppf (1-alpha, res[2], res[3])
+        
+        return {'m' : res[2], 's' : res[3], 'thr': thr}
+    
+    
+                
+    def get_distance_params (self, percentiles = (10,80)):
 
         zs = []
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
                 if seg.symbol == Chromosome.E_SYMBOL:
-                    #zs.append (seg.parameters['k']*np.sqrt(seg.parameters['n']/Run.SNPS_IN_WINDOW))
-                    zs.append (seg.parameters['d']*np.sqrt(seg.parameters['n']/Run.SNPS_IN_WINDOW))
+                    zs.append (seg.parameters['d']/np.sqrt(seg.parameters['n']))
+                            
         z = np.array(zs)
         pp = np.percentile (z, percentiles)
         res = sts.truncnorm.fit (z[(z >= pp[0])&(z <= pp[1])])
-        #self.logger.info ('Clonality threshold: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
         self.logger.info ('Distance from model /d/ threshold: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
+        #thr = sts.norm.ppf (1-alpha, res[2], res[3])
         
-        return {'m' : res[2], 's' : res[3]}
+        return {'m' : res[2], 's' : res[3]}#, 'thr': thr}
         
-            
     def report (self, report_type = 'bed'):
         return Report(report_type).genome_report(self.chromosomes)
     
