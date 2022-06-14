@@ -31,10 +31,10 @@ class Report:
             gmm = segment.genome_medians['clonality']['m']
             gms = segment.genome_medians['clonality']['s']
             n = segment.parameters['n']/Run.SNPS_IN_WINDOW
-            score = np.abs(segment.parameters['k'] - gmm)*np.sqrt(n/2)/gms
+            score = np.abs(segment.parameters['d'] - gmm)/(gms*np.sqrt(n))
             report = '\t'.join([str(p) for p in [segment.parameters['m'], segment.parameters['model'],
-                                                 segment.parameters['k'], score, segment.cytoband, 
-                                                 segment.fraction, segment.parameters['d']]])
+                                                 segment.parameters['k'], score, segment.cytobands, 
+                                                 segment.centromere_fraction, segment.parameters['d'], segment.parameters['ai']]])
         else:
             report = ''
         return '\t'.join([namestr, report])

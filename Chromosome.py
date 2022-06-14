@@ -182,8 +182,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
 
         for start, end in startsandends:
             data_view = self.data.loc[(self.data['position'] >= start) &\
-                                      (self.data['position'] <= end) &\
-                                      (self.data['symbol'] == run.symbol)]
+                                      (self.data['position'] <= end)]
             if len(data_view) == 0:
                 self.logger.error(f"Wrong segment {start}-{end} in {run.name})")
             else:
