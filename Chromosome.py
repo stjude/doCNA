@@ -186,7 +186,8 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
             if len(data_view) == 0:
                 self.logger.error(f"Wrong segment {start}-{end} in {run.name})")
             else:
-                centromere_fraction = min((end - self.cent[0]),(self.cent[1]-start))/(end - start)
+                #centromere_fraction = min((end - self.cent[0]),(self.cent[1]-start))/(end - start)
+                centromere_fraction = (min(end, self.cent[1]) - max(self.cent[0],start))/(end - start)
                 cytobands = self.CB[(self.CB['chromStart'] < end)&(self.CB['chromEnd'] > start)].sort_values (by = 'chromStart')['name'].values
                         
                 if len(cytobands) > 1:

@@ -60,6 +60,7 @@ class Genome:
         self.COV.analyze (parameters = self.config['COV'])
                 
         if self.COV.medians['m'] < float(self.config['COV']['min_cov']):
+        
             self.logger.critical (f"Coverage is below threshold {self.COV.medians['m']} < {self.config['COV']['min_cov']}")
             exit (0)
         
@@ -130,8 +131,8 @@ class Genome:
                     gmm = seg.genome_medians['model_d']['m']
                     gms = seg.genome_medians['model_d']['s']
                     n = seg.parameters['n']/Run.SNPS_IN_WINDOW
-                    score = np.abs(seg.parameters['d'] - gmm)/(gms*np.sqrt(n/Run.SNPS_IN_WINDOW))                    
-                    if score < 2: #3: #3: #self.genome_medians['model_d']['thr']:
+                    score = np.abs(seg.parameters['d'] - gmm)/(gms/np.sqrt(n/Run.SNPS_IN_WINDOW))                    
+                    if score < 5: #3: #3: #self.genome_medians['model_d']['thr']:
                         ks.append (seg.parameters['k'])
                             
         z = np.array(ks)
@@ -139,7 +140,7 @@ class Genome:
         res = sts.truncnorm.fit (z[(z >= pp[0])&(z <= pp[1])])
         self.logger.info ('Distance from model /d/ threshold: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
         
-#        thr = sts.norm.ppf (1-alpha, res[2], res[3])
+        #thr = sts.norm.ppf (1-alpha, res[2], res[3])
         
         return {'m' : res[2], 's' : res[3]}
     
