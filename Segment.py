@@ -47,7 +47,7 @@ class Segment:
         
         if self.symbol == E_SYMBOL:
             self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL,],
-                                             self.genome_medians['VAF']['fb'],
+                                             self.genome_medians['fb'],
                                              self.genome_medians['COV']['m'])
             if self.parameters['ai'] > MAX_AI_THRESHOLD_FOR_SENSITIVE:
                 self.logger.info (f"Estimated ai: {self.parameters['ai']} above threshold for sensitive model: {MAX_AI_THRESHOLD_FOR_SENSITIVE}")

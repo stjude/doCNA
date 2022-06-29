@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import multiprocessing as mpl
 import scipy.stats as sts
+import scipy.optimize as opt
 #from Chromosome import E_SYMBOL
 
 from doCNA import Testing
@@ -91,6 +92,9 @@ class Genome:
         self.logger.info("Genomewide VAF:" + " \n" + str(self.VAF.results))
         self.genome_medians['VAF'] = self.VAF.get_genome_medians()
         
+        self.genome_medians['fb'] = Testing.get_outliers_thrdist (self.VAF.results.loc[self.VAF.get_inliers(), 'fb'], alpha = 0.05, r = 0.5)[1]
+        self.logger.info (f"Widening parameters estimated at: {self.genome_medians['fb']}")
+
         #those that fail need to be marked on full model
         for chrom in self.chromosomes.keys():
             status = self.VAF.get_status (chrom)
@@ -128,11 +132,13 @@ class Genome:
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
                 if seg.symbol == Chromosome.E_SYMBOL:
-                    gmm = seg.genome_medians['model_d']['m']
-                    gms = seg.genome_medians['model_d']['s']
-                    n = seg.parameters['n']/Run.SNPS_IN_WINDOW
-                    score = np.abs(seg.parameters['d'] - gmm)/(gms/np.sqrt(n/Run.SNPS_IN_WINDOW))                    
-                    if score < 5: #3: #3: #self.genome_medians['model_d']['thr']:
+                    #gmm = seg.genome_medians['model_d']['m']
+                    #gms = seg.genome_medians['model_d']['s']
+                    #n = seg.parameters['n']/Run.SNPS_IN_WINDOW
+                    #score = np.abs(seg.parameters['d'] - gmm)/(gms/np.sqrt(n/Run.SNPS_IN_WINDOW))                    
+                    a = seg.genome_medians['model_d']['a']
+                    score = -np.log10 (np.exp (-a*seg.parameters['d']))
+                    if score < 3: #3: #3: #self.genome_medians['model_d']['thr']:
                         ks.append (seg.parameters['k'])
                             
         z = np.array(ks)
@@ -149,18 +155,22 @@ class Genome:
     def get_distance_params (self, percentiles = (10,80)):
 
         zs = []
+        ns = []
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
                 if seg.symbol == Chromosome.E_SYMBOL:
-                    zs.append (seg.parameters['d']*np.sqrt(seg.parameters['n']/Run.SNPS_IN_WINDOW))
-                            
+                    zs.append (seg.parameters['d'])#*np.sqrt(seg.parameters['n']/Run.SNPS_IN_WINDOW))
+                    ns.append (seg.parameters['n'])        
         z = np.array(zs)
-        pp = np.percentile (z, percentiles)
-        res = sts.truncnorm.fit (z[(z >= pp[0])&(z <= pp[1])])
-        self.logger.info ('Distance from model /d/ threshold: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
+        s = 1/np.sqrt(np.array(ns))
+        #pp = np.percentile (z, percentiles)
+        #res = sts.truncnorm.fit (z[(z >= pp[0])&(z <= pp[1])])
+        #self.logger.info ('Distance from model /d/ threshold: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
         #thr = sts.norm.ppf (1-alpha, res[2], res[3])
         
-        return {'m' : res[2], 's' : res[3]}#, 'thr': thr}
+        popt, _ = opt.curve_fit (exp, z, np.linspace (0,1,len(z)), p0 = (10), sigma = s)
+
+        return {'a' : popt[0]} #{'m' : res[2], 's' : res[3]}#, 'thr': thr}
         
     def report (self, report_type = 'bed'):
         return Report(report_type).genome_report(self.chromosomes)
@@ -170,5 +180,7 @@ def f (c):
     c.generate_segments ()
     return c    
 
+def exp (x,a):
+    return 1 - np.exp(-a*x)
     
     

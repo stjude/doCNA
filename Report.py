@@ -28,10 +28,12 @@ class Report:
         """ Generates a report for Segment objects """
         namestr = segment.name.replace(':', '\t').replace ('-', '\t')
         if self._report_type == 'bed':
-            gmm = segment.genome_medians['model_d']['m']
-            gms = segment.genome_medians['model_d']['s']
-            n = segment.parameters['n']/Run.SNPS_IN_WINDOW
-            score = np.abs(segment.parameters['d'] - gmm)/(gms/np.sqrt(segment.parameters['n']/Run.SNPS_IN_WINDOW))
+            #gmm = segment.genome_medians['model_d']['m']
+            #gms = segment.genome_medians['model_d']['s']
+            #n = segment.parameters['n']/Run.SNPS_IN_WINDOW
+            #score = np.abs(segment.parameters['d'] - gmm)/(gms/np.sqrt(segment.parameters['n']/Run.SNPS_IN_WINDOW))
+            a = segment.genome_medians['model_d']['a']
+            score = -np.log10(np.exp (-a*segment.parameters['d']))
 
             gmm = segment.genome_medians['clonality']['m']
             gms = segment.genome_medians['clonality']['s']
