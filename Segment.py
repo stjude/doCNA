@@ -115,7 +115,7 @@ model_presets = {'cn1' : Preset(A = lambda m,dv,m0: -m0/2,
                                 k = lambda m,dv,m0: 2*dv/(0.5-dv)),
 
                  'cnB' : Preset(A = lambda m,dv,m0: 0,
-                                B = lambda m,dv,m0: 1,
+                                B = lambda m,dv,m0: 1/2,
                                 C = lambda m,dv,m0: dv,
                                 D = lambda m,dv,m0: 0,
                                 k = lambda m,dv,m0: np.abs(m/m0 - 1))}
