@@ -89,7 +89,7 @@ class Run:
         else:
             self.get_ai_full()
         
-    def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.0, p_thr = 0.5, z_thr = 1.5):
+    def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.0, p_thr = 0.3, z_thr = 1.5):
         tmpf = 1
         s0 = np.sqrt (0.25/self.genome_medians['COV']['m'])
         
@@ -119,10 +119,10 @@ class Run:
             
         self.dv = np.array(dvl)
         self.v0 = np.array (v0l)
-        self.dv_dist = Distribution.Distribution (self.dv, p_thr = 0.3, thr_z = z_thr)
+        self.dv_dist = Distribution.Distribution (self.dv, p_thr = p_thr, thr_z = z_thr)
         self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult))        
             
-    def get_ai_full (self, z_thr = 2.5):
+    def get_ai_full (self, z_thr = 2.5, p_thr = 0.1):
         
         def vaf_cdf (v, dv, a, lerr, f, vaf, b):
             cnai = vaf_cnai (v, dv, f, vaf, b, cov)
@@ -162,9 +162,9 @@ class Run:
         self.v0 = np.array(v0s)
         #p_thr is lower that for sensitive as full is more noisy, but less nosy :D 
         self.dv_dist = Distribution.Distribution (self.dv,
-                                                  p_thr = 0.1, thr_z = z_thr)
+                                                  p_thr = p_thr, thr_z = z_thr)
     
-    def get_coverage (self, z_thr = 1.5):
+    def get_coverage (self, z_thr = 1.5, p_thr = 0.1):
         ml = []
         ll = []
         
@@ -229,8 +229,8 @@ class Run:
                                             merged_segments = make_rle_string(''.join(merged_segments))))
         
         self.solutions.sort (key = lambda x: x.chi2_noO)        
-        best_runs = ','.join (['(' + str(s)+ ',' + str(e)+ ')' for s,e in self.solutions[0].positions])
-        self.logger.info ('Best solution: ' + best_runs + str(df) + ',' + str(sum(noOfilter)))
+        #best_runs = ','.join (['(' + str(s)+ ',' + str(e)+ ')' for s,e in self.solutions[0].positions])
+        #self.logger.info ('Best solution: ' + best_runs + str(df) + ',' + str(sum(noOfilter)))
        
     def get_distributions (self):
                 
