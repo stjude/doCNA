@@ -122,7 +122,7 @@ class Run:
         self.dv_dist = Distribution.Distribution (self.dv, p_thr = p_thr, thr_z = z_thr)
         self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult))        
             
-    def get_ai_full (self, z_thr = 2.5, p_thr = 0.1):
+    def get_ai_full (self, z_thr = 2.5, p_thr = 0.3):
         
         def vaf_cdf (v, dv, a, lerr, f, vaf, b):
             cnai = vaf_cnai (v, dv, f, vaf, b, cov)
@@ -160,7 +160,7 @@ class Run:
         #dva[dva == 0] = median        
         self.dv = dva
         self.v0 = np.array(v0s)
-        #p_thr is lower that for sensitive as full is more noisy, but less nosy :D 
+        #p_thr is lower that for sensitive as full is more noisy, but less noi:sy :D 
         self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = p_thr, thr_z = z_thr)
     

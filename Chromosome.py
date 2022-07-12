@@ -205,15 +205,17 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
                                                        cytobands = cytobands_str))
     
     def find_Nruns (self):
-        symbol_list = self.data.loc[(self.data['vaf'] < 1) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()
+        vaf_thr = (self.genome_medians['COV']['m'] - 1)/self.genome_medians['COV']['m']
+        symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()
         if len (symbol_list) >= N_STR_LEN_THR:    
             self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = N_SYMBOL, E = E_SYMBOL)
+            self.logger.debug (f'N runs thr: {self.Nruns_threshold}')
         else:
             self.Nruns_indexes = []
             self.Nruns_threshold = []
         
         for run in self.Nruns_indexes:
-            tmp = self.data.loc[self.data['vaf'] < 1,].iloc[run[0]:run[1],:].position.agg((min,max))
+            tmp = self.data.loc[self.data['vaf'] < vaf_thr,].iloc[run[0]:run[1],:].position.agg((min,max))
             self.data.loc[(self.data.position >= tmp['min'])&(self.data.position <= tmp['max']), 'symbol'] = N_SYMBOL
             self.Nruns.append ((tmp['min'], tmp['max']))
     
@@ -248,14 +250,15 @@ def analyze_string_N (symbol_list, N = 'N', E = 'E'):
 def find_runs_thr (values, counts, N = 'N', E = 'E'):
     assert len (values) == len (counts), 'Wrong input!! Go away!'
     hist = np.unique(counts[values == N], return_counts = True)
-    x = np.log10 (hist[0])
+    #x = np.log10 (hist[0])
+    x = hist[0]
     y = np.log10 (hist[1])
     
     try:
         ind = np.arange (0, min (4, len(x)))
         popt, _ = opt.curve_fit (lin,  x[ind], y[ind], p0 = [-1,1])
-        xt = np.log10 (np.arange(1, hist[0].max()))
-        N_thr = 10**(xt[lin(xt, *popt) > np.log10(1)].max())
+        xt = (np.arange(1, hist[0].max()))
+        N_thr = (xt[lin(xt, *popt) > -1].max())
     except RuntimeError:
         N_thr = DEFAULT_N_THRESHOLD
     
@@ -272,7 +275,7 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
             popt, _ = opt.curve_fit (lin, x[:3], y[:3], p0 = [-1,1])
             if popt[1] < 0:
                 xt = np.arange(1, hist[0].max())
-                E_thr = xt[lin(xt, *popt) > 0].max()
+                E_thr = xt[lin(xt, *popt) > -1].max()
             else:
                 E_thr = DEFAULT_E_THRESHOLD
     except RuntimeError:
