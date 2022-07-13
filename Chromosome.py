@@ -298,7 +298,7 @@ def get_N_runs_indexes (values, counts, threshold, N = N_SYMBOL, E = E_SYMBOL):
         
         if e < len(counts)-2:
             inext = e + 1        
-            while counts[inext] < threshold.E:
+	    while counts[inext] <= threshold.E:
                 if e > len(counts)-4:
                     e = len(counts)-1
                     break
@@ -308,7 +308,7 @@ def get_N_runs_indexes (values, counts, threshold, N = N_SYMBOL, E = E_SYMBOL):
                 
         if s > 0:
             iprev = s - 1
-            while counts[iprev] < threshold.E:
+            while counts[iprev] <= threshold.E:
                 if s < 3:
                     s = 0
                     break

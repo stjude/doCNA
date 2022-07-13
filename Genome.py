@@ -154,7 +154,7 @@ class Genome:
         ks = []
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
-                if seg.m/rameters['model'] == 'cnB':
+                if seg.parameters['model'] == 'cnB':
                     a = seg.genome_medians['model_d']['a']
                     score = -np.log10 (np.exp (-a*seg.parameters['d']))
                     if (score < 3)&(~np.isnan(seg.parameters['k'])):
@@ -162,10 +162,10 @@ class Genome:
         z = np.array(ks)
         pp = np.percentile (z, percentiles)
         zz = z[(z >= pp[0])&(z <= pp[1])]
-        res = opt.curve_fit (sts.norm.cdf, np.sort(zz), np.linspace (0,1,len(zz)), p0 = [0.01, 0.01])
-        self.logger.info ('Distance from model /d/ threshold: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res))
+        res, _ = opt.curve_fit (sts.norm.cdf, np.sort(zz), np.linspace (0,1,len(zz)), p0 = [0.01, 0.01])
+        self.logger.info (f'Clonality /k_cnB/: m = {res[0]}, s = {res[1]}')
  
-        return {'m' : res[2], 's' : res[3]}
+        return {'m' : res[0], 's' : res[1]}
     
     
                 
