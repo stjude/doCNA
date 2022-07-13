@@ -23,7 +23,7 @@ class WGS:
         fh = logging.FileHandler(self.sample_name + '.log', mode = 'w')
         fh.setLevel(logging.DEBUG)
         #%(funcName)s:
-        fh_formatter = logging.Formatter('%(asctime)s %(name)s: %(levelname)s: %(message)s')
+        fh_formatter = logging.Formatter('%(asctime)s %(name)s: %(levelname)s: %(message)s', datefmt='%H:%M:%S')
         fh.setFormatter(fh_formatter)
         logger.addHandler(fh)
         
@@ -35,20 +35,19 @@ class WGS:
         return logger
             
     def analyze (self):
-        self.logger.info ('Creating genome.')
+        self.logger.debug ('Creating genome.')
         self.genome = Genome.Genome (self.sample_name, self.logger, self.config, self.CB_file, self.no_processes)
         input_columns = [self.config['InputColumns']['chrom'],
                          self.config['InputColumns']['position'],
                          self.config['InputColumns']['ref_count'],
                          self.config['InputColumns']['alt_count'],
                          self.config['InputColumns']['Type']]
-        self.logger.debug ('Genome object created.')
+        
         self.genome.retrive_counts_create_chromosomes (data_file = self.wgs_file, SG_file = self.SG_file,
                                                        columns = input_columns)
-        self.logger.debug ('Counts data retrived.')
-        self.logger.info ('Segmenting genome.')
+        self.logger.debug ('Segmenting genome...')
         self.genome.segment_genome ()
-        self.logger.info ('Ready to report.')
+        self.logger.info ('Ready to report!')
 
     #this probably needs to be split into more functions
     def report (self, report_type = 'bed'):
@@ -59,25 +58,3 @@ class WGS:
         for handler in handlers:
             self.logger.removeHandler(handler)
             handler.close()
-
-    #def pickle_genome (self):
-        #del (self.logger)
-        #self.logger.shutdown()
-    #    for handle in self.logger.handlers:
-    #        handle.close ()
-    #        self.logger.removeHandler(handle)
-    #        del (handle)
-    #    del (self.logger)
-            
-    #    with open (self.sample_name+'.pkl', 'wb') as out:
-    #        pkl.dump (self.genome, out, 4)
-        #test is closing file handlers in logger allows pickling, so sort of destructor
-    
-    
-    #def __del__ (self):
-    #    self.wgs_file.close ()
-    #    if self.SG_file is not None:
-    #       
-    #        self.SG_file.close ()
-    #    self.CB_file.close ()
-

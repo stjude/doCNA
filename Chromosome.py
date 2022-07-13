@@ -15,6 +15,7 @@ U_SYMBOL = 'U'
 DEFAULT_N_THRESHOLD = 10
 DEFAULT_E_THRESHOLD = 3
 N_STR_LEN_THR = 100
+HE_Z_THR = 13.8
 
 Run_treshold =  namedtuple('Run_treshold', [N_SYMBOL, E_SYMBOL])
 
@@ -37,18 +38,21 @@ class Chromosome:
         self.Nruns = []
         self.logger.debug (f"Object chromosome {name} created.")
         
-    def markE_onHE(self, he_parameters, threshold = 13.8):
+    def markE_onHE(self, he_parameters, z_thr = HE_Z_THR):
+        self.logger.debug (f"Marking {self.name} based on HE test.")
         zv = (self.data['vaf'] - he_parameters['vaf']) / np.sqrt (0.25/(he_parameters['cov']))
         zc = (self.data['cov'] - he_parameters['cov']) / np.sqrt (he_parameters['b']*he_parameters['cov'])
         z = zv**2+zc**2
  
         self.data['symbol'] = N_SYMBOL       
-        indexes = self.data.loc[z < threshold, :].index.values.tolist()
+        indexes = self.data.loc[z < z_thr, :].index.values.tolist()
         self.data.loc[indexes, 'symbol'] = E_SYMBOL
-        self.logger.debug (f"""Chromosome {self.name} marked based on parameters
-v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
+        self.logger.info (f"""Chromosome {self.name} marked based on parameters
+v = {he_parameters['vaf']}, c = {he_parameters['cov']}. #N = {sum(self.data['symbol'] == 'N_SYMBOL')}
+#E = {sum(self.data['symbol'] == 'E_SYMBOL')}""")
         
     def mark_on_full_model (self, m):
+        self.logger.debug (f'Marking {self.name} based on full model')
         self.get_fragments (n = int(self.config['Segmenting']['No_SNPs']))
         self.get_vaf_shift_full ()
         
@@ -61,12 +65,17 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
             #test chi2
             outlier = (chi2 > float(self.config['VAF']['chi2_high'])) | (chi2 == 0)
                       
-            self.logger.info (f'Marking on full model {self.name}:{start}-{end} chi2 = {chi2}')            
             if outlier:
+                self.logger.info (f'Region {self.name}:{start}-{end}, chi2 = {chi2}, marked as U.')
                 self.data.loc[(self.data['position'] >= start)&\
                                     (self.data['position'] <= end), 'symbol'] = U_SYMBOL
                 self.Uruns.append ((start, end))
-    
+        
+        self.logger.info (f"""{self.name} composition: 
+                          #N = {sum(self.data.symbol == N_SYMBOL)},
+                          #E = {sum(self.data.symbol == E_SYMBOL)},
+                          #U = {sum(self.data.symbol == U_SYMBOL)}""")    
+        
     def get_fragments (self, n = 1000):
         tmp = self.data
         N = np.max((int(np.floor(len(tmp)/n)),1))
@@ -95,7 +104,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         v0s = []        
         
         for window in self.windows:
-            vaf = window['vaf'].values
+            vaf = window.loc[~window.vaf.isna(), 'vaf'].values
             v, c = np.unique(vaf, return_counts = True)
 
             cnor = np.cumsum(c)/np.sum(c)
@@ -209,10 +218,11 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.""")
         symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()
         if len (symbol_list) >= N_STR_LEN_THR:    
             self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = N_SYMBOL, E = E_SYMBOL)
-            self.logger.debug (f'N runs thr: {self.Nruns_threshold}')
+            self.logger.info (f'N runs thresholds: tN = {self.Nruns_threshold[0]}, tE =  {self.Nruns_threshold[1]}')
         else:
             self.Nruns_indexes = []
             self.Nruns_threshold = []
+            self.logger.info (f'')
         
         for run in self.Nruns_indexes:
             tmp = self.data.loc[self.data['vaf'] < vaf_thr,].iloc[run[0]:run[1],:].position.agg((min,max))
@@ -262,24 +272,24 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
     except RuntimeError:
         N_thr = DEFAULT_N_THRESHOLD
     
-    hist = np.unique(counts[values != N], return_counts = True)
+    hist = np.unique(counts[values == E], return_counts = True)
     x = hist[0]
     y = np.log10 (hist[1])
     
-    try:
-        popt, _ = opt.curve_fit (lin, x[:4], y[:4], p0 = [-1,1])
+    #try:
+    popt, _ = opt.curve_fit (lin, x[:4], y[:4], p0 = [-1,1])
+    if popt[1] < 0:
+        xt = np.arange(1, hist[0].max())
+        E_thr = xt[lin(xt, *popt) > 0].max()
+    else:
+        popt, _ = opt.curve_fit (lin, x[:3], y[:3], p0 = [-1,1])
         if popt[1] < 0:
             xt = np.arange(1, hist[0].max())
             E_thr = xt[lin(xt, *popt) > 0].max()
         else:
-            popt, _ = opt.curve_fit (lin, x[:3], y[:3], p0 = [-1,1])
-            if popt[1] < 0:
-                xt = np.arange(1, hist[0].max())
-                E_thr = xt[lin(xt, *popt) > -1].max()
-            else:
-                E_thr = DEFAULT_E_THRESHOLD
-    except RuntimeError:
-        E_thr = DEFAULT_E_THRESHOLD
+            E_thr = DEFAULT_E_THRESHOLD
+    #except RuntimeError:
+    #    E_thr = DEFAULT_E_THRESHOLD
     
     return Run_treshold (N = N_thr, E = E_thr)
 

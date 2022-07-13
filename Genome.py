@@ -11,6 +11,8 @@ from doCNA import Run
 from doCNA.Report import Report
 
 SEX_CHROMS = ['chrX', 'chrY']
+FB_ALPHA = 0.05
+
 
 class Genome:
     """Class to run genome wide tests of HE and create chromosomes."""
@@ -28,7 +30,8 @@ class Genome:
         alldata = pd.read_csv (data_file, sep = '\t', usecols = columns)[columns]
         alldata.columns = ['chrom','position','ref_count', 'alt_count', 'Type']
         alldata['chrom'] = np.where(alldata['chrom'].str.contains("chr") == False, "chr"+alldata['chrom'], alldata['chrom'])
-
+        
+        self.logger.debug ('Data retrived.') 
         if SG_file is not None:
             SGlist = pd.read_csv (SG_file, compression = 'gzip',
                                 header = None, sep = '\t', names = ['chrom','position','Ref', 'Alt', 'Status'],
@@ -36,15 +39,17 @@ class Genome:
             self.data = alldata.loc [alldata['Type'] == 'SNP'].merge (SGlist[['chrom','position']], how = 'inner')
             del (SGlist)
             del (alldata)
-            self.logger.info ("Input file filtered through SG list.")
+            self.logger.info (f"Input file filtered through SG list: {len(self.data)} SNPs to analyze.")
+            
         else:
             self.data = alldata
-            self.logger.info ("Entire input file pass for analysis.")
+            self.logger.info ("{len(self.data)} SNPs to analyze. No filtering applied.")
 
         self.data['cov'] = self.data['ref_count'] + self.data['alt_count']
         self.data['vaf'] = self.data['alt_count']/self.data['cov']
         
         self.chromosomes = {}
+        self.logger.debug ("Creating chromosomes...")
         for chrom, data in self.data.groupby (by = 'chrom'):
             if chrom not in SEX_CHROMS:
                 self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
@@ -53,60 +58,65 @@ class Genome:
                                                                  self.CB.loc[self.CB['chrom'] == chrom])
             
     #run COV test, run HE test, creates chromosomes with proper parameters
-    def segment_genome (self):
+    def segment_genome (self, fb_alpha = FB_ALPHA):
         
-        self.logger.info ('Starting COV test genome.')
+        self.logger.debug ('Starting testing ...')
         self.COV = Testing.Testing ('COV', self.chromosomes, self.logger)
         self.COV.run_test(no_processes = self.no_processes)
         self.COV.analyze (parameters = self.config['COV'])
                 
         if self.COV.medians['m'] < float(self.config['COV']['min_cov']):
-        
             self.logger.critical (f"Coverage is below threshold {self.COV.medians['m']} < {self.config['COV']['min_cov']}")
             exit (0)
         
-        self.logger.info ("Genomewide coverage: " + f"\n" + str(self.COV.results))
+        self.logger.debug ("Genomewide coverage: " + f"\n" + str(self.COV.report_results()))
+        self.logger.info ("Genome coverage medians: "+ f"\n" + str(self.COV.get_genome_medians()))
                  
         self.genome_medians['COV'] = self.COV.get_genome_medians()
-        self.logger.info ('Starting HE test genome.')                        
+        
         self.HE = Testing.Testing ('HE', 
-                                   #{chrom : self.chromosomes[chrom] for chrom in self.COV.get_inliers()},
                                    self.chromosomes,
                                    self.logger)
+        
         self.HE.run_test(no_processes = self.no_processes)
-        #self.logger.info (str(self.HE.results))
         self.HE.analyze (parameters = self.config['HE'])
        
-        self.logger.info ("Genomewide heterozygosity:" + "\n" + str(self.HE.results))
+        self.logger.debug ("Genomewide heterozygosity: " + f"\n" + str(self.HE.report_results()))
+        self.logger.info ("Genome heterozygosity medians: "+ f"\n" + str(self.HE.get_genome_medians()))
         
         self.genome_medians['HE'] = self.HE.get_genome_medians()        
               
-        self.logger.info ('First round of H/E marking.')
+        self.logger.debug ('First round of N/E marking.')
         for chrom in self.chromosomes.keys():
             self.chromosomes[chrom].markE_onHE (self.HE.get_parameters(chrom), float(self.config['HE']['z_thr']))
-        self.logger.info ('Testing first round of H/E marking.')    
+        
+        self.logger.debug ('Testing first round of N/E marking.')    
+        
         self.VAF = Testing.Testing ('VAF', self.chromosomes, self.logger)
         self.VAF.run_test (self.COV.medians['m'], no_processes = self.no_processes)
-        #self.logger.info("Genomewide VAF:" + " \n" + str(self.VAF.results))
         self.VAF.analyze (parameters = self.config['VAF'])
-        self.logger.info("Genomewide VAF:" + " \n" + str(self.VAF.results))
+        
+        self.logger.debug ("Genomewide VAF: " + f"\n" + str(self.VAF.report_results()))
+        self.logger.info ("Genome VAF medians: "+ f"\n" + str(self.VAF.get_genome_medians()))
+        
         self.genome_medians['VAF'] = self.VAF.get_genome_medians()
         
-        self.genome_medians['fb'] = Testing.get_outliers_thrdist (self.VAF.results.loc[self.VAF.get_inliers(), 'fb'], alpha = 0.05, r = 0.5)[1]
+        self.genome_medians['fb'] = Testing.get_outliers_thrdist (self.VAF.results.loc[self.VAF.get_inliers(), 'fb'],
+                                                                  alpha = fb_alpha, r = 0.5)[1]
         self.logger.info (f"Widening parameters estimated at: {self.genome_medians['fb']}")
 
-        #those that fail need to be marked on full model
+       
         for chrom in self.chromosomes.keys():
             status = self.VAF.get_status (chrom)
-            self.logger.info (f'Chromosome {chrom} status: {status}')
+            self.logger.debug (f'Chromosome {chrom} inlier: {status}')
             if status:
                 params = self.VAF.get_parameters (chrom)
                 if params['chi2'] >= float(self.config['VAF']['chi2_high']):
-                    self.logger.info (f'Chromosome {chrom} marked on full model.')
+                    self.logger.debug (f'Chromosome {chrom} marked on full model.')
                     self.chromosomes[chrom].mark_on_full_model (self.COV.medians['m'])
 
         #segment_chromosomes
-        self.logger.info ("Starting segmentation.")
+        self.logger.debug ("Starting segmentation.")
         if self.no_processes > 1:            
             with mpl.Pool (processes = self.no_processes) as pool:
                 segmented_chroms = pool.map (f, self.chromosomes.values())
@@ -116,7 +126,8 @@ class Genome:
             for chrom in self.chromosomes.keys():
                 self.chromosomes[chrom].find_runs()
                 self.chromosomes[chrom].generate_segments ()
-        self.logger.info ("Segmentation finished.")
+        self.logger.debug ("Segmentation finished.")
+        self.logger.debug ("Scoring.")
                 
         self.genome_medians['model_d'] = self.get_distance_params ()
         self.logger.info("Model distance /d/:" + " \n" + str(self.genome_medians['model_d']))

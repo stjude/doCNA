@@ -47,7 +47,9 @@ class Report:
             a = segment.genome_medians['ai']['a']
             ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']))
 
-            report = '\t'.join([str(p) for p in [segment.parameters['m'], segment.parameters['model'], score, 
+            report = '\t'.join([str(p) for p in [segment.parameters['m'], 
+                                                 segment.parameters['m']/segment.genome_medians['COV']['m'],
+                                                 segment.parameters['model'], score, 
                                                  segment.parameters['k'], k_score, segment.cytobands, 
                                                  segment.centromere_fraction, segment.parameters['d'], 
                                                  segment.parameters['ai'], ai_score]])

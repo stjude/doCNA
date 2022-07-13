@@ -88,7 +88,7 @@ class Testing:
         self.status['chrom'] = self.results.index
         self.status.set_index ('chrom', inplace = True)
         inlier_filter = (self.status == 'inlier').all(axis = 1) 
-        self.medians = self.results.loc[inlier_filter, ].median (axis = 0, numeric_only = True)
+        self.medians = self.results.loc[inlier_filter, columns].median (axis = 0, numeric_only = True)
 
     def get_parameters (self, chromosome):
         #get chromosome parameters 
@@ -102,7 +102,7 @@ class Testing:
     
     def get_status (self, chromosome):
         try:
-            status = self.status.T[chromosome].all(axis = 0)
+            status = (self.status.T[chromosome] == 'inlier').all(axis = 0)
         except KeyError:
             status = False
         return status
@@ -115,6 +115,12 @@ class Testing:
     
     def get_outliers (self):
         return self.status[(self.status == 'outlier').all(axis = 1)].index.values
+    
+    def report_results (self) -> pd.DataFrame:
+        """Method to report only test results without status."""
+        all_columns = self.results.columns.tolist()
+        indexes = np.where([c.find('status') ==  -1 for c in all_columns])
+        return self.results[[all_columns[i] for i in indexes]]
     
 def COV_test (data, *args, **kwargs):
     
