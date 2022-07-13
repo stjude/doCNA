@@ -15,7 +15,8 @@ MAX_AI_THRESHOLD_FOR_SENSITIVE = 0.4
 
 class Segment:
     """Class to calculate clonality and find the model."""
-    def __init__ (self, data, config, logger, genome_medians, segmentation_score, segmentation_symbol, centromere_fraction, cytobands) -> None:
+    def __init__ (self, data, config, logger, genome_medians, segmentation_score,
+                  segmentation_symbol, centromere_fraction, cytobands) -> None:
         self.data = data
         self.config = config
         self.genome_medians = genome_medians
@@ -23,10 +24,14 @@ class Segment:
         self.segmentation_symbol = segmentation_symbol
         self.centromere_fraction = centromere_fraction
         self.cytobands = cytobands
+        
+        self.chrom = data['chrom'].values[0]
+        self.start = data['position'].min()
+        self.end = data['position'].max()
         self.name = data['chrom'].values[0]+ ':'+str(data['position'].min())+'-'+str(data['position'].max())
         #-{self.name}
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.name}')
-        self.logger.debug (f'Segment created: {self.segmentation_symbol} .')
+        self.logger.debug (f'Segment created: {self.segmentation_symbol}.')
         self.symbols = self.data.loc[self.data['vaf'] < 1, 'symbol'].value_counts()
         self.symbol = self.symbols.index[0]
         self.logger.debug (f'Segment symbol: {self.symbol}')

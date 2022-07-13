@@ -119,7 +119,7 @@ class Testing:
     def report_results (self) -> pd.DataFrame:
         """Method to report only test results without status."""
         all_columns = self.results.columns.tolist()
-        indexes = np.where([c.find('status') ==  -1 for c in all_columns])
+        indexes = np.where([c.find('status') ==  -1 for c in all_columns])[0]
         return self.results[[all_columns[i] for i in indexes]]
     
 def COV_test (data, *args, **kwargs):

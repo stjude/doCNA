@@ -136,10 +136,8 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}. #N = {sum(self.data['sym
         self.find_Nruns ()
                 
         self.runs = []
-        #print (self.name)
-        #print ("N: ", len (self.Nruns))
-        #print ("U: ", len (self.Uruns))
-
+        self.logger.info (f'Runs found: #N = {len(self.Nruns)}, #U = {len(self.Uruns)}')
+        
         for nr in self.Nruns:
             self.runs.append(Run.Run (self.data.loc[(self.data['position'] >= nr[0])&(self.data['position'] <= nr[1])],
                                       symbol = 'N',
@@ -222,7 +220,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}. #N = {sum(self.data['sym
         else:
             self.Nruns_indexes = []
             self.Nruns_threshold = []
-            self.logger.info (f'')
+            self.logger.info (f"To few N's ({len (symbol_list)}) to analyse.")
         
         for run in self.Nruns_indexes:
             tmp = self.data.loc[self.data['vaf'] < vaf_thr,].iloc[run[0]:run[1],:].position.agg((min,max))
@@ -276,20 +274,20 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
     x = hist[0]
     y = np.log10 (hist[1])
     
-    #try:
-    popt, _ = opt.curve_fit (lin, x[:4], y[:4], p0 = [-1,1])
-    if popt[1] < 0:
-        xt = np.arange(1, hist[0].max())
-        E_thr = xt[lin(xt, *popt) > 0].max()
-    else:
-        popt, _ = opt.curve_fit (lin, x[:3], y[:3], p0 = [-1,1])
+    try:
+        popt, _ = opt.curve_fit (lin, x[:4], y[:4], p0 = [-1,1])
         if popt[1] < 0:
             xt = np.arange(1, hist[0].max())
             E_thr = xt[lin(xt, *popt) > 0].max()
         else:
-            E_thr = DEFAULT_E_THRESHOLD
-    #except RuntimeError:
-    #    E_thr = DEFAULT_E_THRESHOLD
+            popt, _ = opt.curve_fit (lin, x[:3], y[:3], p0 = [-1,1])
+            if popt[1] < 0:
+                xt = np.arange(1, hist[0].max())
+                E_thr = xt[lin(xt, *popt) > 0].max()
+            else:
+                E_thr = DEFAULT_E_THRESHOLD
+    except RuntimeError:
+        E_thr = DEFAULT_E_THRESHOLD
     
     return Run_treshold (N = N_thr, E = E_thr)
 

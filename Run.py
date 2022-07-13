@@ -38,25 +38,25 @@ class Run:
         self.name = self.chrom+ ':'+str(self.start)+'-'+str(self.end)+':'+self.symbol
         self.logger = logger.getChild(f'{self.__class__.__name__}-{self.name}')
         self.logger.debug ("Object created")
-     
+        self.logger.debug ("Analyzing run ....")     
         self.analyze ()
-        self.logger.info (f"Run analyzed, {len(self.solutions)} solutions")
+        self.logger.info (f"Run analyzed, {len(self.solutions)} solution(s)")
                 
     def analyze (self):
         self.get_windows (n = SNPS_IN_WINDOW)
-        self.logger.debug (f'Run divided into {len(self.windows)}')
+        self.logger.debug (f'Run divided into {len(self.windows)} windows.')
         if len(self.windows) >= WINDOWS_THRESHOLD:
             try:
                 self.get_ai ()
                 self.get_coverage ()
                 self.solve_windows ()
             except:
-                self.logger.info (f"Run {self.name} can't be describe by model.")
+                self.logger.info (f"Run can't be describe by any of the models.")
                 self.dumy_solution ()
                 self.logger.info ('One solution devised for crazy run')
             
         else:
-            self.logger.info (f'Run {self.name} is to short to segment.')
+            self.logger.info (f'Run is to short to segment.')
             self.dumy_solution ()
             self.logger.info (f'One solution devised for unsegmented run.')
     
@@ -186,11 +186,12 @@ class Run:
     
     def solve_windows (self, chi2_thr = 13.6):
         
+        self.logger.debug ("Starting solving run.")
         self.solutions = []
         x = np.array([self.dv, self.m, self.l]).T
         
         for m0, s0, labels in zip(*self.get_distributions()):
-            self.logger.debug (f'Calculating solution ...') 
+            self.logger.debug (f'Calculating solution /dv,m,l/ = [{m0[0]},{m0[1]},{m0[2]}]') 
             y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])/s0[np.newaxis,:,:])**2
             z = y.sum(axis = 1)
             dist_index = np.asarray(z == z.min(axis = 1)[:,np.newaxis]).nonzero()
@@ -229,8 +230,7 @@ class Run:
                                             merged_segments = make_rle_string(''.join(merged_segments))))
         
         self.solutions.sort (key = lambda x: x.chi2_noO)        
-        #best_runs = ','.join (['(' + str(s)+ ',' + str(e)+ ')' for s,e in self.solutions[0].positions])
-        #self.logger.info ('Best solution: ' + best_runs + str(df) + ',' + str(sum(noOfilter)))
+        self.logger.info (f"Total {len(self.solutions)} solution(s) found. Best chi2 = {self.solutions[0]['chi2_noO']}")
        
     def get_distributions (self):
                 
@@ -434,7 +434,6 @@ def safemax (x):
     except ValueError:
         y = 0
     return y
-
 
 def ppf (x, p):
     a = p['a']
