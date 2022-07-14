@@ -48,8 +48,8 @@ class Chromosome:
         indexes = self.data.loc[z < z_thr, :].index.values.tolist()
         self.data.loc[indexes, 'symbol'] = E_SYMBOL
         self.logger.info (f"""Chromosome {self.name} marked based on parameters
-v = {he_parameters['vaf']}, c = {he_parameters['cov']}. #N = {sum(self.data['symbol'] == 'N_SYMBOL')}
-#E = {sum(self.data['symbol'] == 'E_SYMBOL')}""")
+v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
+#N = {sum(self.data['symbol'] == N_SYMBOL)}, #E = {sum(self.data['symbol'] == E_SYMBOL)}""")
         
     def mark_on_full_model (self, m):
         self.logger.debug (f'Marking {self.name} based on full model')
