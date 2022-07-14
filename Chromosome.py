@@ -134,9 +134,6 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
 
     def find_runs (self):
         """Method to generate runs. Runs segment themselves."""
-        self.logger.debug (f'N: {self.Nruns}')
-        self.logger.debug (f'U: {self.Uruns}')
-        self.logger.debug (f'E: {self.Eruns}')
                 
         self.find_Nruns ()
                 
@@ -228,9 +225,11 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
             self.logger.info (f"To few N's ({len (symbol_list)}) to analyse.")
         
         for run in self.Nruns_indexes:
-            tmp = self.data.loc[self.data['vaf'] < vaf_thr,].iloc[run[0]:run[1],:].position.agg((min,max))
+            tmp = self.data.loc[(self.data['vaf'] < vaf_thr)&(self.data['symbol'] != U_SYMBOL),].iloc[run[0]:run[1],:].position.agg((min,max))
             self.data.loc[(self.data.position >= tmp['min'])&(self.data.position <= tmp['max']), 'symbol'] = N_SYMBOL
             self.Nruns.append ((tmp['min'], tmp['max']))
+       
+        self.logger.info (f'N runs: {self.Nruns}')
     
     def report (self, report_type = 'bed'):
         return Report(report_type).chromosome_report(self.segments, self.runs)
