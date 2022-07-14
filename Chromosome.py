@@ -70,7 +70,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
                 self.data.loc[(self.data['position'] >= start)&\
                                     (self.data['position'] <= end), 'symbol'] = U_SYMBOL
                 self.Uruns.append ((start, end))
-                self.logger.debug (f"Region composition: {self.data.loc[(self.data['position'] >= start)&(self.data['position'] <= end), 'symbol'].values.counts()}") 
+                self.logger.debug (f"Region composition: {self.data.loc[(self.data['position'] >= start)&(self.data['position'] <= end), 'symbol'].value_counts()}") 
                 
         self.logger.info (f"""{self.name} composition: 
                           #N = {sum(self.data.symbol == N_SYMBOL)},
@@ -134,15 +134,15 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
 
     def find_runs (self):
         """Method to generate runs. Runs segment themselves."""
+        self.logger.debug (f'N: {self.Nruns}')
+        self.logger.debug (f'U: {self.Uruns}')
+        self.logger.debug (f'E: {self.Eruns}')
+                
         self.find_Nruns ()
                 
         self.runs = []
         self.logger.info (f'Runs found: #N = {len(self.Nruns)}, #U = {len(self.Uruns)}')
-        
-        self.logger.debug (f'N: {self.Nruns}')
-        self.logger.debug (f'U: {self.Nruns}')
-        self.logger.debug (f'E: {self.Nruns}')
-        
+                
         for nr in self.Nruns:
             self.runs.append(Run.Run (self.data.loc[(self.data['position'] >= nr[0])&(self.data['position'] <= nr[1])],
                                       symbol = 'N',
