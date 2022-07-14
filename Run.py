@@ -232,7 +232,7 @@ class Run:
                                             merged_segments = make_rle_string(''.join(merged_segments))))
         
         self.solutions.sort (key = lambda x: x.chi2_noO)        
-        self.logger.info (f"Total {len(self.solutions)} solution(s) found. Best chi2 = {self.solutions[0]['chi2_noO']}")
+        self.logger.info (f"Total {len(self.solutions)} solution(s) found. Best chi2 = {self.solutions[0].chi2_noO}")
        
     def get_distributions (self):
                 
@@ -371,7 +371,7 @@ def divide_segment (dv, si, ei):
         #print ('double gauss parameters: ', parameters)
         z = np.abs(parameters['m'][1] - parameters['m'][0])/(parameters['s'][0] + parameters['s'][1])
         #print (z)
-        if (parameters['a'][0] < 0.9)&(parameters['a'][1] < 0.9)&(z > 0.3):
+        if (parameters['a'][0] < 0.9)&(parameters['a'][1] < 0.9)&(z > 0.6):
             threshold = get_two_G_threshold (parameters)
             #print ('threshold: ', threshold)
             random_length = get_random_lenghts (parameters, ei-si, threshold)
