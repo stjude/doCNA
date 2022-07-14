@@ -22,7 +22,7 @@ LENGTH_THRESHOLD = 10
 
 #Solution keep result of Run segmenting
 #Segments are based on /best/ Solution
-Solution = namedtuple ('Solution', ['chi2', 'chi2_noO', 'positions', 'p_norm', 'segments', 'merged_segments'])
+Solution = namedtuple ('Solution', ['chi2', 'chi2_noO', 'positions', 'segments', 'merged_segments'])
 
 class Run:
     """Class to segment run of E/N/U"""
@@ -64,7 +64,7 @@ class Run:
         self.solutions = [Solution (chi2 = np.nan,
                                     chi2_noO = np.nan,
                                     positions = [(self.windows_positions[0][0], self.windows_positions[-1][1])],
-                                    p_norm = [(np.nan, np.nan, np.nan)],
+                                    #p_norm = [(np.nan, np.nan, np.nan)],
                                     segments = '',
                                     merged_segments = '')]
 
@@ -200,7 +200,7 @@ class Run:
                 segments [i] = 'O'
             old_indexes, merged_segments = merge_symbols (''.join(segments))
             chi2 = z[dist_index]
-            self.logger.debug ('Solution calculated') 
+            self.logger.debug (f'Solution calculated: {make_rle_string(merged_segments, sep ="")}') 
             indexes = []
             for i in old_indexes:
                 indexes += (divide_segment(self.dv, *i))
