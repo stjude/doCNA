@@ -128,38 +128,41 @@ class Genome:
                 self.chromosomes[chrom].find_runs()
                 self.chromosomes[chrom].generate_segments ()
         self.logger.debug ("Segmentation finished.")
-        self.logger.debug ("Scoring.")
+        
+        self.logger.info (f"Median coverage for the sample: m = {str(self.genome_medians['COV']['m'])}")
+        
+        self.logger.debug ("Scoring segments.")
                 
         self.genome_medians['model_d'] = self.get_distance_params ()
-        self.logger.info("Model distance /d/:" + " \n" + str(self.genome_medians['model_d']))
+        #self.logger.info("Model distance /d/:" + " \n" + str(self.genome_medians['model_d']))
         
-        self.genome_medians['clonality'] = self.get_clonality_params ()
-        self.logger.info("Sample clonality /k/:" + " \n" + str(self.genome_medians['clonality']))
+        #self.genome_medians['clonality'] = self.get_clonality_params ()
+        #self.logger.info("Sample clonality /k/:" + " \n" + str(self.genome_medians['clonality']))
         
         self.genome_medians['ai'] = self.get_ai_params ()
-        self.logger.info("Sample allelic imbalance /ai/:" + " \n" + str(self.genome_medians['ai']))
+        #self.logger.info("Sample allelic imbalance /ai/:" + " \n" + str(self.genome_medians['ai']))
         
         self.genome_medians['clonality_cnB'] = self.get_clonality_cnB_params ()
-        self.logger.info("Sample clonality /k_cnB/:" + " \n" + str(self.genome_medians['clonality_cnB']))
+        #self.logger.info("Sample clonality /k_cnB/:" + " \n" + str(self.genome_medians['clonality_cnB']))
 
-        self.logger.info (str(self.genome_medians))
+        
      
-    def get_clonality_params (self, percentiles = (10,80)):
+    #def get_clonality_params (self, percentiles = (10,80)):
     
-        ks = []
-        for chrom in self.chromosomes.keys():
-            for seg in self.chromosomes[chrom].segments:
-                if seg.symbol == Chromosome.E_SYMBOL:
-                    a = seg.genome_medians['model_d']['a']
-                    score = -np.log10 (np.exp (-a*seg.parameters['d']))
-                    if (score < 3)&(~np.isnan(seg.parameters['k'])): #3: #3: #self.genome_medians['model_d']['thr']:
-                        ks.append (seg.parameters['k'])
+    #    ks = []
+    #    for chrom in self.chromosomes.keys():
+    #        for seg in self.chromosomes[chrom].segments:
+    #            if seg.symbol == Chromosome.E_SYMBOL:
+    #                a = seg.genome_medians['model_d']['a']
+    #                score = -np.log10 (np.exp (-a*seg.parameters['d']))
+    #                if (score < 3)&(~np.isnan(seg.parameters['k'])): #3: #3: #self.genome_medians['model_d']['thr']:
+    #                    ks.append (seg.parameters['k'])
                             
-        z = np.array(ks)
-        pp = np.percentile (z, percentiles)
-        res = sts.truncnorm.fit (z[(z >= pp[0])&(z <= pp[1])])
-        self.logger.info ('Clonality parameters: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
-        return {'m' : res[2], 's' : res[3]}
+    #    z = np.array(ks)
+    #    pp = np.percentile (z, percentiles)
+    #    res = sts.truncnorm.fit (z[(z >= pp[0])&(z <= pp[1])])
+    #    self.logger.info ('Clonality parameters: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
+    #    return {'m' : res[2], 's' : res[3]}
 
     def get_clonality_cnB_params (self, percentiles = (1,80)):
 
@@ -175,8 +178,7 @@ class Genome:
         pp = np.percentile (z, percentiles)
         zz = z[(z >= pp[0])&(z <= pp[1])]
         res, _ = opt.curve_fit (sts.norm.cdf, np.sort(zz), np.linspace (0,1,len(zz)), p0 = [0.01, 0.01])
-        self.logger.info (f'Clonality /k_cnB/: m = {res[0]}, s = {res[1]}')
- 
+        self.logger.info (f'Clonality distribution (for cnB model): FI(k) = G({res[0]}, {res[1]}))')
         return {'m' : res[0], 's' : res[1]}
     
     
@@ -192,13 +194,9 @@ class Genome:
                     ns.append (seg.parameters['n'])        
         z = np.array(zs)
         s = 1/np.sqrt(np.array(ns))
-        #pp = np.percentile (z, percentiles)
-        #res = sts.truncnorm.fit (z[(z >= pp[0])&(z <= pp[1])])
-        #self.logger.info ('Distance from model /d/ threshold: min = {:.5f}, max = {:.5f}, m = {:.5f}, s = {:.5f}'.format (*res)) 
-        #thr = sts.norm.ppf (1-alpha, res[2], res[3])
         
         popt, _ = opt.curve_fit (exp, z, np.linspace (0,1,len(z)), p0 = (10), sigma = s)
-        self.logger.info ('Distance from model /d/ threshold: a = {:.5f}'.format (popt[0]))
+        self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (popt[0]))
         return {'a' : popt[0]} #{'m' : res[2], 's' : res[3]}#, 'thr': thr}
         
     def get_ai_params (self, percentile = 50):
@@ -213,6 +211,7 @@ class Genome:
         s = np.sqrt(np.array(ns))
 
         popt, _ = opt.curve_fit (exp, z, np.linspace (0,1,len(z)), p0 = (10), sigma = s)
+        self.logger.info ('AI distribution (for non-cnB models): FI(ai) = exp(-{:.5f} ai)'.format (popt[0]))
         return {'a' : popt[0]}
 
     def report (self, report_type = 'bed'):

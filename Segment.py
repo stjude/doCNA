@@ -9,7 +9,7 @@ from doCNA.Report import Report
 
 
 E_SYMBOL = 'E'
-MAX_AI_THRESHOLD_FOR_SENSITIVE = 0.4
+MAX_AI_THRESHOLD_FOR_SENSITIVE = 0.1
 #MIN_CLON_THRESHOLD_FOR_FULL = 0.2
 
 
@@ -31,15 +31,13 @@ class Segment:
         self.name = data['chrom'].values[0]+ ':'+str(data['position'].min())+'-'+str(data['position'].max())
         #-{self.name}
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.name}')
-        self.logger.debug (f'Segment created: {self.segmentation_symbol}.')
+        self.logger.debug ('Segment created.')
         self.symbols = self.data.loc[self.data['vaf'] < 1, 'symbol'].value_counts()
         self.symbol = self.symbols.index[0]
         self.logger.debug (f'Segment symbol: {self.symbol}')
         self.estimate_parameters ()
-        self.logger.debug ('Parameters estimated.')
         self.select_model ()
-        self.logger.debug ('Model selected.')
-        #self.test_self ()
+        self.logger.debug ('Segment analyzed.')
         
     def tostring(self) -> str:
         return '\n'.join ([self.name, str(self.parameters)])
@@ -49,28 +47,30 @@ class Segment:
     
     def estimate_parameters (self):
         #sometimes, even if classified, it's wrong model
-        
+        method = 'unspecified'
         if self.symbol == E_SYMBOL:
             self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL,],
                                              self.genome_medians['fb'],
                                              self.genome_medians['COV']['m'])
+            method = 'sensitive'
             if self.parameters['ai'] > MAX_AI_THRESHOLD_FOR_SENSITIVE:
-                self.logger.info (f"Estimated ai: {self.parameters['ai']} above threshold for sensitive model: {MAX_AI_THRESHOLD_FOR_SENSITIVE}")
                 self.parameters = get_full (self.data)
-                                            #self.genome_medians['VAF']['fb'],
-                                            #self.genome_medians['HE']['b'])
-            self.logger.info (f"Estimated, by sensitive method, ai: {self.parameters['ai']}")
+                method = 'full'
+            
         else:
             self.parameters = get_full (self.data)
-                                        #self.genome_medians['VAF']['fb'],
-                                        #self.genome_medians['HE']['b'])
-            #if self.parameters['ai'] < MIN_CLON_THRESHOLD_FOR_FULL:
-            #    self.logger.info (f"Estimated ai {self.parameters['ai']} below threshold for full model: {MIN_CLON_THRESHOLD_FOR_FULL}")
-            #    self.parameters = get_sensitive (self.data.loc[self.data['vaf'] < 1 - 1/self.genome_medians['COV']['m']],
-            #                                     self.genome_medians['VAF']['fb'],
-            #                                     self.genome_medians['COV']['m'])
-            self.logger.info (f"Estimated, by full method, ai: {self.parameters['ai']}.")
-    
+            method = 'full'
+            if self.parameters['ai'] < MAX_AI_THRESHOLD_FOR_SENSITIVE:
+                self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL,],
+                                             self.genome_medians['fb'],
+                                             self.genome_medians['COV']['m'])
+                method = 'sensitive'
+            
+        if self.parameters['success']:
+            self.logger.info (f"AI estimated by {method} method, ai = {self.parameters['ai']}")
+        else:
+            self.logger.info (f"AI not estimated.")
+                
     def report (self, report_type = 'bed'):
         #return Report(report_type).segment_report(self.name, self.genome_medians, self.parameters, self.cytobands, self.centromere_fraction)
         return Report(report_type).segment_report(self)
@@ -82,20 +82,19 @@ class Segment:
             m0 = self.genome_medians['COV']['m']
         
             self.distances = np.array ([calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
-        
-            #ordering of presets will prioritize models
-            # cn2 should be before cn4, for example
             picked = np.where(self.distances == self.distances.min())[0][0]
             
             self.parameters['d'] = self.distances.min()
             self.parameters['model'] = list(model_presets.keys())[picked]
             k = model_presets[self.parameters['model']].k(m,v,m0) 
             self.parameters['k'] = k if k < 1 else np.nan
+            self.logger.info (f"Segment identified as {self.parameters['model']}, d = {self.parameters['d']}")
         else:
             self.parameters['d'] = np.nan
             self.parameters['model'] = 'NA'
             self.parameters['k'] = np.nan
-            self.logger            
+            self.logger.info ('No model for this segment.')
+                        
 
 def calculate_distance (preset, m, ai, m0):
     return np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)

@@ -28,27 +28,22 @@ class Report:
         """ Generates a report for Segment objects """
         namestr = segment.name.replace(':', '\t').replace ('-', '\t')
         if self._report_type == 'bed':
-            #gmm = segment.genome_medians['model_d']['m']
-            #gms = segment.genome_medians['model_d']['s']
-            #n = segment.parameters['n']/Run.SNPS_IN_WINDOW
-            #score = np.abs(segment.parameters['d'] - gmm)/(gms/np.sqrt(segment.parameters['n']/Run.SNPS_IN_WINDOW))
+            
             a = segment.genome_medians['model_d']['a']
             score = -np.log10(np.exp (-a*segment.parameters['d']))
 
+            a = segment.genome_medians['ai']['a']
+            ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']))
+            
             if segment.parameters['model'] != 'cnB':
-                gmm = segment.genome_medians['clonality']['m']
-                gms = segment.genome_medians['clonality']['s']
-                k_score = np.abs(segment.parameters['k'] - gmm)/(gms/np.sqrt(segment.parameters['n']/Run.SNPS_IN_WINDOW)) 
+                k_score = ai_score
             else:
                 m = segment.genome_medians['clonality_cnB']['m']
                 s = segment.genome_medians['clonality_cnB']['s']
                 k_score = np.abs(segment.parameters['k'] - m)/s
-
-            a = segment.genome_medians['ai']['a']
-            ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']))
-
+                
             report = '\t'.join([str(p) for p in [segment.parameters['m'], 
-                                                 segment.parameters['m']/segment.genome_medians['COV']['m'],
+                                                 2*segment.parameters['m']/segment.genome_medians['COV']['m'],
                                                  segment.parameters['model'], score, 
                                                  segment.parameters['k'], k_score, segment.cytobands, 
                                                  segment.centromere_fraction, segment.parameters['d'], 
