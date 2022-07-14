@@ -60,11 +60,6 @@ class Segment:
         else:
             self.parameters = get_full (self.data)
             method = 'full'
-            if self.parameters['ai'] < MAX_AI_THRESHOLD_FOR_SENSITIVE:
-                self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL,],
-                                             self.genome_medians['fb'],
-                                             self.genome_medians['COV']['m'])
-                method = 'sensitive'
             
         if self.parameters['success']:
             self.logger.info (f"AI estimated by {method} method, ai = {self.parameters['ai']}")
