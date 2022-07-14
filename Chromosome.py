@@ -70,7 +70,8 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
                 self.data.loc[(self.data['position'] >= start)&\
                                     (self.data['position'] <= end), 'symbol'] = U_SYMBOL
                 self.Uruns.append ((start, end))
-        
+                self.logger.debug (f"Region composition: {self.data.loc[(self.data['position'] >= start)&(self.data['position'] <= end), 'symbol'].values.counts()}") 
+                
         self.logger.info (f"""{self.name} composition: 
                           #N = {sum(self.data.symbol == N_SYMBOL)},
                           #E = {sum(self.data.symbol == E_SYMBOL)},

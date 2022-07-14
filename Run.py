@@ -68,7 +68,6 @@ class Run:
                                     segments = '',
                                     merged_segments = '')]
 
-
     def get_windows (self, n = 1000):
         tmp = self.data.loc[[s == self.symbol for s in self.data['symbol']], ]
         N = np.max((int(np.floor(len(tmp)/n)),1))
