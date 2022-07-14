@@ -22,7 +22,7 @@ LENGTH_THRESHOLD = 10
 
 #Solution keep result of Run segmenting
 #Segments are based on /best/ Solution
-Solution = namedtuple ('Solution', ['chi2', 'chi2_noO', 'positions', 'segments', 'merged_segments'])
+Solution = namedtuple ('Solution', ['chi2', 'chi2_noO', 'positions', 'p_norm', 'segments', 'merged_segments'])
 
 class Run:
     """Class to segment run of E/N/U"""
@@ -64,7 +64,7 @@ class Run:
         self.solutions = [Solution (chi2 = np.nan,
                                     chi2_noO = np.nan,
                                     positions = [(self.windows_positions[0][0], self.windows_positions[-1][1])],
-                                    #p_norm = [(np.nan, np.nan, np.nan)],
+                                    p_norm = [(np.nan, np.nan, np.nan)],
                                     segments = '',
                                     merged_segments = '')]
 
@@ -209,11 +209,11 @@ class Run:
                 self.logger.debug (f'Old runs: {old_indexes}')
                 self.logger.debug (f'New runs: {indexes}')
             
-            #psl = []
-            #for (si, ei) in indexes:
-            #    psl.append ((get_norm_p (self.dv[si:ei+1]),
-            #                 get_norm_p (self.m[si:ei+1],
-            #                 get_norm_p (self.l[si:ei+1]))))
+            psl = []
+            for (si, ei) in indexes:
+                psl.append ((get_norm_p (self.dv[si:ei+1]),
+                             get_norm_p (self.m[si:ei+1],
+                             get_norm_p (self.l[si:ei+1]))))
             
             noOfilter = [s != 'O' for s in merged_segments]                                   
                    
@@ -227,7 +227,7 @@ class Run:
             self.solutions.append(Solution (chi2 = chi2.sum()/(3*len(self.dv)-df),
                                             chi2_noO = chi2[noOfilter].sum()/(3*sum(noOfilter)-df),
                                             positions = [(self.windows_positions[si][0], self.windows_positions[ei][1]) for si, ei in indexes],
-                                            #p_norm = psl,
+                                            p_norm = psl,
                                             segments = ''.join(segments),
                                             merged_segments = make_rle_string(''.join(merged_segments))))
         
