@@ -46,14 +46,14 @@ class Run:
         self.get_windows (n = SNPS_IN_WINDOW)
         self.logger.debug (f'Run divided into {len(self.windows)} windows.')
         if len(self.windows) >= WINDOWS_THRESHOLD:
-            try:
-                self.get_ai ()
-                self.get_coverage ()
-                self.solve_windows ()
-            except:
-                self.logger.info (f"Run can't be describe by any of the models.")
-                self.dumy_solution ()
-                self.logger.info ('One solution devised for crazy run')
+            #try:
+            self.get_ai ()
+            self.get_coverage ()
+            self.solve_windows ()
+            #except:
+            #    self.logger.info (f"Run can't be describe by any of the models.")
+            #    self.dumy_solution ()
+            #    self.logger.info ('One solution devised for crazy run')
             
         else:
             self.logger.info (f'Run is to short to segment.')
