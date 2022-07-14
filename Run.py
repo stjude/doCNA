@@ -209,11 +209,11 @@ class Run:
                 self.logger.debug (f'Old runs: {old_indexes}')
                 self.logger.debug (f'New runs: {indexes}')
             
-            psl = []
-            for (si, ei) in indexes:
-                psl.append ((get_norm_p (self.dv[si:ei+1]),
-                             get_norm_p (self.m[si:ei+1],
-                             get_norm_p (self.l[si:ei+1]))))
+            #psl = []
+            #for (si, ei) in indexes:
+            #    psl.append ((get_norm_p (self.dv[si:ei+1]),
+            #                 get_norm_p (self.m[si:ei+1],
+            #                 get_norm_p (self.l[si:ei+1]))))
             
             noOfilter = [s != 'O' for s in merged_segments]                                   
                    
@@ -227,7 +227,7 @@ class Run:
             self.solutions.append(Solution (chi2 = chi2.sum()/(3*len(self.dv)-df),
                                             chi2_noO = chi2[noOfilter].sum()/(3*sum(noOfilter)-df),
                                             positions = [(self.windows_positions[si][0], self.windows_positions[ei][1]) for si, ei in indexes],
-                                            p_norm = psl,
+                                            #p_norm = psl,
                                             segments = ''.join(segments),
                                             merged_segments = make_rle_string(''.join(merged_segments))))
         
