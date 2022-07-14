@@ -221,6 +221,9 @@ class Run:
                               self.m_dist.fail_normal(),
                               self.l_dist.fail_normal()], dtype = int)+1).sum()
             
+            self.logger.debug (f"""Solution performance: chi2 = {chi2.sum()/(3*len(self.dv)-df)},
+            chi2_noO = {chi2[noOfilter].sum()/(3*sum(noOfilter)-df)}""")
+            
             self.solutions.append(Solution (chi2 = chi2.sum()/(3*len(self.dv)-df),
                                             chi2_noO = chi2[noOfilter].sum()/(3*sum(noOfilter)-df),
                                             positions = [(self.windows_positions[si][0], self.windows_positions[ei][1]) for si, ei in indexes],

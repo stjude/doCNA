@@ -70,7 +70,6 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
                 self.data.loc[(self.data['position'] >= start)&\
                                     (self.data['position'] <= end), 'symbol'] = U_SYMBOL
                 self.Uruns.append ((start, end))
-                self.logger.debug (f"Region composition: {self.data.loc[(self.data['position'] >= start)&(self.data['position'] <= end), 'symbol'].value_counts()}") 
                 
         self.logger.info (f"""{self.name} composition: 
                           #N = {sum(self.data.symbol == N_SYMBOL)},
@@ -278,20 +277,24 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
     x = hist[0]
     y = np.log10 (hist[1])
     
-    #try:
-    popt, _ = opt.curve_fit (lin, x[:4], y[:4], p0 = [-1,1])
-    if popt[1] < 0:
-        xt = np.arange(1, hist[0].max())
-        E_thr = xt[lin(xt, *popt) > 0].max()
-    else:
-        popt, _ = opt.curve_fit (lin, x[:3], y[:3], p0 = [-1,1])
-        if popt[1] < 0:
+    try:
+        popt, _ = opt.curve_fit (lin, x[:4], y[:4], p0 = [-1,1])
+        print (f'First fit: {popt}')
+        if popt[0] < 0:
             xt = np.arange(1, hist[0].max())
             E_thr = xt[lin(xt, *popt) > 0].max()
+            print (E_thr)
         else:
-            E_thr = DEFAULT_E_THRESHOLD
-    #except RuntimeError:
-    #    E_thr = DEFAULT_E_THRESHOLD
+            popt, _ = opt.curve_fit (lin, x[:3], y[:3], p0 = [-1,1])
+            print (f'Second fit: {popt}')
+            if popt[0] < 0:
+                xt = np.arange(1, hist[0].max())
+                E_thr = xt[lin(xt, *popt) > 0].max()
+                print (E_thr)
+            else:
+                E_thr = DEFAULT_E_THRESHOLD
+    except RuntimeError:
+        E_thr = DEFAULT_E_THRESHOLD
     
     return Run_treshold (N = N_thr, E = E_thr)
 
