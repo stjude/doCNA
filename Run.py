@@ -136,7 +136,7 @@ class Run:
         v0s = []        
         
         for window in self.windows:
-            vaf = window['vaf'].values
+            vaf = window.loc[~window.vaf.isna(),'vaf'].values
             v, c = np.unique(vaf, return_counts = True)
 
             cnor = np.cumsum(c)/np.sum(c)

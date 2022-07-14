@@ -112,9 +112,9 @@ class Genome:
             self.logger.debug (f'Chromosome {chrom} inlier: {status}')
             if ~status:
                 params = self.VAF.get_parameters (chrom)
-                if params['chi2'] >= float(self.config['VAF']['chi2_high']):
-                    self.logger.debug (f'Chromosome {chrom} marked on full model.')
-                    self.chromosomes[chrom].mark_on_full_model (self.COV.medians['m'])
+                #if params['chi2'] >= float(self.config['VAF']['chi2_high']):
+                self.logger.debug (f'Chromosome {chrom} marked on full model.')
+                self.chromosomes[chrom].mark_on_full_model (self.COV.medians['m'])
 
         #segment_chromosomes
         self.logger.debug ("Starting segmentation.")

@@ -138,6 +138,10 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         self.runs = []
         self.logger.info (f'Runs found: #N = {len(self.Nruns)}, #U = {len(self.Uruns)}')
         
+        self.logger.debug (f'N: {self.Nruns}')
+        self.logger.debug (f'U: {self.Nruns}')
+        self.logger.debug (f'E: {self.Nruns}')
+        
         for nr in self.Nruns:
             self.runs.append(Run.Run (self.data.loc[(self.data['position'] >= nr[0])&(self.data['position'] <= nr[1])],
                                       symbol = 'N',
