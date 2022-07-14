@@ -216,7 +216,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()
         if len (symbol_list) >= N_STR_LEN_THR:    
             self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = N_SYMBOL, E = E_SYMBOL)
-            self.logger.info (f'N runs thresholds: tN = {self.Nruns_threshold[0]}, tE =  {self.Nruns_threshold[1]}')
+            self.logger.info (f'N runs thresholds: t_N = {self.Nruns_threshold[0]}, t_E =  {self.Nruns_threshold[1]}')
         else:
             self.Nruns_indexes = []
             self.Nruns_threshold = []
@@ -274,20 +274,20 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
     x = hist[0]
     y = np.log10 (hist[1])
     
-    try:
-        popt, _ = opt.curve_fit (lin, x[:4], y[:4], p0 = [-1,1])
+    #try:
+    popt, _ = opt.curve_fit (lin, x[:4], y[:4], p0 = [-1,1])
+    if popt[1] < 0:
+        xt = np.arange(1, hist[0].max())
+        E_thr = xt[lin(xt, *popt) > 0].max()
+    else:
+        popt, _ = opt.curve_fit (lin, x[:3], y[:3], p0 = [-1,1])
         if popt[1] < 0:
             xt = np.arange(1, hist[0].max())
             E_thr = xt[lin(xt, *popt) > 0].max()
         else:
-            popt, _ = opt.curve_fit (lin, x[:3], y[:3], p0 = [-1,1])
-            if popt[1] < 0:
-                xt = np.arange(1, hist[0].max())
-                E_thr = xt[lin(xt, *popt) > 0].max()
-            else:
-                E_thr = DEFAULT_E_THRESHOLD
-    except RuntimeError:
-        E_thr = DEFAULT_E_THRESHOLD
+            E_thr = DEFAULT_E_THRESHOLD
+    #except RuntimeError:
+    #    E_thr = DEFAULT_E_THRESHOLD
     
     return Run_treshold (N = N_thr, E = E_thr)
 
