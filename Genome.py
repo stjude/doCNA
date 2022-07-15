@@ -8,11 +8,8 @@ import scipy.optimize as opt
 from doCNA import Testing
 from doCNA import Chromosome
 from doCNA import Run
+from doCNA import Consts
 from doCNA.Report import Report
-
-SEX_CHROMS = ['chrX', 'chrY']
-FB_ALPHA = 0.05
-
 
 class Genome:
     """Class to run genome wide tests of HE and create chromosomes."""
@@ -51,14 +48,14 @@ class Genome:
         self.chromosomes = {}
         self.logger.debug ("Creating chromosomes...")
         for chrom, data in self.data.groupby (by = 'chrom'):
-            if chrom not in SEX_CHROMS:
+            if chrom not in Consts.SEX_CHROMS:
                 self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
                                                                  self.config, self.logger,
                                                                  self.genome_medians, 
                                                                  self.CB.loc[self.CB['chrom'] == chrom])
             
     #run COV test, run HE test, creates chromosomes with proper parameters
-    def segment_genome (self, fb_alpha = FB_ALPHA):
+    def segment_genome (self, fb_alpha = Consts.FB_ALPHA):
         
         self.logger.debug ('Starting testing ...')
         self.COV = Testing.Testing ('COV', self.chromosomes, self.logger)

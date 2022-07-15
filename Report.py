@@ -54,11 +54,11 @@ class Report:
             report = ''
         return '\t'.join([namestr, report])
 
-    def run_report(self):
+    def run_report(self, run):
         """ Generates a report for Run objects """
         fields = ['chi2', 'chi2_noO', 'positions', 'p_norm', 'segments', 'merged_segments']
-        lines = ['Run: ' + self.name]
-        for solution in self.solutions:
+        lines = ['Run: ' + run.name]
+        for solution in run.solutions:
             lines.append (str("\t")+'Solution')
             soldic = solution._asdict()
             for f in fields:

@@ -7,17 +7,11 @@ from doCNA import Testing
 from doCNA import Distribution
 from doCNA import Segment
 from doCNA import Run
+from doCNA import Consts
 from doCNA.Report import Report
 
-N_SYMBOL = 'N'
-E_SYMBOL = 'E'
-U_SYMBOL = 'U'
-DEFAULT_N_THRESHOLD = 10
-DEFAULT_E_THRESHOLD = 3
-N_STR_LEN_THR = 100
-HE_Z_THR = 13.8
 
-Run_treshold =  namedtuple('Run_treshold', [N_SYMBOL, E_SYMBOL])
+Run_treshold =  namedtuple('Run_treshold', [Consts.N_SYMBOL, Consts.E_SYMBOL])
 
 
 class Chromosome:
@@ -38,18 +32,18 @@ class Chromosome:
         self.Nruns = []
         self.logger.debug (f"Object chromosome {name} created.")
         
-    def markE_onHE(self, he_parameters, z_thr = HE_Z_THR):
+    def markE_onHE(self, he_parameters, z_thr = Consts.HE_Z_THR):
         self.logger.debug (f"Marking {self.name} based on HE test.")
         zv = (self.data['vaf'] - he_parameters['vaf']) / np.sqrt (0.25/(he_parameters['cov']))
         zc = (self.data['cov'] - he_parameters['cov']) / np.sqrt (he_parameters['b']*he_parameters['cov'])
         z = zv**2+zc**2
  
-        self.data['symbol'] = N_SYMBOL       
+        self.data['symbol'] = Consts.N_SYMBOL       
         indexes = self.data.loc[z < z_thr, :].index.values.tolist()
-        self.data.loc[indexes, 'symbol'] = E_SYMBOL
+        self.data.loc[indexes, 'symbol'] = Consts.E_SYMBOL
         self.logger.info (f"""Chromosome {self.name} marked based on parameters
 v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
-#N = {sum(self.data['symbol'] == N_SYMBOL)}, #E = {sum(self.data['symbol'] == E_SYMBOL)}""")
+#N = {sum(self.data['symbol'] == Consts.N_SYMBOL)}, #E = {sum(self.data['symbol'] == Consts.E_SYMBOL)}""")
         
     def mark_on_full_model (self, m):
         self.logger.debug (f'Marking {self.name} based on full model')
@@ -68,13 +62,13 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
             if outlier:
                 self.logger.info (f'Region {self.name}:{start}-{end}, chi2 = {chi2}, marked as U.')
                 self.data.loc[(self.data['position'] >= start)&\
-                                    (self.data['position'] <= end), 'symbol'] = U_SYMBOL
+                                    (self.data['position'] <= end), 'symbol'] = Consts.U_SYMBOL
                 self.Uruns.append ((start, end))
                 
         self.logger.info (f"""{self.name} composition: 
-                          #N = {sum(self.data.symbol == N_SYMBOL)},
-                          #E = {sum(self.data.symbol == E_SYMBOL)},
-                          #U = {sum(self.data.symbol == U_SYMBOL)}""")    
+                          #N = {sum(self.data.symbol == Consts.N_SYMBOL)},
+                          #E = {sum(self.data.symbol == Consts.E_SYMBOL)},
+                          #U = {sum(self.data.symbol == Consts.U_SYMBOL)}""")    
         
     def get_fragments (self, n = 1000):
         tmp = self.data
@@ -214,9 +208,9 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
     
     def find_Nruns (self):
         vaf_thr = (self.genome_medians['COV']['m'] - 1)/self.genome_medians['COV']['m']
-        symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != U_SYMBOL), 'symbol'].tolist()
-        if len (symbol_list) >= N_STR_LEN_THR:    
-            self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = N_SYMBOL, E = E_SYMBOL)
+        symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != Consts.U_SYMBOL), 'symbol'].tolist()
+        if len (symbol_list) >= Consts.N_STR_LEN_THR:    
+            self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = Consts.N_SYMBOL, E = Consts.E_SYMBOL)
             self.logger.info (f'N runs thresholds: t_N = {self.Nruns_threshold[0]}, t_E =  {self.Nruns_threshold[1]}')
         else:
             self.Nruns_indexes = []
@@ -224,8 +218,8 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
             self.logger.info (f"To few N's ({len (symbol_list)}) to analyse.")
         
         for run in self.Nruns_indexes:
-            tmp = self.data.loc[(self.data['vaf'] < vaf_thr)&(self.data['symbol'] != U_SYMBOL),].iloc[run[0]:run[1],:].position.agg((min,max))
-            self.data.loc[(self.data.position >= tmp['min'])&(self.data.position <= tmp['max']), 'symbol'] = N_SYMBOL
+            tmp = self.data.loc[(self.data['vaf'] < vaf_thr)&(self.data['symbol'] != Consts.U_SYMBOL),].iloc[run[0]:run[1],:].position.agg((min,max))
+            self.data.loc[(self.data.position >= tmp['min'])&(self.data.position <= tmp['max']), 'symbol'] = Consts.N_SYMBOL
             self.Nruns.append ((tmp['min'], tmp['max']))
        
         self.logger.info (f'N runs: {self.Nruns}')
@@ -271,7 +265,7 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
         xt = (np.arange(1, hist[0].max()))
         N_thr = (xt[lin(xt, *popt) > -1].max())
     except RuntimeError:
-        N_thr = DEFAULT_N_THRESHOLD
+        N_thr = Consts.DEFAULT_N_THRESHOLD
     
     hist = np.unique(counts[values == E], return_counts = True)
     x = hist[0]
@@ -288,16 +282,16 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
                 xt = np.arange(1, hist[0].max())
                 E_thr = xt[lin(xt, *popt) > 0].max()
             else:
-                E_thr = DEFAULT_E_THRESHOLD
+                E_thr = Consts.DEFAULT_E_THRESHOLD
     except RuntimeError:
-        E_thr = DEFAULT_E_THRESHOLD
+        E_thr = Consts.DEFAULT_E_THRESHOLD
     
     return Run_treshold (N = N_thr, E = E_thr)
 
 def lin (x,a,b):
     return a*x+b
 
-def get_N_runs_indexes (values, counts, threshold, N = N_SYMBOL, E = E_SYMBOL):
+def get_N_runs_indexes (values, counts, threshold, N = Consts.N_SYMBOL, E = Consts.E_SYMBOL):
     bed = []
     Nindexes = np.where ((values == N)&(counts >= threshold.N))[0]
     for i in Nindexes:
