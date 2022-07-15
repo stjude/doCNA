@@ -267,7 +267,8 @@ class Run:
         return self.name + '-' + self.symbol
     
     def report (self, report_type = 'short'):
-        return Report(report_type).run_report(self.name, self.symbol, self.solutions)
+        #return Report(report_type).run_report(self.name, self.symbol, self.solutions)
+        return Report(report_type).run_report(self)
     
     def __repr__(self) -> str:
         return self.tostring()

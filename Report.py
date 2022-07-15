@@ -1,5 +1,6 @@
 import numpy as np
 import warnings as warn
+import scipy.stats as sts
 
 from doCNA import Run
 
@@ -40,7 +41,8 @@ class Report:
             else:
                 m = segment.genome_medians['clonality_cnB']['m']
                 s = segment.genome_medians['clonality_cnB']['s']
-                k_score = np.abs(segment.parameters['k'] - m)/s
+                #k_score = np.abs(segment.parameters['k'] - m)/s
+                k_score = -np.log10(sts.norm.sf(segment.parameters['k'], m, s))
                 
             report = '\t'.join([str(p) for p in [segment.parameters['m'], 
                                                  2*segment.parameters['m']/segment.genome_medians['COV']['m'],
@@ -52,25 +54,14 @@ class Report:
             report = ''
         return '\t'.join([namestr, report])
 
-    def run_report(self, name, symbol, solutions):
+    def run_report(self):
         """ Generates a report for Run objects """
-        report_types = ['short', 'full', 'solution']
-        if self._report_type not in report_types:
-            warn.warn ('Unknown report type. Use "short" instead.')
-            self._report_type = 'short'
-
-        if self._report_type == 'short':
-            report = ';'.join([name, symbol,
-                               f'#solutions: {len(solutions)}',
-                               f'#segments: {len(solutions[0].positions)}'])
-        elif self._report_type == 'full':
-            report = ';'.join([name, symbol,
-                               f'#solutions: {len(solutions)}',
-                               f'#segments: {len(solutions[0].positions)}'])
-        elif self._report_type == 'solution':
-            reports = [name]
-            for solution in solutions:
-                sol_str = '    ' + '; '.join([str(solution.chi2), str(solution.chi2_noO), str(solution.positions), solution.merged_segments])
-                reports.append(sol_str)
-            report = '\n'.join(reports)
-        return report
+        fields = ['chi2', 'chi2_noO', 'positions', 'p_norm', 'segments', 'merged_segments']
+        lines = ['Run: ' + self.name]
+        for solution in self.solutions:
+            lines.append (str("\t")+'Solution')
+            soldic = solution._asdict()
+            for f in fields:
+                lines.append (str("\t") + f + ': '+ str(soldic[f]))
+        return '\n'.join(lines)
+        
