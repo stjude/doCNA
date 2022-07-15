@@ -32,7 +32,7 @@ class Report:
             score = -np.log10(np.exp (-a*segment.parameters['d']))
 
             a = segment.genome_medians['ai']['a']
-            ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']))
+            ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/(segment.end - segment.start)))
             
             if segment.parameters['model'] != 'cnB':
                 k_score = ai_score
