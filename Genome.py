@@ -186,7 +186,7 @@ class Genome:
         ns = []
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
-                if (seg.symbol == Chromosome.E_SYMBOL)&(~np.isnan(seg.parameters['d'])):
+                if (seg.symbol == Consts.E_SYMBOL)&(~np.isnan(seg.parameters['d'])):
                     zs.append (seg.parameters['d'])#*np.sqrt(seg.parameters['n']/Run.SNPS_IN_WINDOW))
                     ns.append (seg.parameters['n'])        
         z = np.array(zs)
@@ -201,7 +201,7 @@ class Genome:
         ns = []
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
-                if seg.symbol == Chromosome.E_SYMBOL:
+                if seg.symbol == Consts.E_SYMBOL:
                     zs.append (seg.parameters['ai'])#*np.sqrt(seg.parameters['n']/Run.SNPS_IN_WINDOW))
                     ns.append (seg.parameters['n'])
         z = np.array(zs)
