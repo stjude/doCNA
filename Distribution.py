@@ -1,10 +1,10 @@
 import numpy as np
 import scipy.optimize as opt
 import scipy.stats as sts
+
+from doCNA import Consts
 from doCNA.Testing import get_outliers_thrdist
 
-
-LENGTH_THRESHOLD = 10
 
 class Distribution:
     """
@@ -21,7 +21,7 @@ class Distribution:
         Class constructor. Estimates distribution(s)' parameters based on provided values.
 
         """
-        assert len (values) > LENGTH_THRESHOLD, print ("Not enough data points to consider distribution.")
+        assert len (values) > Consts.LENGTH_THRESHOLD, print ("Not enough data points to consider distribution.")
         single_G_par = fit_single_G (np.sort(values), alpha = 0.01, r = 0.5)
         self.all_parameters = {}
         self.all_parameters['single'] = single_G_par

@@ -41,3 +41,6 @@ VAF_N_THR = 100
 
 FB_F_MAX = 1.4
 FB_EPS = 1e-4
+
+##Distribution
+LENGTH_THRESHOLD = 10
