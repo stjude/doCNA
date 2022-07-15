@@ -15,14 +15,6 @@ from doCNA import Chromosome
 from doCNA import Consts
 from doCNA.Report import Report
 
-WINDOWS_THRESHOLD = 9
-SNPS_IN_WINDOW = 1000
-WINDOWS_TO_TEST_THRESHOLD = 20
-UNIFORMITY_THRESHOLD = 1e-5
-LENGTH_THRESHOLD = 10
-
-#Solution keep result of Run segmenting
-#Segments are based on /best/ Solution
 Solution = namedtuple ('Solution', ['chi2', 'chi2_noO', 'positions', 'p_norm', 'segments', 'merged_segments'])
 
 class Run:
@@ -44,9 +36,9 @@ class Run:
         self.logger.info (f"Run analyzed, {len(self.solutions)} solution(s)")
                 
     def analyze (self):
-        self.get_windows (n = SNPS_IN_WINDOW)
+        self.get_windows (n = Consts.SNPS_IN_WINDOW)
         self.logger.debug (f'Run divided into {len(self.windows)} windows.')
-        if len(self.windows) >= WINDOWS_THRESHOLD:
+        if len(self.windows) >= Consts.WINDOWS_THRESHOLD:
             #try:
             self.get_ai ()
             self.get_coverage ()
@@ -368,7 +360,7 @@ def make_rle_string(string, sep = ';'):
     return sep.join(rle_string)
    
 def divide_segment (dv, si, ei):
-    if ei - si > 2*LENGTH_THRESHOLD:
+    if ei - si > 2*Consts.LENGTH_THRESHOLD:
         parameters = Distribution.fit_double_G (dv[si:ei], alpha = 0.05, r = 0.1)
         #print ('double gauss parameters: ', parameters)
         z = np.abs(parameters['m'][1] - parameters['m'][0])/(parameters['s'][0] + parameters['s'][1])

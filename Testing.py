@@ -6,29 +6,11 @@ from math import ceil,floor
 import scipy.stats as sts
 from collections import namedtuple
 
-
-COV_INITIAL_SHAPE = 0.14
-COV_SHAPE_RANGE = (-2,1)
-
-HE_COV_PERC_BOUNDS = (0.05, 99.0)
-HE_VAF_BOUNDS = (0.4,0.6)
-HE_FCOV_BOUNDS = (0.01, 0.8)
-HE_FN_BOUNDS = (0.2,1.0)
-HE_A_BOUNDS = (0.1,0.9)
-HE_B_BOUNDS = (1,10)
-HE_LERR_BOUNDS = (2,10)
-
-VAF_VAF_BOUNDS = (0.45,0.55)
-VAF_N_THR = 100
-
-FB_F_MAX = 1.4
-FB_EPS = 1e-4
+from doCNA import Consts
 
 COV_results = namedtuple ('COV_results', ['m', 'dm', 'l', 'dl'])
 VAF_results = namedtuple ('VAF_results', ['chi2', 'vaf', 'fb'])
 HE_results = namedtuple ('HE_results', ['chi2', 'vaf', 'cov', 'b'])
-
-E_SYMBOL = 'E'
 
 class Testing:
     def __init__  (self, test_name, chromosomes, logger):
@@ -124,8 +106,8 @@ class Testing:
     
 def COV_test (data, *args, **kwargs):
     
-    initial_shape = COV_INITIAL_SHAPE if 'initial_shape' not in kwargs else kwargs['initial_shape']
-    shape_range = COV_SHAPE_RANGE if 'shape_range' not in kwargs else kwargs['shape_range']
+    initial_shape = Consts.COV_INITIAL_SHAPE if 'initial_shape' not in kwargs else kwargs['initial_shape']
+    shape_range = Consts.COV_SHAPE_RANGE if 'shape_range' not in kwargs else kwargs['shape_range']
         
     
     percentiles = np.arange (0.01, 0.99, 0.01)
@@ -154,13 +136,13 @@ def lambda_cdf (p, m, lam):
 
 def HE_test (data, *args, **kwargs):
     
-    cov_perc_bounds = HE_COV_PERC_BOUNDS if 'cov_perc_bounds' not in kwargs else kwargs['cov_perc_bounds']
-    vaf_bounds = HE_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds']
-    fcov_bounds = HE_FCOV_BOUNDS if 'fcov_bounds' not in kwargs else kwargs['fcov_bounds']
-    fN_bounds = HE_FN_BOUNDS if 'fN_bounds' not in kwargs else kwargs['fN_bounds']
-    a_bounds = HE_A_BOUNDS if 'a_bounds' not in kwargs else kwargs['a_bounds']
-    b_bounds = HE_B_BOUNDS if 'b_bounds' not in kwargs else kwargs['b_bounds']
-    lerr_bounds = HE_LERR_BOUNDS if 'lerr_bounds' not in kwargs else kwargs['lerr_bounds']
+    cov_perc_bounds = Consts.HE_COV_PERC_BOUNDS if 'cov_perc_bounds' not in kwargs else kwargs['cov_perc_bounds']
+    vaf_bounds = Consts.HE_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds']
+    fcov_bounds = Consts.HE_FCOV_BOUNDS if 'fcov_bounds' not in kwargs else kwargs['fcov_bounds']
+    fN_bounds = Consts.HE_FN_BOUNDS if 'fN_bounds' not in kwargs else kwargs['fN_bounds']
+    a_bounds = Consts.HE_A_BOUNDS if 'a_bounds' not in kwargs else kwargs['a_bounds']
+    b_bounds = Consts.HE_B_BOUNDS if 'b_bounds' not in kwargs else kwargs['b_bounds']
+    lerr_bounds = Consts.HE_LERR_BOUNDS if 'lerr_bounds' not in kwargs else kwargs['lerr_bounds']
         
     
     def chi2 (params, counts, N):
@@ -215,8 +197,8 @@ def VAF_test (data, m, **kwargs):
     
     #assert m in kwargs, 'Median coverage needed for VAF test'
     #m = kwargs['m']
-    vaf_bounds = VAF_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds'] 
-    n_thr = VAF_N_THR if 'n_thr' not in kwargs else kwargs['n_thr']
+    vaf_bounds = Consts.VAF_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds'] 
+    n_thr = Consts.VAF_N_THR if 'n_thr' not in kwargs else kwargs['n_thr']
         
     def chi2 (v, counts):
         chi2 = 0
@@ -236,7 +218,7 @@ def VAF_test (data, m, **kwargs):
         m = m[0]
     cov_min = m - 2*np.sqrt(m)
     cov_max = m + 2*np.sqrt(m)
-    filt = (data['symbol'] == E_SYMBOL) & (data['cov'] > cov_min) & (data['cov'] < cov_max)
+    filt = (data['symbol'] == Consts.E_SYMBOL) & (data['cov'] > cov_min) & (data['cov'] < cov_max)
     for c,d in data.loc[filt].groupby (by = 'cov'):
         h = np.histogram(d['alt_count'].values, bins = np.arange(0,c+2)-0.5)
         n = len(d)
@@ -246,11 +228,12 @@ def VAF_test (data, m, **kwargs):
     res = opt.minimize (chi2, x0 = (0.5) , args = (counts), method = 'L-BFGS-B',
                         bounds = (vaf_bounds,))        
     
-    fb = find_fb (np.sort(data.loc[data['symbol'] == E_SYMBOL, 'vaf'].values), m, f_max = FB_F_MAX, eps = FB_EPS)    
+    fb = find_fb (np.sort(data.loc[data['symbol'] == Consts.E_SYMBOL, 'vaf'].values), m,
+                  f_max = Consts.FB_F_MAX, eps = Consts.FB_EPS)    
     
     return VAF_results (chi2 = res.fun, vaf = res.x[0], fb = fb)
 
-def find_fb (vafs, m, f_max = FB_F_MAX, eps = FB_EPS):
+def find_fb (vafs, m, f_max = 1.4, eps = 1e-4):
     
     def two_gauss (v, dv, a):
         v0 = 0.5

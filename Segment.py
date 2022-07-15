@@ -5,13 +5,8 @@ from collections import namedtuple
 import scipy.optimize as opt
 
 from doCNA import Testing
+from doCNA import Consts
 from doCNA.Report import Report
-
-
-E_SYMBOL = 'E'
-MAX_AI_THRESHOLD_FOR_SENSITIVE = 0.1
-#MIN_CLON_THRESHOLD_FOR_FULL = 0.2
-
 
 class Segment:
     """Class to calculate clonality and find the model."""
@@ -48,12 +43,12 @@ class Segment:
     def estimate_parameters (self):
         #sometimes, even if classified, it's wrong model
         method = 'unspecified'
-        if self.symbol == E_SYMBOL:
-            self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == E_SYMBOL,],
+        if self.symbol == Consts.E_SYMBOL:
+            self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == Consts.E_SYMBOL,],
                                              self.genome_medians['fb'],
                                              self.genome_medians['COV']['m'])
             method = 'sensitive'
-            if self.parameters['ai'] > MAX_AI_THRESHOLD_FOR_SENSITIVE:
+            if self.parameters['ai'] > Consts.MAX_AI_THRESHOLD_FOR_SENSITIVE:
                 self.parameters = get_full (self.data)
                 method = 'full'
             
