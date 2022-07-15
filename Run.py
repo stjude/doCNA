@@ -12,6 +12,7 @@ from doCNA import Segment
 from doCNA import Distribution
 from doCNA import Testing
 from doCNA import Chromosome
+from doCNA import Consts
 from doCNA.Report import Report
 
 WINDOWS_THRESHOLD = 9
@@ -83,7 +84,7 @@ class Run:
             self.windows_positions.append ((tmpi['position'].min(), tmpi['position'].max()))
         
     def get_ai (self):
-        if self.symbol == Chromosome.E_SYMBOL:
+        if self.symbol == Consts.E_SYMBOL:
             self.get_ai_sensitive()
         else:
             self.get_ai_full()
