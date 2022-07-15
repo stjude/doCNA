@@ -32,7 +32,7 @@ class Report:
             score = -np.log10(np.exp (-a*segment.parameters['d']))
 
             a = segment.genome_medians['ai']['a']
-            ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/(segment.end - segment.start)))
+            ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/(segment.parameters['n'])))
             
             if segment.parameters['model'] != 'cnB':
                 k_score = ai_score
@@ -60,6 +60,6 @@ class Report:
             lines.append (str("\t")+'Solution')
             soldic = solution._asdict()
             for f in fields:
-                lines.append (str("\t") + f + ': '+ str(soldic[f]))
+                lines.append (str("\t\t") + f + ': '+ str(soldic[f]))
         return '\n'.join(lines)
         
