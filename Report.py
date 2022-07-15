@@ -54,7 +54,7 @@ class Report:
 
     def run_report(self, run):
         """ Generates a report for Run objects """
-        fields = ['chi2', 'chi2_noO', 'positions', 'p_norm', 'segments', 'merged_segments']
+        fields = ['chi2', 'chi2_noO', 'positions', 'p_norm', 'merged_segments']
         lines = ['Run: ' + run.name]
         for solution in run.solutions:
             lines.append (str("\t")+'Solution')

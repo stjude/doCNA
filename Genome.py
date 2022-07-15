@@ -181,7 +181,7 @@ class Genome:
         z = np.array(zs)
         s = np.sqrt(np.array(ns))
 
-        popt, _ = opt.curve_fit (exp, z, np.linspace (0,1,len(z)), p0 = (10), sigma = s)
+        popt, _ = opt.curve_fit (exp, z, np.linspace (0,1,len(z)), p0 = (10))
         self.logger.info ('AI distribution (for non-cnB models): FI(ai) = exp(-{:.5f} ai)'.format (popt[0]))
         return {'a' : popt[0]}
 
