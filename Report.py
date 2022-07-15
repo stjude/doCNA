@@ -19,8 +19,6 @@ class Report:
         """ Generates a report for Chromosome objects """
         if self._report_type == 'bed':
             data = '\n'.join([s.report(report_type='bed') for s in segments])
-        elif self._report_type == 'run':
-            data = '\n'.join([s.report(report_type='short') for s in runs])
         elif self._report_type == 'solution':
             data = '\n'.join([s.report(report_type='solution') for s in runs])
         return data

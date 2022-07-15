@@ -40,20 +40,14 @@ def main():
                       assembly = args.assembly, no_processes = args.no_processes, verbosity = args.verbosity)
     
     sample.analyze ()
-    #sample.shutdown_logger()
-    #sample.pickle_genome()
     
     with open (args.sample_name + '.bed', 'w') as bed:
         bed.writelines (sample.report(report_type = 'bed'))
-    
-    #with open (args.sample_name + '.run', 'w') as full:
-    #    full.writelines (sample.report(report_type = 'run'))
     
     if args.report_solutions:
         with open (args.sample_name + '.solutions', 'w') as full:
             full.writelines (sample.report(report_type = 'solution'))
     
-    #move that to WGS.py
     keys = sample.genome.chromosomes.keys()
     data = pd.concat ([sample.genome.chromosomes[k].data for k in keys])
     

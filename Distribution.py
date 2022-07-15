@@ -59,6 +59,9 @@ class Distribution:
         
         
     def fail_normal (self):
+        """
+        Method to check if single Gauss failed.
+        """
         return self.key == 'double'
         
     def combinations_of_params (self, size = 1, key = 'single', reverse = False):
@@ -90,16 +93,17 @@ class Distribution:
         return (self.parameters)
     
     
-def fit_single_G (values, alpha, r):
-    #outliers
+def fit_single_G (values, alpha = 0.01, r = 0.5):
+    """
+    Function to fit Gauss to _values_
+    
+    Returns dictionary with parameters.
+    """
     thr = get_outliers_thrdist (np.sort(values))
-    #fit
     a = np.sort(values[(values >= thr[0])&(values <= thr[1])])
     popt, pcov = opt.curve_fit (sts.norm.cdf, a, np.linspace(0,1, len(a)), 
                                 p0 = [np.mean(a), np.std (a)])
     ksp = sts.kstest (a, sts.norm.cdf, args = popt)
-
-    #report
     return {'p' : ksp.pvalue, 
             'm': popt[0],
             's': popt[1],
@@ -110,8 +114,12 @@ def fit_single_G (values, alpha, r):
             'thr' : thr, 'a' : np.ones(1)}
 
 def fit_double_G (values_all, alpha, r):
-    #p0 = (0.5, np.median(values[:int(len(values)/2)]), np.percentile(values,40)-np.percentile(values,10),
-    #      np.median(values[int(len(values)/2):]), np.percentile(values,90)-np.percentile(values,60))
+    """
+    Function to fit two Gauss' to _values_
+    
+    Returns dictionary with parameters.
+    """
+    
     thr0 = get_outliers_thrdist (np.sort(values_all))
     
     values = values_all[(values_all >= thr0[0]) & (values_all <= thr0[1])]
@@ -159,5 +167,8 @@ def fit_double_G (values_all, alpha, r):
             'thr' : (out_min, out_max)}
 
 def gaus2 (v, a, m0, s0, m1, s1):
+    """
+    Helper function returning cdf of two gauss'
+    """
     return a*sts.norm.cdf (v, m0,s0) + (1-a)*sts.norm.cdf(v, m1, s1)
 

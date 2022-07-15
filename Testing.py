@@ -13,7 +13,14 @@ VAF_results = namedtuple ('VAF_results', ['chi2', 'vaf', 'fb'])
 HE_results = namedtuple ('HE_results', ['chi2', 'vaf', 'cov', 'b'])
 
 class Testing:
+    """
+    Class that performs tests.
+    """
+    
     def __init__  (self, test_name, chromosomes, logger):
+        """
+        Class constructor        
+        """
         assert test_name in ['COV', 'HE', 'VAF'], f"Unknown test: {test_name}!"
         self.test_name = test_name
         i = np.where([t == test_name for t in ['COV', 'HE', 'VAF']])[0][0]
@@ -23,7 +30,9 @@ class Testing:
         self.logger.debug (f'Object {self.test.__name__} created.')
         
     def run_test (self, *args, no_processes = 1):
-                
+        """
+        Method that runs test
+        """        
         if no_processes > 1:
             self.logger.debug (f'Runnig test in {no_processes} processes.')
             with mpl.Pool (processes = no_processes) as pool:
@@ -38,7 +47,9 @@ class Testing:
         self.logger.info (f'Test finished.')
         
     def analyze (self, parameters = {'alpha' : 0.01, 'r' : 0.5}, q = (5,99)):
-        #parameters are not done well here
+        """
+        Method to analyze results of the test.
+        """        
         self.logger.debug (f'Starting to analyze test results.')
         self.normal_range = {}
         columns = self.results.columns
@@ -73,10 +84,9 @@ class Testing:
         self.medians = self.results.loc[inlier_filter, columns].median (axis = 0, numeric_only = True)
 
     def get_parameters (self, chromosome):
-        #get chromosome parameters 
+        
         try:
             test_results = self.results.T[chromosome].T
-        #or return medians
         except KeyError:
             test_results = self.medians
             self.logger.debug (f"No parameters for chromosome {chromosome}")

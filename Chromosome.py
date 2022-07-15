@@ -23,7 +23,7 @@ class Chromosome:
         self.logger = logger.getChild(f'{self.__class__.__name__}-{self.name}')
         self.genome_medians = genome_medians
         
-        self.CB = CB #.loc[CB['gieStain'] != 'acen']
+        self.CB = CB
         self.cent = (CB.loc[(CB['gieStain'] == 'acen'),'chromStart'].min(),
                      CB.loc[(CB['gieStain'] == 'acen'),'chromEnd'].max())
          
@@ -56,7 +56,6 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
             end = self.windows_positions [r[1]][1]
             chi2, vaf, fb = Testing.VAF_test (self.data.loc[(self.data['position'] >= start)&(self.data['position'] <= end),], m)
             
-            #test chi2
             outlier = (chi2 > float(self.config['VAF']['chi2_high'])) | (chi2 == 0)
                       
             if outlier:
@@ -121,7 +120,6 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         dva[dva == 0] = median
         self.dv = dva
         self.v0 = np.array(v0s)
-        #p_thr is lower that for sensitive as full is more noisy, but less nosy :D 
         self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = 0.1, thr_z = z_thr)
 
@@ -160,11 +158,9 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
             unr.append ((nr[0], nr[1]))
         for ur in self.Uruns:
             unr.append ((ur[0], ur[1]))
-        unr.sort (key = lambda x: x[0] )
-        #print (self.name, unr)
+        unr.sort (key = lambda x: x[0])
+
         startsandends = []
-        
-        #print (self.name, 'seg')
 
         for run in self.runs:
             best_solution = run.solutions[0]       
@@ -180,15 +176,12 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
                     if current_start < end:
                         startsandends.append((current_start,end))
         
-        #print (self.name, startsandends)
-
         for start, end in startsandends:
             data_view = self.data.loc[(self.data['position'] >= start) &\
                                       (self.data['position'] <= end)]
             if len(data_view) == 0:
                 self.logger.error(f"Wrong segment {start}-{end} in {run.name})")
             else:
-                #centromere_fraction = min((end - self.cent[0]),(self.cent[1]-start))/(end - start)
                 centromere_fraction = (min(end, self.cent[1]) - max(self.cent[0],start))/(end - start)
                 cytobands = self.CB[(self.CB['chromStart'] < end)&(self.CB['chromEnd'] > start)].sort_values (by = 'chromStart')['name'].values
                         

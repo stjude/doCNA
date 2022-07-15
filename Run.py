@@ -1,4 +1,3 @@
-#the idea here is that after initial segmentation, this stratify run into segments
 import scipy.stats as sts
 import numpy as np
 import pandas as pd
@@ -39,14 +38,14 @@ class Run:
         self.get_windows (n = Consts.SNPS_IN_WINDOW)
         self.logger.debug (f'Run divided into {len(self.windows)} windows.')
         if len(self.windows) >= Consts.WINDOWS_THRESHOLD:
-            #try:
-            self.get_ai ()
-            self.get_coverage ()
-            self.solve_windows ()
-            #except:
-            #    self.logger.info (f"Run can't be describe by any of the models.")
-            #    self.dumy_solution ()
-            #    self.logger.info ('One solution devised for crazy run')
+            try:
+                self.get_ai ()
+                self.get_coverage ()
+                self.solve_windows ()
+            except:
+                self.logger.info (f"Run can't be describe by any of the models.")
+                self.dumy_solution ()
+                self.logger.info ('One solution devised for crazy run')
             
         else:
             self.logger.info (f'Run is to short to segment.')
@@ -147,12 +146,9 @@ class Run:
                 dvs.append (0)
             except ValueError:
                 dvs.append (0)
-        dva = np.array (dvs)
-        #median = np.median (dva[dva > 0])
-        #dva[dva == 0] = median        
+        dva = np.array (dvs)      
         self.dv = dva
         self.v0 = np.array(v0s)
-        #p_thr is lower that for sensitive as full is more noisy, but less noi:sy :D 
         self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = p_thr, thr_z = z_thr)
     
@@ -166,7 +162,6 @@ class Run:
             p_thr = 0.1
             
         for window in self.windows:
-            #cov = window['cov'].values
             result = Testing.COV_test (window)
             ml.append (result.m)
             ll.append (result.l)
@@ -260,7 +255,6 @@ class Run:
         return self.name + '-' + self.symbol
     
     def report (self, report_type = 'short'):
-        #return Report(report_type).run_report(self.name, self.symbol, self.solutions)
         return Report(report_type).run_report(self)
     
     def __repr__(self) -> str:
@@ -295,7 +289,7 @@ def merge_symbols (in_string, outliers_threshold = 2):
     argsort = np.argsort (counts)[::-1]
     symbolindex = 0
 
-    while symbolindex < len(symbols)-1:  #(min(counts) <= outliers_threshold)&(counter < 10):
+    while symbolindex < len(symbols)-1:
         i = argsort[symbolindex]
         symbol = symbols[i]
         s = i
@@ -362,16 +356,11 @@ def make_rle_string(string, sep = ';'):
 def divide_segment (dv, si, ei):
     if ei - si > 2*Consts.LENGTH_THRESHOLD:
         parameters = Distribution.fit_double_G (dv[si:ei], alpha = 0.05, r = 0.1)
-        #print ('double gauss parameters: ', parameters)
         z = np.abs(parameters['m'][1] - parameters['m'][0])/(parameters['s'][0] + parameters['s'][1])
-        #print (z)
         if (parameters['a'][0] < 0.9)&(parameters['a'][1] < 0.9)&(z > 0.6):
             threshold = get_two_G_threshold (parameters)
-            #print ('threshold: ', threshold)
             random_length = get_random_lenghts (parameters, ei-si, threshold)
-            #print (random_length)
-            values, counts = rle_encode (['A' if v < threshold else 'B' for v in dv[si:ei]])
-            #print ('v,c: ', values, counts)   
+            values, counts = rle_encode (['A' if v < threshold else 'B' for v in dv[si:ei]])   
             new_segments = []
             js = np.where ((counts > random_length[1])&(values == 'B'))[0]
             indexes = np.concatenate([np.array([0]), np.cumsum(counts)])
@@ -393,18 +382,12 @@ def divide_segment (dv, si, ei):
         new_segments = [(si, ei)]
     return new_segments
     
-    
-    #merge those regions
-
-    #return []
-
 def get_two_G_threshold (params):
 
     a = params['a']
     m = params['m']
     s = params['s']
     
-    #x = np.arange (m[0] - 2*s[0], m[1] + 2*s[1], 0.001)
     x = np.arange (min(m[0] - 2*s[0], m[1] - 2*s[1]),
                    max(m[1] + 2*s[1], m[0] + 2*s[0]), 0.0001)
     g0sf = a[0]*sts.norm.sf (x, m[0], s[0])
