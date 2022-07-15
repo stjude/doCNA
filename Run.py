@@ -160,7 +160,7 @@ class Run:
         ml = []
         ll = []
         
-        if self.symbol == Chromosome.E_SYMBOL:
+        if self.symbol == Consts.E_SYMBOL:
             p_thr = 0.3
         else:
             p_thr = 0.1
