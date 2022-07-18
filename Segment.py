@@ -168,7 +168,8 @@ def get_full (data, b = 1.01):
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
                                               (0.5, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 'n' : len (data), 'status' : 'valid'} 
+        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
+                      'n' : len (data)/Consts.SNPS_IN_WINDOW, 'status' : 'valid'} 
     except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0, 'status' : 'Fit failed'}
         #print ('Runtime: Initial parameters: ', p0)
