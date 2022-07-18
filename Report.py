@@ -32,7 +32,7 @@ class Report:
             score = -np.log10(np.exp (-a*segment.parameters['d']))
 
             a = segment.genome_medians['ai']['a']
-            ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
+            ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']*np.sqrt(segment.parameters['n'])))
             
             if segment.parameters['model'] == 'cnB':
                 m = segment.genome_medians['clonality_cnB']['m']
