@@ -34,13 +34,14 @@ class Report:
             a = segment.genome_medians['ai']['a']
             ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
             
-            if segment.parameters['model'] != 'cnB':
-                k_score = ai_score
-            else:
+            if segment.parameters['model'] == 'cnB':
                 m = segment.genome_medians['clonality_cnB']['m']
                 s = segment.genome_medians['clonality_cnB']['s']
-                #k_score = np.abs(segment.parameters['k'] - m)/s
                 k_score = -np.log10(sts.norm.sf(segment.parameters['k'], m, s))
+                score = ai_score
+            else:
+                k_score = ai_score
+                
                 
             report = '\t'.join([str(p) for p in [segment.parameters['m'], 
                                                  2*segment.parameters['m']/segment.genome_medians['COV']['m'],
