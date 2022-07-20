@@ -146,19 +146,18 @@ def get_full (data, b = 1.01):
     covs = data['cov'].values
     
     m, dm, l, dl = Testing.COV_test (data)
-    #cov = mG
     
     def vaf_cdf (v, dv, a, lerr, f, vaf, b):
         return vaf_cdf_c (v, dv, a, lerr, f, vaf, b, m)
     
     v0 = 0.5
-    #why on earth there is 0.09?!    
-    #s0 = np.sqrt (0.09/m)
     v, c = np.unique(vafs[~np.isnan(vafs)], return_counts = True)
 
     try:
         cnor = np.cumsum(c)/np.sum(c)
         ones0 = c[v >= (m-1)/m].sum()
+        if ones0 > 0.5:
+            raise ValueError ("Meaningless vaf's in segment")
         f0 = c[v < v0].sum()/(c.sum() - ones0) 
         dv0 = v0 - np.median (v[v < v0])
 
@@ -192,4 +191,4 @@ def vaf_cdf_c (v, dv, a, lerr, f, vaf, b, cov):
     cnai = vaf_cnai (v, dv, f, vaf, b, cov)
     cnHO = vaf_HO (v, lerr)
     
-    return a*cnHO + (1 - a)*cnai 
+    return a*cnHO + (1 - a)*cnai
