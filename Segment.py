@@ -77,7 +77,7 @@ class Segment:
             self.parameters['d'] = self.distances.min()
             self.parameters['model'] = list(model_presets.keys())[picked]
             k = model_presets[self.parameters['model']].k(m,v,m0) 
-            self.parameters['k'] = k if k < 1 else np.nan
+            self.parameters['k'] = k if k < Consts.K_MAX else np.nan
             self.logger.info (f"Segment identified as {self.parameters['model']}, d = {self.parameters['d']}")
         else:
             self.parameters['d'] = np.nan
