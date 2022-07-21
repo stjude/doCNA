@@ -49,7 +49,7 @@ class Report:
                                                  segment.parameters['k'], k_score, segment.cytobands, 
                                                  segment.centromere_fraction, segment.parameters['d'], 
                                                  segment.parameters['ai'], ai_score]],
-                                                 segment.parameters['ddv'], segment.parameters['da'])
+                                                 segment.parameters['ddv'])
         else:
             report = ''
         return '\t'.join([namestr, report])
