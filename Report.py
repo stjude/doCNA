@@ -41,8 +41,12 @@ class Report:
             if segment.parameters['model'] == 'cnB':
                 m = segment.genome_medians['clonality_cnB']['m']
                 s = segment.genome_medians['clonality_cnB']['s']
-                k_score = -np.log10(sts.norm.sf(segment.parameters['k'], m, s))
+                try:
+                    k_score = -np.log10(sts.norm.sf(segment.parameters['k'], m, s))
+                except RuntimeWarning:
+                    k_score = 0
                 score = ai_score
+                
             else:
                 k_score = ai_score
                 

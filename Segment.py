@@ -60,6 +60,7 @@ class Segment:
             self.logger.info (f"AI estimated by {method} method, ai = {self.parameters['ai']}")
         else:
             self.logger.info (f"AI not estimated.")
+            self.logger.debug (f"Parameters: {self.parameters}")
                 
     def report (self, report_type = 'bed'):
         #return Report(report_type).segment_report(self.name, self.genome_medians, self.parameters, self.cytobands, self.centromere_fraction)
@@ -169,22 +170,20 @@ def get_full (data, b = 1.01):
         #print ('Initial parameters: ', p0)
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
-                                              (0.5, 0.95, 5, 1, 0.55, 10)))
+                                              (0.55, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt
         ddv, da, _, _, _, _ = np.sqrt (np.diag(pcov))
-        print (dv)
-        print (ddv)
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
                       'n' : len (data)/Consts.SNPS_IN_WINDOW, 'status' : 'valid',
                       'ddv' : ddv}
     except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
                       'status' : 'Fit failed', 'ddv' : np.nan}
-        #print ('Runtime: Initial parameters: ', p0)
+        print ('Runtime: Initial parameters: ', p0)
     except ValueError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
                       'status' : 'Parameters failed', 'ddv' : np.nan}
-        #print ('Value: Initial parameters: ', p0)
+        print ('Value: Initial parameters: ', p0)
         
     return parameters
 
