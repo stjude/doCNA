@@ -172,11 +172,15 @@ def get_full (data, b = 1.01):
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
                                               (0.55, 0.95, 5, 1, 0.55, 10)))
+        print (p0)
         dv, a, lerr, f, vaf, b = popt
+        print (dv, a)
         ddv, da, _, _, _, _ = np.sqrt (np.diag(pcov))
+        print (ddv, da)
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
                       'n' : len (data)/Consts.SNPS_IN_WINDOW, 'status' : 'valid',
                       'ddv' : ddv}
+        print (parameters)
     except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
                       'status' : 'Fit failed', 'ddv' : np.nan}
