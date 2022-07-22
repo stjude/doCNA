@@ -29,7 +29,7 @@ class Report:
         if self._report_type == 'bed':
             
             a = segment.genome_medians['model_d']['a']
-            score = -np.log10(np.exp (-a*segment.parameters['d']))
+            model_score = -np.log10(np.exp (-a*segment.parameters['d']))
 
             a = segment.genome_medians['ai']['a']
             try:
@@ -44,8 +44,8 @@ class Report:
                 try:
                     k_score = -np.log10(sts.norm.sf(segment.parameters['k'], m, s))
                 except RuntimeWarning:
-                    k_score = 0
-                score = ai_score
+                    k_score = np.inf
+                model_score = ai_score
                 
             else:
                 k_score = ai_score
@@ -53,7 +53,7 @@ class Report:
                 
             report = '\t'.join([str(p) for p in [segment.parameters['m'], 
                                                  2*segment.parameters['m']/segment.genome_medians['COV']['m'],
-                                                 segment.parameters['model'], score, 
+                                                 segment.parameters['model'], model_score, 
                                                  segment.parameters['k'], k_score, segment.cytobands, 
                                                  segment.centromere_fraction, segment.parameters['d'], 
                                                  segment.parameters['ai'], ai_score]])

@@ -160,8 +160,7 @@ def get_full (data, b = 1.01):
         p0 = 'Not yet calculated'
         cnor = np.cumsum(c)/np.sum(c)
         ones0 = c[v >= (m-1)/m].sum()
-        if ones0 > 0.5:
-            raise ValueError ("Meaningless vaf's in segment")
+        
         f0 = c[v < v0].sum()/(c.sum() - ones0) 
         dv0 = v0 - np.median (v[v < v0])
 
@@ -177,6 +176,8 @@ def get_full (data, b = 1.01):
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
                       'status' : 'Fit failed'}
     except ValueError:
+        #print (data)
+        #print (p0)
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
                       'status' : 'Parameters failed'}
         
