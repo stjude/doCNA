@@ -134,6 +134,8 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
                                               (0.5, 1.0)))
         dv, a = popt
         ddv, da = np.sqrt (np.diag(pcov))
+        print (dv)
+        print (ddv)
         parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'success' : True, 'n' : len (data),
                       'ddv' : ddv}
         
@@ -170,6 +172,8 @@ def get_full (data, b = 1.01):
                                               (0.5, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt
         ddv, da, _, _, _, _ = np.sqrt (np.diag(pcov))
+        print (dv)
+        print (ddv)
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
                       'n' : len (data)/Consts.SNPS_IN_WINDOW, 'status' : 'valid',
                       'ddv' : ddv}
