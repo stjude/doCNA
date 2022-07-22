@@ -159,6 +159,7 @@ def get_full (data, b = 1.01):
     v, c = np.unique(vafs[~np.isnan(vafs)], return_counts = True)
 
     try:
+        p0 = 'Not yet calculated'
         cnor = np.cumsum(c)/np.sum(c)
         ones0 = c[v >= (m-1)/m].sum()
         if ones0 > 0.5:
