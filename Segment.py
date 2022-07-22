@@ -134,12 +134,12 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
                                     bounds = ((0.0, 0.0),
                                               (0.5, 1.0)))
         dv, a = popt
-        ddv, da = np.sqrt (np.diag(pcov))
         parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'success' : True, 'n' : len (data),
-                      'ddv' : ddv}
+                      'status' : 'valid'}
         
     except RuntimeError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0, 'ddv' : np.nan}
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
+                      'status' : 'vslid'}
     
     return parameters 
 
@@ -170,16 +170,15 @@ def get_full (data, b = 1.01):
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
                                               (0.55, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt
-        ddv, da, _, _, _, _ = np.sqrt (np.diag(pcov))
+        
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
-                      'n' : len (data)/Consts.SNPS_IN_WINDOW, 'status' : 'valid',
-                      'ddv' : ddv}
+                      'n' : len (data)/Consts.SNPS_IN_WINDOW, 'status' : 'valid'}
     except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
-                      'status' : 'Fit failed', 'ddv' : np.nan}
+                      'status' : 'Fit failed'}
     except ValueError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
-                      'status' : 'Parameters failed', 'ddv' : np.nan}
+                      'status' : 'Parameters failed'}
         
         
     return parameters
