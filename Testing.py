@@ -59,9 +59,9 @@ class Testing:
             try:
                 alpha = float(parameters[column + '_alpha'])
                 r = float(parameters[column + '_r'])
-            except: #if not found
+            except: 
                 alpha, r = (0.01, 0.5)
-            #except if not a number
+            
             self.logger.debug (f'Parameter {column} being analyzed with alpha = {alpha} and r = {r}')
             res = self.results.loc[self.results.notna().all(axis = 1), column].values
             try:

@@ -148,8 +148,12 @@ class Genome:
         z = np.array(ks)
         pp = np.percentile (z, percentiles)
         zz = z[(z >= pp[0])&(z <= pp[1])]
-        res, _ = opt.curve_fit (sts.norm.cdf, np.sort(zz), np.linspace (0,1,len(zz)), p0 = [0.01, 0.01])
-        self.logger.info (f'Clonality distribution (for cnB model): FI(k) = G({res[0]}, {res[1]}))')
+        try:
+            res, _ = opt.curve_fit (sts.norm.cdf, np.sort(zz), np.linspace (0,1,len(zz)), p0 = [0.01, 0.01])
+            self.logger.info (f'Clonality distribution (for cnB model): FI(k) = G({res[0]}, {res[1]}))')
+        except (TypeError, RuntimeError):
+            res = (np.nan, np.nan)
+            self.logger.warning ('Automatic estimation of clonality distribution for cnB model failed.')
         return {'m' : res[0], 's' : res[1]}
     
     
@@ -180,8 +184,8 @@ class Genome:
                     ns.append (seg.parameters['n'])
         z = np.array(zs)
         s = np.sqrt(np.array(ns))
-
-        popt, _ = opt.curve_fit (exp, z*s, np.linspace (0,1,len(z)), p0 = (10))
+        zs = z*s[~np.isnan(z*s)]
+        popt, _ = opt.curve_fit (exp, zs, np.linspace (0,1,len(zs)), p0 = (10))
         self.logger.info ('AI distribution (for non-cnB models): FI(ai) = exp(-{:.5f} ai)'.format (popt[0]))
         return {'a' : popt[0]}
 
