@@ -5,7 +5,7 @@ SEX_CHROMS = ['chrX', 'chrY']
 SIZE_THR = 5000000
 MODEL_THR = 3
 #alpha used to determine weidening threshold, using normal approximation 
-FB_ALPHA = 0.5
+FB_ALPHA = 0.3
 
 
 ##Chromosome
