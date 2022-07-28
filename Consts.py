@@ -1,7 +1,11 @@
 ##Genome
 SEX_CHROMS = ['chrX', 'chrY']
+
+#Scoring
+SIZE_THR = 5000000
+MODEL_THR = 3
 #alpha used to determine weidening threshold, using normal approximation 
-FB_ALPHA = 0.05
+FB_ALPHA = 0.5
 
 
 ##Chromosome
@@ -35,6 +39,9 @@ HE_FN_BOUNDS = (0.2,1.0)
 HE_A_BOUNDS = (0.1,0.9)
 HE_B_BOUNDS = (1,10)
 HE_LERR_BOUNDS = (2,10)
+
+HE_CHI2_THR = 10
+
 
 VAF_VAF_BOUNDS = (0.45,0.55)
 VAF_N_THR = 100

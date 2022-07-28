@@ -81,7 +81,11 @@ class Genome:
         self.logger.info ("Genome heterozygosity medians: "+ f"\n" + str(self.HE.get_genome_medians()))
         
         self.genome_medians['HE'] = self.HE.get_genome_medians()        
-              
+        
+        if self.genome_medians['HE']['chi2'] > Consts.HE_CHI2_THR:
+            self.logger.critical (f"Marking of the genome failed. HE_chi2 = {self.genome_medians['HE']['chi2']} > {Consts.HE_CHI2_THR}")
+            exit(1)
+      
         self.logger.debug ('First round of N/E marking.')
         for chrom in self.chromosomes.keys():
             self.chromosomes[chrom].markE_onHE (self.HE.get_parameters(chrom),
@@ -138,15 +142,21 @@ class Genome:
     def get_clonality_cnB_params (self, percentiles = (1,80)):
 
         ks = []
+        #ns = []
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
                 if seg.parameters['model'] == 'cnB':
                     a = seg.genome_medians['model_d']['a']
                     score = -np.log10 (np.exp (-a*seg.parameters['d']))
-                    if (score < 3)&(~np.isnan(seg.parameters['k'])):
+                    size = seg.end - seg.start
+                    #Consts.SIZE_THR
+                    if (size > Consts.SIZE_THR)&(score < Consts.MODEL_THR):
                         ks.append (seg.parameters['k'])
+                        #ns.append (seg.parameters['n'])
         z = np.array(ks)
-        pp = np.percentile (z, percentiles)
+        #s = 1/np.sqrt (ns)
+        #zs = z*s
+        pp = np.percentile (z[~np.isnan(z)], percentiles)
         zz = z[(z >= pp[0])&(z <= pp[1])]
         try:
             res, _ = opt.curve_fit (sts.norm.cdf, np.sort(zz), np.linspace (0,1,len(zz)), p0 = [0.01, 0.01])
@@ -179,12 +189,14 @@ class Genome:
         ns = []
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
-                if seg.symbol == Consts.E_SYMBOL:
+                size = seg.end - seg.start
+                if (size > Consts.SIZE_THR)&(seg.symbol == Consts.E_SYMBOL):
                     zs.append (seg.parameters['ai'])
                     ns.append (seg.parameters['n'])
         z = np.array(zs)
-        s = np.sqrt(np.array(ns))
-        zs = z*s[~np.isnan(z*s)]
+        s = 1/np.sqrt(np.array(ns))
+        zsf = z*s
+        zs = zsf[~np.isnan(zsf)]
         popt, _ = opt.curve_fit (exp, zs, np.linspace (0,1,len(zs)), p0 = (10))
         self.logger.info ('AI distribution (for non-cnB models): FI(ai) = exp(-{:.5f} ai)'.format (popt[0]))
         return {'a' : popt[0]}

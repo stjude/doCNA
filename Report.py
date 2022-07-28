@@ -28,12 +28,9 @@ class Report:
         namestr = segment.name.replace(':', '\t').replace ('-', '\t')
         if self._report_type == 'bed':
             
-            a = segment.genome_medians['model_d']['a']
-            model_score = -np.log10(np.exp (-a*segment.parameters['d']))
-
             a = segment.genome_medians['ai']['a']
             try:
-                ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']*np.sqrt(segment.parameters['n'])))
+                ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
             except RuntimeWarning:
                 ai_score = np.inf
                 
@@ -42,14 +39,15 @@ class Report:
                 m = segment.genome_medians['clonality_cnB']['m']
                 s = segment.genome_medians['clonality_cnB']['s']
                 try:
-                    k_score = -np.log10(sts.norm.sf(segment.parameters['k'], m, s))
+                    k_score = -np.log10(sts.norm.sf(segment.parameters['k']/np.sqrt(segment.parameters['n']), m, s))
                 except RuntimeWarning:
                     k_score = np.inf
                 model_score = ai_score
                 
             else:
                 k_score = ai_score
-                
+                a = segment.genome_medians['model_d']['a']
+                model_score = -np.log10(np.exp (-a*segment.parameters['d']))
                 
             report = '\t'.join([str(p) for p in [segment.parameters['m'], 
                                                  2*segment.parameters['m']/segment.genome_medians['COV']['m'],

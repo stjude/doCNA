@@ -68,7 +68,7 @@ class Testing:
                 param_range = get_outliers_thrdist (res, alpha, r)
             except:
                 self.logger.critical (f'Test {self.test_name}: estimation of {column} distribution failed. Maybe BMT?')
-                exit (0)
+                exit (1)
             self.logger.info ('Estimated normal ragne of {} is from {} to {}'.format (column, *param_range))
             in_or_out = (self.results[column] > param_range[0]) & (self.results[column] < param_range[1])
             self.results[column + '_status'] = in_or_out

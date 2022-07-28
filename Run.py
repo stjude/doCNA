@@ -80,7 +80,7 @@ class Run:
         else:
             self.get_ai_full()
         
-    def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.0, p_thr = 0.3, z_thr = 1.5):
+    def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = 0.1, z_thr = 1.5):
         tmpf = 1
         s0 = np.sqrt (0.25/self.genome_medians['COV']['m'])
         
@@ -92,15 +92,15 @@ class Run:
             dvl = []
             v0l = []
             s = s0/np.sqrt(cov_mult)
-            def make_two_gauss (v, dv, v0):
-                a = 0.5
+            def make_two_gauss (v, dv, v0, a):
+                #a = 0.5
                 return a*sts.norm.cdf (v, v0 - dv, s) + (1-a)*sts.norm.cdf (v, v0 + dv, s)
             
             for vaf in vafs:
                 
                 popt, pcov = opt.curve_fit (make_two_gauss, np.sort(vaf), np.linspace (0,1, len(vaf)),
-                                            p0 = [0.05, 0.5],
-                                            bounds = ((0, 0.4),(0.5, 0.6)))
+                                            p0 = [0.05, 0.5, 0.5],
+                                            bounds = ((0, 0.4, 0.3),(0.5, 0.6, 0.7)))
                 
                 dvl.append (popt[0])
                 v0l.append (popt[1])
@@ -111,9 +111,9 @@ class Run:
         self.dv = np.array(dvl)
         self.v0 = np.array (v0l)
         self.dv_dist = Distribution.Distribution (self.dv, p_thr = p_thr, thr_z = z_thr)
-        self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult))        
+        self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult-0.01))        
             
-    def get_ai_full (self, z_thr = 2.5, p_thr = 0.3):
+    def get_ai_full (self, z_thr = 2.5, p_thr = 0.05):
         
         def vaf_cdf (v, dv, a, lerr, f, vaf, b):
             cnai = vaf_cnai (v, dv, f, vaf, b, cov)
@@ -152,7 +152,7 @@ class Run:
         self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = p_thr, thr_z = z_thr)
     
-    def get_coverage (self, z_thr = 1.5, p_thr = 0.1):
+    def get_coverage (self, z_thr = 1.5, p_thr = 0.05):
         ml = []
         ll = []
         
@@ -171,7 +171,7 @@ class Run:
         self.l = np.array (ll)
         self.l_dist = Distribution.Distribution (self.l, thr_z = z_thr, p_thr = p_thr)
     
-    def solve_windows (self, chi2_thr = 13.6):
+    def solve_windows (self, chi2_thr = 14.0):
         
         self.logger.debug ("Starting solving run.")
         self.solutions = []
