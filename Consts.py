@@ -5,8 +5,8 @@ SEX_CHROMS = ['chrX', 'chrY']
 SIZE_THR = 5000000
 MODEL_THR = 3
 #alpha used to determine weidening threshold, using normal approximation 
-FB_ALPHA = 0.5
-
+#FB_ALPHA = 0.3
+FB_ALPHA = 0.1
 
 ##Chromosome
 N_SYMBOL = 'N'
@@ -24,6 +24,11 @@ WINDOWS_TO_TEST_THRESHOLD = 20
 UNIFORMITY_THRESHOLD = 1e-5
 LENGTH_THRESHOLD = 10
 
+AI_SENSITIVE_Z = 2
+AI_FULL_Z = 2.5
+M_Z = 2.5
+SINGLE_P = 0.05
+
 ##Segment
 MAX_AI_THRESHOLD_FOR_SENSITIVE = 0.1
 K_MAX = 1.1
@@ -39,9 +44,6 @@ HE_FN_BOUNDS = (0.2,1.0)
 HE_A_BOUNDS = (0.1,0.9)
 HE_B_BOUNDS = (1,10)
 HE_LERR_BOUNDS = (2,10)
-
-HE_CHI2_THR = 10
-
 
 VAF_VAF_BOUNDS = (0.45,0.55)
 VAF_N_THR = 100

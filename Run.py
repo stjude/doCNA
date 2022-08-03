@@ -80,7 +80,7 @@ class Run:
         else:
             self.get_ai_full()
         
-    def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = 0.1, z_thr = 1.5):
+    def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P, z_thr = Consts.AI_SENSITIVE_Z):
         tmpf = 1
         s0 = np.sqrt (0.25/self.genome_medians['COV']['m'])
         
@@ -113,7 +113,7 @@ class Run:
         self.dv_dist = Distribution.Distribution (self.dv, p_thr = p_thr, thr_z = z_thr)
         self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult-0.01))        
             
-    def get_ai_full (self, z_thr = 2.5, p_thr = 0.05):
+    def get_ai_full (self, z_thr = Consts.AI_FULL_Z, p_thr = Consts.SINGLE_P):
         
         def vaf_cdf (v, dv, a, lerr, f, vaf, b):
             cnai = vaf_cnai (v, dv, f, vaf, b, cov)
@@ -152,7 +152,7 @@ class Run:
         self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = p_thr, thr_z = z_thr)
     
-    def get_coverage (self, z_thr = 1.5, p_thr = 0.05):
+    def get_coverage (self, z_thr = Consts.M_Z, p_thr = Consts.SINGLE_P):
         ml = []
         ll = []
         

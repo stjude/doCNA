@@ -82,7 +82,7 @@ class Genome:
         
         self.genome_medians['HE'] = self.HE.get_genome_medians()        
         
-        if self.genome_medians['HE']['chi2'] > Consts.HE_CHI2_THR:
+        if self.genome_medians['HE']['chi2'] > float(self.config['HE']['max_chi2']):#Consts.HE_CHI2_THR:
             self.logger.critical (f"Marking of the genome failed. HE_chi2 = {self.genome_medians['HE']['chi2']} > {Consts.HE_CHI2_THR}")
             exit(1)
       
@@ -153,15 +153,13 @@ class Genome:
                     if (size > Consts.SIZE_THR)&(score < Consts.MODEL_THR):
                         ks.append (seg.parameters['k'])
                         #ns.append (seg.parameters['n'])
-        z = np.array(ks)
-        #s = 1/np.sqrt (ns)
-        #zs = z*s
-        pp = np.percentile (z[~np.isnan(z)], percentiles)
-        zz = z[(z >= pp[0])&(z <= pp[1])]
         try:
+            z = np.array(ks)
+            pp = np.percentile (z[~np.isnan(z)], percentiles)
+            zz = z[(z >= pp[0])&(z <= pp[1])]
             res, _ = opt.curve_fit (sts.norm.cdf, np.sort(zz), np.linspace (0,1,len(zz)), p0 = [0.01, 0.01])
             self.logger.info (f'Clonality distribution (for cnB model): FI(k) = G({res[0]}, {res[1]}))')
-        except (TypeError, RuntimeError):
+        except (IndexError,TypeError, RuntimeError, ValueError):
             res = (np.nan, np.nan)
             self.logger.warning ('Automatic estimation of clonality distribution for cnB model failed.')
         return {'m' : res[0], 's' : res[1]}
