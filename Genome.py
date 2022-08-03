@@ -3,7 +3,7 @@ import numpy as np
 import multiprocessing as mpl
 import scipy.stats as sts
 import scipy.optimize as opt
-#from Chromosome import E_SYMBOL
+from sklearn.linear_model import HuberRegressor
 
 from doCNA import Testing
 from doCNA import Chromosome
@@ -135,6 +135,8 @@ class Genome:
         self.genome_medians['model_d'] = self.get_distance_params ()
         
         self.genome_medians['ai'] = self.get_ai_params ()
+
+        self.genome_medians['k'] = self.get_k_params ()
         
         self.genome_medians['clonality_cnB'] = self.get_clonality_cnB_params ()
         
@@ -142,11 +144,10 @@ class Genome:
     def get_clonality_cnB_params (self, percentiles = (1,80)):
 
         ks = []
-        #ns = []
+        a = self.genome_medians['model_d']['a']
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
                 if seg.parameters['model'] == 'cnB':
-                    a = seg.genome_medians['model_d']['a']
                     score = -np.log10 (np.exp (-a*seg.parameters['d']))
                     size = seg.end - seg.start
                     #Consts.SIZE_THR
@@ -181,6 +182,35 @@ class Genome:
         popt, _ = opt.curve_fit (exp, z, np.linspace (0,1,len(z)), p0 = (10), sigma = s)
         self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (popt[0]))
         return {'a' : popt[0]}
+
+    def get_k_params (self):
+        
+        a = self.genome_medians['model_d']['a']
+        ks = []
+        ss = []
+        for chrom in self.chromosomes.keys():
+            for seg in self.chromosomes[chrom].segments:
+                size = seg.end - seg.start
+                score = -np.log10 (np.exp (-a*seg.parameters['d']))
+                if (score < Consts.MODEL_THR)&(seg.parameters['model'] != 'cnB'):
+                    ks.append (seg.parameters['k'])
+                    ss.append (size)
+        k = np.log10 (np.array(ks))
+        s = np.log10 (np.array(ss))
+        
+        huber = HuberRegressor(alpha = 0.0, epsilon = 1.35)
+        huber.fit(s[:, np.newaxis], k)
+
+        A = -huber.coef_
+        B = 1
+        C = -huber.intercept_
+        d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
+
+        down, up = Testing.get_outliers_thrdist (d)
+
+        self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
+        self.logger.info (f'Estimated normal range of usuallness: from {down} to {up}.')
+        return {'a' : -A, 'b' : -C, 'down_thr' : down, 'up_thr' : up}
         
     def get_ai_params (self, percentile = 50):
         zs = []

@@ -23,7 +23,54 @@ class Report:
             data = '\n'.join([s.report(report_type='solution') for s in runs])
         return data
 
-    def segment_report(self, segment):
+    
+    def segment_report (self, segment):
+
+        """ Generates a report for Segment objects """
+        namestr = segment.name.replace(':', '\t').replace ('-', '\t')
+        if self._report_type == 'bed':
+
+            if segment.parameters['model'] == 'cnB':
+                a = segment.genome_medians['ai']['a']
+                model_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
+                ai_score = model_score
+                m = segment.genome_medians['clonality_cnB']['m']
+                s = segment.genome_medians['clonality_cnB']['s']
+                try:
+                    k_score = -np.log10(sts.norm.sf(segment.parameters['k']/np.sqrt(segment.parameters['n']), m, s))
+                except RuntimeWarning:
+                    k_score = np.inf
+                status = '' 
+
+            else:
+                a = segment.genome_medians['model_d']['a']
+                model_score = -np.log10(np.exp (-a*segment.parameters['d']))
+                a = segment.genome_medians['ai']['a']
+                ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
+
+                a = segment.genome_medians['k']['a'] 
+                b = segment.genome_medians['k']['b']
+                up_thr = segment.genome_medians['k']['up_thr']
+
+                d = (-a*s+1*k+C)/np.sqrt (A**2+1)
+               
+                status = 'CNV' if d >= up_thr else ''
+
+
+
+            report = '\t'.join([str(p) for p in [segment.parameters['m'],
+                                                 2*segment.parameters['m']/segment.genome_medians['COV']['m'],
+                                                 segment.parameters['model'], segment.parameters['d'], model_score,
+                                                 segment.parameters['k'], k_score, segment.cytobands,
+                                                 segment.centromere_fraction, segment.parameters['ai'], ai_score, score]])
+        else:
+            report = ''
+        return '\t'.join([namestr, report])
+
+
+
+    def segment_report_old (self, segment):
+
         """ Generates a report for Segment objects """
         namestr = segment.name.replace(':', '\t').replace ('-', '\t')
         if self._report_type == 'bed':
@@ -32,8 +79,7 @@ class Report:
             try:
                 ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
             except RuntimeWarning:
-                ai_score = np.inf
-                
+                ai_score = np.inf                
             
             if segment.parameters['model'] == 'cnB':
                 m = segment.genome_medians['clonality_cnB']['m']
