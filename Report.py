@@ -54,7 +54,7 @@ class Report:
                 up_thr = segment.genome_medians['k']['up_thr']
                 x = -np.log10((segment.end - segment.start)/10**6)
                 y = -np.log10(segment.parameters['k'])
-                d = -(A*x+B*y+C)/np.sqrt (A**2+B**2)
+                d = (A*x+B*y+C)/np.sqrt (A**2+B**2)
                 try:
                     k_score = -np.log10(sts.norm.sf(d, segment.genome_medians['k']['m'], segment.genome_medians['k']['std'] ))               
                 except:
