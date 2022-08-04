@@ -51,9 +51,13 @@ class Report:
                 a = segment.genome_medians['k']['a'] 
                 b = segment.genome_medians['k']['b']
                 up_thr = segment.genome_medians['k']['up_thr']
+                s = segment.end - segment.start  
+                d = (-a*s+1*segment.parameters['k']-b)/np.sqrt (a**2+1)
+                try:
+                    k_score = -np.log10(sts.norm.sf(d, segment.genome_medians['k']['m'], segment.genome_medians['k']['std'] ))               
+                except:
+                    k_score = np.inf
 
-                d = (-a*s+1*k+C)/np.sqrt (A**2+1)
-               
                 status = 'CNV' if d >= up_thr else ''
 
 
@@ -62,7 +66,7 @@ class Report:
                                                  2*segment.parameters['m']/segment.genome_medians['COV']['m'],
                                                  segment.parameters['model'], segment.parameters['d'], model_score,
                                                  segment.parameters['k'], k_score, segment.cytobands,
-                                                 segment.centromere_fraction, segment.parameters['ai'], ai_score, score]])
+                                                 segment.centromere_fraction, segment.parameters['ai'], ai_score]])
         else:
             report = ''
         return '\t'.join([namestr, report])
