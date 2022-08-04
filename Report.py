@@ -41,18 +41,20 @@ class Report:
                 except RuntimeWarning:
                     k_score = np.inf
                 status = '' 
-
+                d = -1
             else:
                 a = segment.genome_medians['model_d']['a']
                 model_score = -np.log10(np.exp (-a*segment.parameters['d']))
                 a = segment.genome_medians['ai']['a']
                 ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
 
-                a = segment.genome_medians['k']['a'] 
-                b = segment.genome_medians['k']['b']
+                A = segment.genome_medians['k']['A'] 
+                B = segment.genome_medians['k']['B']
+                C = segment.genome_medians['k']['C']
                 up_thr = segment.genome_medians['k']['up_thr']
-                s = segment.end - segment.start  
-                d = (-a*s+1*segment.parameters['k']-b)/np.sqrt (a**2+1)
+                x = -np.log10((segment.end - segment.start)/10**6)
+                y = -np.log10(segment.parameters['k'])
+                d = -(A*x+B*y+C)/np.sqrt (A**2+B**2)
                 try:
                     k_score = -np.log10(sts.norm.sf(d, segment.genome_medians['k']['m'], segment.genome_medians['k']['std'] ))               
                 except:
@@ -65,8 +67,8 @@ class Report:
             report = '\t'.join([str(p) for p in [segment.parameters['m'],
                                                  2*segment.parameters['m']/segment.genome_medians['COV']['m'],
                                                  segment.parameters['model'], segment.parameters['d'], model_score,
-                                                 segment.parameters['k'], k_score, segment.cytobands,
-                                                 segment.centromere_fraction, segment.parameters['ai'], ai_score]])
+                                                 segment.parameters['k'], d, k_score, segment.cytobands,
+                                                 segment.centromere_fraction, segment.parameters['ai'], ai_score, status]])
         else:
             report = ''
         return '\t'.join([namestr, report])
