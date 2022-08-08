@@ -198,6 +198,7 @@ class Genome:
             for seg in self.chromosomes[chrom].segments:
                 size = (seg.end - seg.start)/10**6
                 score = -np.log10 (np.exp (-a*seg.parameters['d']))
+                
                 if (score < Consts.MODEL_THR)&(seg.parameters['model'] != 'cnB')&(~np.isnan(seg.parameters['k'])&(seg.centromere_fraction < 0.1)):
                     ks.append (seg.parameters['k'])
                     ss.append (size)
@@ -215,7 +216,8 @@ class Genome:
         down, up = Testing.get_outliers_thrdist (d, alpha = 0.01)
         m, std = sts.norm.fit (d[(d > down)&(d < up)])
         self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
-        self.logger.info (f'Estimated normal range of usuallness: from {down} to {up}.')
+        self.logger.info (f'Normal estimation of distance to usual: m  = {m}, s = {std}.')
+        self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
         return {'A' : A, 'B' : B, 'C' : C, 'down_thr' : down, 'up_thr' : up, 'm' : m, 'std' : std}
         
     def get_ai_params (self, percentile = 50):
