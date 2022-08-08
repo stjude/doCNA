@@ -103,7 +103,7 @@ class Genome:
                 self.chromosomes[chrom].markE_onHE (self.HE.get_parameters(chrom),
                                                     float(self.config['HE']['z_thr']))
             else:
-                self.chromosome[chrom].mark_on_full_model (self.COV.medians['m'])
+                self.chromosomes[chrom].mark_on_full_model (self.COV.medians['m'])
         
         self.logger.debug ('Testing first round of N/E marking.')    
         
