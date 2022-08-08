@@ -1,3 +1,4 @@
+from cmath import isnan
 import numpy as np
 import warnings as warn
 import scipy.stats as sts
@@ -61,13 +62,21 @@ class Report:
                     k_score = np.inf
 
                 status = 'CNV' if d >= up_thr else ''
+                
+            if np.isnan (segment.parameters['k']):
+                if segment.parameters['fraction_1'] > 0.95:
+                    k = 1
+                else:
+                    k = np.nan
+            else:
+                k = segment.parameters['k']
 
-
+                    
 
             report = '\t'.join([str(p) for p in [segment.parameters['m'],
                                                  2*segment.parameters['m']/segment.genome_medians['COV']['m'],
                                                  segment.parameters['model'], segment.parameters['d'], model_score,
-                                                 segment.parameters['k'], d, k_score, segment.cytobands,
+                                                 k, d, k_score, segment.cytobands,
                                                  segment.centromere_fraction, segment.parameters['ai'], ai_score, status]])
         else:
             report = ''
