@@ -171,15 +171,14 @@ def get_full (data, b = 1.01):
         dv, a, lerr, f, vaf, b = popt
         
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
-                      'n' : len (data)/Consts.SNPS_IN_WINDOW, 'status' : 'valid'}
+                      'fraction_1' : ones0/c.sum(), 'n' : len (data)/Consts.SNPS_IN_WINDOW,
+                      'status' : 'valid'}
     except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
-                      'status' : 'Fit failed'}
+                       'fraction_1' : ones0/c.sum(), 'status' : 'Fit failed'}
     except ValueError:
-        #print (data)
-        #print (p0)
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
-                      'status' : 'Parameters failed'}
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,  
+                      'fraction_1' : ones0/c.sum(), 'status' : 'Parameters failed'}
         
         
     return parameters
