@@ -88,22 +88,13 @@ class Genome:
       
         self.logger.debug ('First round of N/E marking.')
         
-        #for chrom in self.chromosomes.keys():
-        #    status = self.VAF.get_status (chrom)
-        #    self.logger.debug (f'Chromosome {chrom} inlier: {status}')
-        #    if ~status:
-        #        params = self.VAF.get_parameters (chrom)
-        #        #if params['chi2'] >= float(self.config['VAF']['chi2_high']):
-        #        self.logger.debug (f'Chromosome {chrom} marked on full model.')
-        #        self.chromosomes[chrom].mark_on_full_model (self.COV.medians['m'])
-        
         for chrom in self.chromosomes.keys():
             status = self.HE.get_status (chrom)
             if status:
                 self.chromosomes[chrom].markE_onHE (self.HE.get_parameters(chrom),
                                                     float(self.config['HE']['z_thr']))
             else:
-                self.chromosomes[chrom].markE_onHE (self.get_genome_medians(),
+                self.chromosomes[chrom].markE_onHE (self.HE.get_genome_medians(),
                                                     float(self.config['HE']['z_thr']))
         
         self.logger.debug ('Testing first round of N/E marking.')    
