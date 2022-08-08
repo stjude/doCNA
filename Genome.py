@@ -192,7 +192,9 @@ class Genome:
             for seg in self.chromosomes[chrom].segments:
                 size = (seg.end - seg.start)/10**6
                 score = -np.log10 (np.exp (-a*seg.parameters['d']))
-                if (score < Consts.MODEL_THR)&(seg.parameters['model'] != 'cnB')&(~np.isnan(seg.parameters['k'])&(seg.centromere_fraction < 0.1)):
+                big_filter = (seg.parameters['k'] < 0.11)|(size < 1)
+
+                if (score < Consts.MODEL_THR)&(seg.parameters['model'] != 'cnB')&(~np.isnan(seg.parameters['k'])&(seg.centromere_fraction < 0.1)&big_filter):
                     ks.append (seg.parameters['k'])
                     ss.append (size)
         k = np.log10 (np.array(ks))
