@@ -34,13 +34,14 @@ class Chromosome:
         
     def markE_onHE(self, he_parameters, z_thr = Consts.HE_Z_THR):
         self.logger.debug (f"Marking {self.name} based on HE test.")
-        zv = (self.data['vaf'] - he_parameters['vaf']) / np.sqrt (0.25/(he_parameters['cov']))
-        zc = (self.data['cov'] - he_parameters['cov']) / np.sqrt (he_parameters['b']*he_parameters['cov'])
+        zv = (self.data['vaf'].values - he_parameters['vaf']) / np.sqrt (0.25/(he_parameters['cov']))
+        zc = (self.data['cov'].values - he_parameters['cov']) / np.sqrt (he_parameters['b']*he_parameters['cov'])
         z = zv**2+zc**2
  
-        self.data['symbol'] = Consts.N_SYMBOL       
-        indexes = self.data.loc[z < z_thr, :].index.values.tolist()
-        self.data.loc[indexes, 'symbol'] = Consts.E_SYMBOL
+        #self.data['symbol'] = Consts.N_SYMBOL       
+        #indexes = self.data.loc[z < z_thr, :].index.values.tolist()
+        #self.data.loc[indexes, 'symbol'] = Consts.E_SYMBOL
+        self.data['symbol'] = [Consts.N_SYMBOL if zi >= z_thr else Consts.E_SYMBOL for zi in z]
         self.logger.info (f"""Chromosome {self.name} marked based on parameters
 v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
 #N = {sum(self.data['symbol'] == Consts.N_SYMBOL)}, #E = {sum(self.data['symbol'] == Consts.E_SYMBOL)}""")
@@ -201,7 +202,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
     
     def find_Nruns (self):
         vaf_thr = (self.genome_medians['COV']['m'] - 1)/self.genome_medians['COV']['m']
-        symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != Consts.U_SYMBOL), 'symbol'].tolist()
+        symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != Consts.U_SYMBOL), 'symbol'].values
         if len (symbol_list) >= Consts.N_STR_LEN_THR:    
             self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = Consts.N_SYMBOL, E = Consts.E_SYMBOL)
             self.logger.info (f'N runs thresholds: t_N = {self.Nruns_threshold[0]}, t_E =  {self.Nruns_threshold[1]}')
@@ -256,6 +257,11 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
         ind = np.arange (0, min (4, len(x)))
         popt, _ = opt.curve_fit (lin,  x[ind], y[ind], p0 = [-1,1])
         xt = (np.arange(1, hist[0].max()))
+        xmax = x.max()
+        while lin (xt, *popt)[-1] > -1:
+            xmax = 2*xmax
+            xt = np.arange(1, xmax)
+
         N_thr = (xt[lin(xt, *popt) > -1].max())
     except RuntimeError:
         N_thr = Consts.DEFAULT_N_THRESHOLD
