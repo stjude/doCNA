@@ -24,8 +24,8 @@ class Chromosome:
         self.genome_medians = genome_medians
         
         self.CB = CB
-        self.cent = (CB.loc[(CB['gieStain'] == 'acen'),'chromStart'].min(),
-                     CB.loc[(CB['gieStain'] == 'acen'),'chromEnd'].max())
+        self.cent = (CB.loc[(CB['gieStain'] == 'acen') | (CB['gieStain'] == 'gvar'),'chromStart'].min(),
+                     CB.loc[(CB['gieStain'] == 'acen') | (CB['gieStain'] == 'gvar'),'chromEnd'].max())
          
         self.Eruns = []
         self.Uruns = []
@@ -55,8 +55,8 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
             start = self.windows_positions[r[0]][0]
             end = self.windows_positions [r[1]][1]
             chi2, vaf, fb = Testing.VAF_test (self.data.loc[(self.data['position'] >= start)&(self.data['position'] <= end),], m)
-            
-            outlier = (chi2 > float(self.config['VAF']['chi2_high'])) | (chi2 == 0)
+            ai = np.median (self.dv[r[0]:r[1]])
+            outlier = (ai > 0.07) & ((chi2 > float(self.config['VAF']['chi2_high'])) | (chi2 == 0))
                       
             if outlier:
                 self.logger.info (f'Region {self.name}:{start}-{end}, chi2 = {chi2}, marked as U.')
