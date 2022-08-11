@@ -204,8 +204,9 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         vaf_thr = (self.genome_medians['COV']['m'] - 1)/self.genome_medians['COV']['m']
         symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != Consts.U_SYMBOL), 'symbol'].values
         if len (symbol_list) >= Consts.N_STR_LEN_THR:    
-            self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = Consts.N_SYMBOL, E = Consts.E_SYMBOL)
+            self.Nruns_indexes, self.Nruns_threshold, self.Nruns_threshold_first = analyze_string_N (symbol_list, N = Consts.N_SYMBOL, E = Consts.E_SYMBOL)
             self.logger.info (f'N runs thresholds: t_N = {self.Nruns_threshold[0]}, t_E =  {self.Nruns_threshold[1]}')
+            self.logger.info (f'N runs first thresholds: t_N = {self.Nruns_threshold_first[0]}, t_E =  {self.Nruns_threshold_first[1]}')
         else:
             self.Nruns_indexes = []
             self.Nruns_threshold = []
@@ -232,19 +233,19 @@ def vaf_HO (v, lerr):
 def analyze_string_N (symbol_list, N = 'N', E = 'E'):
     """Finds runs of Ns"""                    
     
-    values, counts = Run.rle_encode (''.join(symbol_list))
-    threshold = find_runs_thr (values, counts, N = N, E = E)
-    runsi = get_N_runs_indexes (values, counts, N = N, E = E, threshold = threshold)
+    values, counts = Run.rle_encode (symbol_list)
+    threshold_first = find_runs_thr (values, counts, N = N, E = E)
+    runsi = get_N_runs_indexes (values, counts, N = N, E = E, threshold = threshold_first)
         
     for si,ei in runsi:
         for i in range(si,ei):
             symbol_list[i] = N          
     
     values, counts = Run.rle_encode (symbol_list)
-    threshold = find_runs_thr (values, counts, N = N, E = E)
-    runsi = get_N_runs_indexes (values, counts, threshold = threshold, N = N, E = E)
+    threshold_second = find_runs_thr (values, counts, N = N, E = E)
+    runsi = get_N_runs_indexes (values, counts, threshold = threshold_second, N = N, E = E)
         
-    return runsi, threshold 
+    return runsi, threshold_second, threshold_first 
     
 def find_runs_thr (values, counts, N = 'N', E = 'E'):
     assert len (values) == len (counts), 'Wrong input!! Go away!'

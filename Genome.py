@@ -184,9 +184,12 @@ class Genome:
                     ns.append (seg.parameters['n'])        
         z = np.array(zs)
         s = 1/np.sqrt(np.array(ns))
-        
-        popt, _ = opt.curve_fit (exp, z, np.linspace (0,1,len(z)), p0 = (10), sigma = s)
-        self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (popt[0]))
+        try:
+            popt, _ = opt.curve_fit (exp, z, np.linspace (0,1,len(z)), p0 = (10), sigma = s)
+            self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (popt[0]))
+        except ValueError:
+            popt = [np.nan]
+
         return {'a' : popt[0]}
 
     def get_k_params (self):
@@ -206,20 +209,28 @@ class Genome:
                     ss.append (size)
         k = np.log10 (np.array(ks))
         s = np.log10 (np.array(ss))
-        
-        huber = HuberRegressor(alpha = 0.0, epsilon = 1.35)
-        huber.fit(s[:, np.newaxis], k)
+        try:
+            huber = HuberRegressor(alpha = 0.0, epsilon = 1.35)
+            huber.fit(s[:, np.newaxis], k)
 
-        A = -huber.coef_[0]
-        B = 1
-        C = -huber.intercept_
-        d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
+            A = -huber.coef_[0]
+            B = 1
+            C = -huber.intercept_
+            d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
 
-        down, up = Testing.get_outliers_thrdist (d, alpha = 0.01)
-        m, std = sts.norm.fit (d[(d > down)&(d < up)])
-        self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
-        self.logger.info (f'Normal estimation of distance to usual: m  = {m}, s = {std}.')
-        self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
+            down, up = Testing.get_outliers_thrdist (d, alpha = 0.01)
+            m, std = sts.norm.fit (d[(d > down)&(d < up)])
+            self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
+            self.logger.info (f'Normal estimation of distance to usual: m  = {m}, s = {std}.')
+            self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
+        except ValueError:
+            A = np.nan
+            B = np.nan
+            C = np.nan
+            down = np.nan
+            up = np.nan
+            m = np.nan
+            std = np.nan
         return {'A' : A, 'B' : B, 'C' : C, 'down_thr' : down, 'up_thr' : up, 'm' : m, 'std' : std}
         
     def get_ai_params (self, percentile = 50):
@@ -235,8 +246,12 @@ class Genome:
         s = 1/np.sqrt(np.array(ns))
         zsf = z*s
         zs = zsf[~np.isnan(zsf)]
-        popt, _ = opt.curve_fit (exp, zs, np.linspace (0,1,len(zs)), p0 = (10))
-        self.logger.info ('AI distribution (for non-cnB models): FI(ai) = exp(-{:.5f} ai)'.format (popt[0]))
+        try:
+            popt, _ = opt.curve_fit (exp, zs, np.linspace (0,1,len(zs)), p0 = (10))
+            self.logger.info ('AI distribution (for non-cnB models): FI(ai) = exp(-{:.5f} ai)'.format (popt[0]))
+        except ValueError:
+            popt = [np.nan]
+            
         return {'a' : popt[0]}
 
     def report (self, report_type = 'bed'):
