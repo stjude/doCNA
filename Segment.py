@@ -135,11 +135,11 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
                                               (0.5, 1.0)))
         dv, a = popt
         parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'success' : True, 'n' : len (data),
-                      'status' : 'valid'}
+                      'status' : 'valid', 'fraction_1' : np.nan}
         
     except (RuntimeError, ValueError):
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
-                      'status' : 'vslid'}
+                      'status' : 'valid', 'fraction_1' : np.nan}
     
     return parameters 
 

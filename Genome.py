@@ -47,7 +47,7 @@ class Genome:
         
         self.chromosomes = {}
         self.logger.debug ("Creating chromosomes...")
-        for chrom, data in self.data.groupby (by = 'chrom'):
+        for chrom, data in self.data.loc[~self.data['vaf'].isna()].groupby (by = 'chrom'):
             if chrom not in Consts.SEX_CHROMS:
                 self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
                                                                  self.config, self.logger,
@@ -112,7 +112,16 @@ class Genome:
                                                                   alpha = fb_alpha, r = 0.5)[1]
         self.logger.info (f"Widening parameters estimated at: {self.genome_medians['fb']}")
 
-       
+        
+
+        #self.genome_medians['all_chr_COV'] = self.genome_medians['COV']
+        #VAF_inliers = self.VAF.get_inliers()
+        #self.genome_medians['COV'] = self.COV.results.loc[VAF_inliers, ].median()
+
+        #self.logger.info (f'Inliers chromosomes: {VAF_inliers}')
+        #self.logger.info ("Genome inliers coverage medians: "+ f"\n" + str(self.COV.get_genome_medians())) 
+
+
         for chrom in self.chromosomes.keys():
             status = self.VAF.get_status (chrom)
             self.logger.debug (f'Chromosome {chrom} inlier: {status}')
