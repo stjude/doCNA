@@ -117,8 +117,8 @@ model_presets = {'cn1' : Preset(A = lambda m,dv,m0: -m0/2,
     
 def get_sensitive (data, fb, mG, z_thr = 1.5):
     
-    vafs = data['vaf'].values
-    covs = data['cov'].values
+    vafs = data['vaf'].values.astype(np.float64)
+    covs = data['cov'].values.astype(np.float64)
     
     #this only works for E
     def ai (v, dv, a):
@@ -130,16 +130,20 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
            
     v,c = np.unique (vafs, return_counts = True)
     try:
-        popt, pcov = opt.curve_fit (ai, v, np.cumsum(c)/np.sum(c), p0 = [0.05, 0.5],
-                                    bounds = ((0.0, 0.0),
-                                              (0.5, 1.0)))
+        popt, pcov = opt.curve_fit (ai, v, np.cumsum(c)/np.sum(c), p0 = [0.02, 0.5],
+                                    bounds = ((0.0, 0.1),
+                                              (0.3, 0.9)))
         dv, a = popt
         parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'success' : True, 'n' : len (data),
                       'status' : 'valid', 'fraction_1' : np.nan}
         
     except (RuntimeError, ValueError):
+        #with open("dump.txt", 'wt') as f:
+        #    for vi, ci, csci in zip (v,c, np.cumsum(c)/np.sum(c)):
+        #        f.writelines('\t'.join([str(vi), str(ci), str(csci)]) + '\n')
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
                       'status' : 'valid', 'fraction_1' : np.nan}
+        #exit(1)
     
     return parameters 
 

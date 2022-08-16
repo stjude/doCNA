@@ -232,10 +232,8 @@ def vaf_HO (v, lerr):
 
 def analyze_string_N (symbol_list, N = 'N', E = 'E'):
     """Finds runs of Ns"""                    
-    print ('analyze_string_N')
     values, counts = Run.rle_encode (symbol_list)
     threshold_first = find_runs_thr (values, counts, N = N, E = E)
-    print (threshold_first)
     runsi = get_N_runs_indexes (values, counts, N = N, E = E, threshold = threshold_first)
         
     for si,ei in runsi:
@@ -244,14 +242,12 @@ def analyze_string_N (symbol_list, N = 'N', E = 'E'):
     
     values, counts = Run.rle_encode (symbol_list)
     threshold_second = find_runs_thr (values, counts, N = N, E = E)
-    print (threshold_first)
     runsi = get_N_runs_indexes (values, counts, threshold = threshold_second, N = N, E = E)
         
     return runsi, threshold_second, threshold_first 
     
 def find_runs_thr (values, counts, N = 'N', E = 'E'):
     assert len (values) == len (counts), 'Wrong input!! Go away!'
-    print ('find_runs_thr')
     hist = np.unique(counts[values == N], return_counts = True)
     #x = np.log10 (hist[0])
     x = hist[0]
@@ -276,21 +272,19 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
     
     try:
         popt, _ = opt.curve_fit (lin, x[:4], y[:4], p0 = [-1,1])
-        print (popt)
-        if popt[0] < 0:
+        if popt[0] < -0.01:
             xt = np.arange(1, hist[0].max())
             E_thr = xt[lin(xt, *popt) > 0].max()
         else:
             popt, _ = opt.curve_fit (lin, x[:3], y[:3], p0 = [-1,1])
-            if (popt[0] < 0):
+            if (popt[0] < -0.01):
                 xt = np.arange(1, hist[0].max())
                 E_thr = xt[lin(xt, *popt) > 0].max()
-                if E_thr > np.percentile(counts[values == E], q = [20])[0]:
-                    E_thr = Consts.DEFAULT_E_THRESHOLD  
+            if E_thr > np.percentile(counts[values == E], q = [20])[0]:
+                E_thr = Consts.DEFAULT_E_THRESHOLD  
             else:
                 E_thr = Consts.DEFAULT_E_THRESHOLD
     except RuntimeError:
-        print ('find_runs_thr E thr RuntimeError')
         E_thr = Consts.DEFAULT_E_THRESHOLD
     
     return Run_treshold (N = N_thr, E = E_thr)
