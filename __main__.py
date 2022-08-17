@@ -47,6 +47,9 @@ def main():
     with open (args.sample_name + '.bed', 'w') as bed:
         bed.writelines (sample.report(report_type = 'bed'))
     
+    with open (args.sample_name + '.par', 'w') as params:
+        params.writelines (sample.report (report_type = 'params'))
+
     if args.report_solutions:
         with open (args.sample_name + '.solutions', 'w') as full:
             full.writelines (sample.report(report_type = 'solution'))

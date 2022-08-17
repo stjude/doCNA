@@ -108,11 +108,20 @@ class Genome:
         
         self.genome_medians['VAF'] = self.VAF.get_genome_medians()
         
-        self.genome_medians['fb'] = Testing.get_outliers_thrdist (self.VAF.results.loc[self.VAF.get_inliers(), 'fb'],
+        inliers_fb = self.VAF.results.loc[self.VAF.get_inliers(), 'fb'].values
+        self.genome_medians['fb'] = Testing.get_outliers_thrdist (inliers_fb,
                                                                   alpha = fb_alpha, r = 0.5)[1]
-        self.logger.info (f"Widening parameters estimated at: {self.genome_medians['fb']}")
-
         
+        if np.isnan (self.genome_medians['fb']):
+            self.genome_medians['fb'] = np.quantile (inliers_fb, q = 0.9) 
+            self.logger.info (f"Widening parameters estimated by quantiles: {self.genome_medians['fb']} on {len(inliers_fb)} values")
+        else:
+            self.logger.info (f"Widening parameters estimated at: {self.genome_medians['fb']} on normal approx.")
+
+        if np.isnan (self.genome_medians['fb']):
+            self.logger.critical ('Widening failed. It was based on:')
+            self.logger.critical (self.VAF.results.loc[self.VAF.get_inliers(), 'fb'].values)
+            exit(1)
 
         #self.genome_medians['all_chr_COV'] = self.genome_medians['COV']
         #VAF_inliers = self.VAF.get_inliers()
@@ -227,7 +236,7 @@ class Genome:
             C = -huber.intercept_
             d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
 
-            down, up = Testing.get_outliers_thrdist (d, alpha = 0.01)
+            down, up = Testing.get_outliers_thrdist (d, alpha = 0.005)
             m, std = sts.norm.fit (d[(d > down)&(d < up)])
             self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
             self.logger.info (f'Normal estimation of distance to usual: m  = {m}, s = {std}.')
@@ -264,7 +273,7 @@ class Genome:
         return {'a' : popt[0]}
 
     def report (self, report_type = 'bed'):
-        return Report(report_type).genome_report(self.chromosomes)
+        return Report(report_type).genome_report(self)
     
 def f (c):
     c.find_runs()

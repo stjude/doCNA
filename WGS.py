@@ -52,9 +52,3 @@ class WGS:
     
     def report (self, report_type = 'bed'):
         return self.genome.report(report_type)
-
-    def shutdown_logger(self):
-        handlers = self.logger.handers[:]
-        for handler in handlers:
-            self.logger.removeHandler(handler)
-            handler.close()

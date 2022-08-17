@@ -10,11 +10,21 @@ class Report:
     def __init__(self, report_t):
         self._report_type = report_t
 
-    def genome_report(self, chromosomes):
+    def genome_report(self, genome):
         """ Generates a report for Genome objects """
-        keys = list(chromosomes.keys())
-        keys.sort(key = lambda x: int(x[3:]))
-        return '\n'.join([chromosomes[key].report(report_type=self._report_type) for key in keys])
+        if self._report_type == 'bed':
+            keys = list(genome.chromosomes.keys())
+            keys.sort(key = lambda x: int(x[3:]))
+            report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
+        elif self._report_type == 'params':
+            shift = np.sqrt(genome.genome_medians['k']['A']**2+1)*genome.genome_medians['k']['up_thr']
+            report = '\n'.join(['m' + '\t' + str(genome.genome_medians['COV']['m']),
+                                'a' + '\t' + str(genome.genome_medians['k']['A']),
+                                'b' + '\t' + str(genome.genome_medians['k']['C']),
+                                'bt' + '\t' + str(genome.genome_medians['k']['C']-shift)])
+        else:
+            report = ""     
+        return report
 
     def chromosome_report(self, segments, runs):
         """ Generates a report for Chromosome objects """

@@ -279,10 +279,10 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
             popt, _ = opt.curve_fit (lin, x[:3], y[:3], p0 = [-1,1])
             if (popt[0] < -0.01):
                 xt = np.arange(1, hist[0].max())
-                E_thr = xt[lin(xt, *popt) > 0].max()
-            if E_thr > np.percentile(counts[values == E], q = [20])[0]:
-                E_thr = Consts.DEFAULT_E_THRESHOLD  
+                E_thr = xt[lin(xt, *popt) > 0].max()  
             else:
+                E_thr = Consts.DEFAULT_E_THRESHOLD
+            if E_thr > np.percentile(counts[values == E], q = [20])[0]:
                 E_thr = Consts.DEFAULT_E_THRESHOLD
     except RuntimeError:
         E_thr = Consts.DEFAULT_E_THRESHOLD
