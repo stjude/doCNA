@@ -152,12 +152,12 @@ def fit_double_G (values_all, alpha, r):
     p0 = (0.5, np.percentile (a, 25), np.percentile(a,40)-np.percentile(a,10),
           np.percentile (a, 75), np.percentile(a,90)-np.percentile(a,60))
     
-    bounds = [[0, np.percentile (values, 5), 0.1*np.percentile (values, 40)-0.1*np.percentile (values, 10),
-                  np.percentile (values, 55), 0.1*np.percentile (values, 90)-0.1*np.percentile (values, 60)],
-              [1, np.percentile (values, 45), 2*np.percentile (values, 40)-2*np.percentile (values, 10),
-                  np.percentile (values, 95), 2*np.percentile (values, 90)-2*np.percentile (values, 60)]]
-    print ('p0 = ', p0)
-    print ('bounds = ', check_bounds(bounds))
+    bounds = [[0, np.percentile (a, 5), 0.1*np.percentile (a, 40)-0.1*np.percentile (a, 10),
+                  np.percentile (a, 55), 0.1*np.percentile (a, 90)-0.1*np.percentile (a, 60)],
+              [1, np.percentile (a, 45), 2*np.percentile (a, 40)-2*np.percentile (a, 10),
+                  np.percentile (a, 95), 2*np.percentile (a, 90)-2*np.percentile (a, 60)]]
+#    print ('p0 = ', p0)
+#    print ('bounds = ', check_bounds(bounds))
     popt, pcov = opt.curve_fit (gaus2, np.sort(a), np.linspace (0,1,len(a)), p0 = p0,
                                   bounds = check_bounds(bounds)) 
     
