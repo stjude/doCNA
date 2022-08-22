@@ -263,7 +263,7 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
             xt = np.arange(1, xmax)
 
         N_thr = (xt[lin(xt, *popt) > -1].max())
-    except RuntimeError:
+    except (RuntimeError,TypeError):
         N_thr = Consts.DEFAULT_N_THRESHOLD
     
     hist = np.unique(counts[values == E], return_counts = True)
@@ -284,7 +284,7 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
                 E_thr = Consts.DEFAULT_E_THRESHOLD
             if E_thr > np.percentile(counts[values == E], q = [20])[0]:
                 E_thr = Consts.DEFAULT_E_THRESHOLD
-    except RuntimeError:
+    except (RuntimeError,TypeError):
         E_thr = Consts.DEFAULT_E_THRESHOLD
     
     return Run_treshold (N = N_thr, E = E_thr)

@@ -128,11 +128,15 @@ def fit_double_G (values_all, alpha, r):
           np.percentile (values, 75), np.percentile(values,90)-np.percentile(values,60))
         
     
+    #ValueError: Each lower bound must be strictly less than each upper bound
+
+    bounds = [[0, np.percentile (values, 5), 0.1*np.percentile (values, 40)-0.1*np.percentile (values, 10),
+                  np.percentile (values, 55), 0.1*np.percentile (values, 90)-0.1*np.percentile (values, 60)],
+              [1, np.percentile (values, 45), 2*np.percentile (values, 40)-2*np.percentile (values, 10),
+                  np.percentile (values, 95), 2*np.percentile (values, 90)-2*np.percentile (values, 60)]]
+
     popti, pcovi = opt.curve_fit (gaus2, np.sort(values), np.linspace (0,1,len(values)), p0 = p0,
-                                  bounds = ((0, np.percentile (values, 5), 0.1*np.percentile (values, 40)-0.1*np.percentile (values, 10),
-                                                np.percentile (values, 55), 0.1*np.percentile (values, 90)-0.1*np.percentile (values, 60)),
-                                            (1, np.percentile (values, 45), 2*np.percentile (values, 40)-2*np.percentile (values, 10),
-                                                np.percentile (values, 95), 2*np.percentile (values, 90)-2*np.percentile (values, 60)))) 
+                                  bounds = check_bounds(bounds)) 
 
     if popti[3] > popti[1]:
         out_max = sts.norm.ppf (1-alpha, popti[3], popti[4])
@@ -148,11 +152,14 @@ def fit_double_G (values_all, alpha, r):
     p0 = (0.5, np.percentile (a, 25), np.percentile(a,40)-np.percentile(a,10),
           np.percentile (a, 75), np.percentile(a,90)-np.percentile(a,60))
     
+    bounds = [[0, np.percentile (values, 5), 0.1*np.percentile (values, 40)-0.1*np.percentile (values, 10),
+                  np.percentile (values, 55), 0.1*np.percentile (values, 90)-0.1*np.percentile (values, 60)],
+              [1, np.percentile (values, 45), 2*np.percentile (values, 40)-2*np.percentile (values, 10),
+                  np.percentile (values, 95), 2*np.percentile (values, 90)-2*np.percentile (values, 60)]]
+    print ('p0 = ', p0)
+    print ('bounds = ', check_bounds(bounds))
     popt, pcov = opt.curve_fit (gaus2, np.sort(a), np.linspace (0,1,len(a)), p0 = p0,
-                                  bounds = ((0, np.percentile (a, 5), 0.1*np.percentile (a, 40)-0.1*np.percentile (a, 10),
-                                                np.percentile (a, 45), 0.1*np.percentile (a, 90)-0.1*np.percentile (a, 60)),
-                                            (1, np.percentile (a, 55), 2*np.percentile (a, 40)-2*np.percentile (a, 10),
-                                                np.percentile (a, 95), 2.*np.percentile (a, 90)-2*np.percentile (a, 60)))) 
+                                  bounds = check_bounds(bounds)) 
     
     a0,m0,s0,m1,s1 = popt
     da0,dm0,ds0,dm1,ds1 = np.sqrt(np.diag(pcov))
@@ -165,6 +172,21 @@ def fit_double_G (values_all, alpha, r):
             '2':{'m': np.array([m0,m1]), 
                  's': np.array([s0,s1]), 'a' : np.array([a0, 1-a0])},
             'thr' : (out_min, out_max)}
+
+def  check_bounds(bounds):
+    lower = bounds[0].copy()
+    upper = bounds[1].copy()
+    check = [l>=u for l,u in zip(lower, upper)]
+    if any (check):
+        for i in np.where (check)[0]:
+            lower[i] = lower[i]*0.5  
+            upper[i] = upper[i]*1.5
+        if upper[2] == 0.0:
+            upper[2] = 0.05
+        if upper[4] == 0.0:
+            upper[4] = 0.05
+    #print ([lower, upper])
+    return [lower, upper]
 
 def gaus2 (v, a, m0, s0, m1, s1):
     """
