@@ -54,21 +54,24 @@ class Genome:
                                                                  self.genome_medians, 
                                                                  self.CB.loc[self.CB['chrom'] == chrom])
             
-    def segment_genome (self, fb_alpha = Consts.FB_ALPHA):
+    def segment_genome (self, m0 = 0, fb_alpha = Consts.FB_ALPHA):
         
         self.logger.debug ('Starting testing ...')
         self.COV = Testing.Testing ('COV', self.chromosomes, self.logger)
         self.COV.run_test(no_processes = self.no_processes)
         self.COV.analyze (parameters = self.config['COV'])
-                
+                 
         if self.COV.medians['m'] < float(self.config['COV']['min_cov']):
             self.logger.critical (f"Coverage is below threshold {self.COV.medians['m']} < {self.config['COV']['min_cov']}")
             exit (0)
         
         self.logger.debug ("Genomewide coverage: " + f"\n" + str(self.COV.report_results()))
         self.logger.info ("Genome coverage medians: "+ f"\n" + str(self.COV.get_genome_medians()))
-                 
-        self.genome_medians['COV'] = self.COV.get_genome_medians()
+        
+        self.genome_medians['COV'] = self.COV.get_genome_medians()     
+        if m0 > 0:
+            self.logger.info (f"Using user supplied m0 = {m0}, instead of estimated m0 = {self.genome_medians['COV']['m']}")
+            self.genome_medians['COV']['m'] = m0
         
         self.HE = Testing.Testing ('HE', 
                                    self.chromosomes,
