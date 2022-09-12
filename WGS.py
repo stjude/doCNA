@@ -5,8 +5,7 @@ from doCNA import Genome
 class WGS:
     """Class to handle WGS read counts file and create the genome."""
     def __init__ (self, wgs_file_name,  sample_name, parameters, assembly = 'hg19',  
-                  no_processes = 1, verbosity = 'INFO'):
-        
+                  no_processes = 1, verbosity = 'INFO'):        
         self.sample_name = sample_name
         self.assembly = assembly
         self.no_processes = no_processes
@@ -34,7 +33,7 @@ class WGS:
         
         return logger
             
-    def analyze (self):
+    def analyze (self, m0 = 0):
         self.logger.debug ('Creating genome.')
         self.genome = Genome.Genome (self.sample_name, self.logger, self.config, self.CB_file, self.no_processes)
         input_columns = [self.config['InputColumns']['chrom'],
@@ -46,15 +45,9 @@ class WGS:
         self.genome.retrive_counts_create_chromosomes (data_file = self.wgs_file, SG_file = self.SG_file,
                                                        columns = input_columns)
         self.logger.debug ('Segmenting genome...')
-        self.genome.segment_genome ()
+        self.genome.segment_genome (m0)
         self.logger.info ('Ready to report!')
 
     
     def report (self, report_type = 'bed'):
         return self.genome.report(report_type)
-
-    def shutdown_logger(self):
-        handlers = self.logger.handers[:]
-        for handler in handlers:
-            self.logger.removeHandler(handler)
-            handler.close()

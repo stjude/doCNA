@@ -24,8 +24,8 @@ class Chromosome:
         self.genome_medians = genome_medians
         
         self.CB = CB
-        self.cent = (CB.loc[(CB['gieStain'] == 'acen'),'chromStart'].min(),
-                     CB.loc[(CB['gieStain'] == 'acen'),'chromEnd'].max())
+        self.cent = (CB.loc[(CB['gieStain'] == 'acen') | (CB['gieStain'] == 'gvar'),'chromStart'].min(),
+                     CB.loc[(CB['gieStain'] == 'acen') | (CB['gieStain'] == 'gvar'),'chromEnd'].max())
          
         self.Eruns = []
         self.Uruns = []
@@ -34,13 +34,14 @@ class Chromosome:
         
     def markE_onHE(self, he_parameters, z_thr = Consts.HE_Z_THR):
         self.logger.debug (f"Marking {self.name} based on HE test.")
-        zv = (self.data['vaf'] - he_parameters['vaf']) / np.sqrt (0.25/(he_parameters['cov']))
-        zc = (self.data['cov'] - he_parameters['cov']) / np.sqrt (he_parameters['b']*he_parameters['cov'])
+        zv = (self.data['vaf'].values - he_parameters['vaf']) / np.sqrt (0.25/(he_parameters['cov']))
+        zc = (self.data['cov'].values - he_parameters['cov']) / np.sqrt (he_parameters['b']*he_parameters['cov'])
         z = zv**2+zc**2
  
-        self.data['symbol'] = Consts.N_SYMBOL       
-        indexes = self.data.loc[z < z_thr, :].index.values.tolist()
-        self.data.loc[indexes, 'symbol'] = Consts.E_SYMBOL
+        #self.data['symbol'] = Consts.N_SYMBOL       
+        #indexes = self.data.loc[z < z_thr, :].index.values.tolist()
+        #self.data.loc[indexes, 'symbol'] = Consts.E_SYMBOL
+        self.data['symbol'] = [Consts.N_SYMBOL if zi >= z_thr else Consts.E_SYMBOL for zi in z]
         self.logger.info (f"""Chromosome {self.name} marked based on parameters
 v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
 #N = {sum(self.data['symbol'] == Consts.N_SYMBOL)}, #E = {sum(self.data['symbol'] == Consts.E_SYMBOL)}""")
@@ -55,8 +56,8 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
             start = self.windows_positions[r[0]][0]
             end = self.windows_positions [r[1]][1]
             chi2, vaf, fb = Testing.VAF_test (self.data.loc[(self.data['position'] >= start)&(self.data['position'] <= end),], m)
-            
-            outlier = (chi2 > float(self.config['VAF']['chi2_high'])) | (chi2 == 0)
+            ai = np.median (self.dv[r[0]:r[1]])
+            outlier = (ai > 0.07) & ((chi2 > float(self.config['VAF']['chi2_high'])) | (chi2 == 0))
                       
             if outlier:
                 self.logger.info (f'Region {self.name}:{start}-{end}, chi2 = {chi2}, marked as U.')
@@ -201,10 +202,11 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
     
     def find_Nruns (self):
         vaf_thr = (self.genome_medians['COV']['m'] - 1)/self.genome_medians['COV']['m']
-        symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != Consts.U_SYMBOL), 'symbol'].tolist()
+        symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != Consts.U_SYMBOL), 'symbol'].values
         if len (symbol_list) >= Consts.N_STR_LEN_THR:    
-            self.Nruns_indexes, self.Nruns_threshold = analyze_string_N (symbol_list, N = Consts.N_SYMBOL, E = Consts.E_SYMBOL)
+            self.Nruns_indexes, self.Nruns_threshold, self.Nruns_threshold_first = analyze_string_N (symbol_list, N = Consts.N_SYMBOL, E = Consts.E_SYMBOL)
             self.logger.info (f'N runs thresholds: t_N = {self.Nruns_threshold[0]}, t_E =  {self.Nruns_threshold[1]}')
+            self.logger.info (f'N runs first thresholds: t_N = {self.Nruns_threshold_first[0]}, t_E =  {self.Nruns_threshold_first[1]}')
         else:
             self.Nruns_indexes = []
             self.Nruns_threshold = []
@@ -230,20 +232,19 @@ def vaf_HO (v, lerr):
 
 def analyze_string_N (symbol_list, N = 'N', E = 'E'):
     """Finds runs of Ns"""                    
-    
-    values, counts = Run.rle_encode (''.join(symbol_list))
-    threshold = find_runs_thr (values, counts, N = N, E = E)
-    runsi = get_N_runs_indexes (values, counts, N = N, E = E, threshold = threshold)
+    values, counts = Run.rle_encode (symbol_list)
+    threshold_first = find_runs_thr (values, counts, N = N, E = E)
+    runsi = get_N_runs_indexes (values, counts, N = N, E = E, threshold = threshold_first)
         
     for si,ei in runsi:
         for i in range(si,ei):
             symbol_list[i] = N          
     
     values, counts = Run.rle_encode (symbol_list)
-    threshold = find_runs_thr (values, counts, N = N, E = E)
-    runsi = get_N_runs_indexes (values, counts, threshold = threshold, N = N, E = E)
+    threshold_second = find_runs_thr (values, counts, N = N, E = E)
+    runsi = get_N_runs_indexes (values, counts, threshold = threshold_second, N = N, E = E)
         
-    return runsi, threshold 
+    return runsi, threshold_second, threshold_first 
     
 def find_runs_thr (values, counts, N = 'N', E = 'E'):
     assert len (values) == len (counts), 'Wrong input!! Go away!'
@@ -256,8 +257,13 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
         ind = np.arange (0, min (4, len(x)))
         popt, _ = opt.curve_fit (lin,  x[ind], y[ind], p0 = [-1,1])
         xt = (np.arange(1, hist[0].max()))
+        xmax = x.max()
+        while lin (xt, *popt)[-1] > -1:
+            xmax = 2*xmax
+            xt = np.arange(1, xmax)
+
         N_thr = (xt[lin(xt, *popt) > -1].max())
-    except RuntimeError:
+    except (RuntimeError,TypeError):
         N_thr = Consts.DEFAULT_N_THRESHOLD
     
     hist = np.unique(counts[values == E], return_counts = True)
@@ -266,17 +272,19 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
     
     try:
         popt, _ = opt.curve_fit (lin, x[:4], y[:4], p0 = [-1,1])
-        if popt[0] < 0:
+        if popt[0] < -0.01:
             xt = np.arange(1, hist[0].max())
             E_thr = xt[lin(xt, *popt) > 0].max()
         else:
             popt, _ = opt.curve_fit (lin, x[:3], y[:3], p0 = [-1,1])
-            if popt[0] < 0:
+            if (popt[0] < -0.01):
                 xt = np.arange(1, hist[0].max())
-                E_thr = xt[lin(xt, *popt) > 0].max()
+                E_thr = xt[lin(xt, *popt) > 0].max()  
             else:
                 E_thr = Consts.DEFAULT_E_THRESHOLD
-    except RuntimeError:
+            if E_thr > np.percentile(counts[values == E], q = [20])[0]:
+                E_thr = Consts.DEFAULT_E_THRESHOLD
+    except (RuntimeError,TypeError):
         E_thr = Consts.DEFAULT_E_THRESHOLD
     
     return Run_treshold (N = N_thr, E = E_thr)

@@ -1,3 +1,4 @@
+from cmath import isnan
 import numpy as np
 import warnings as warn
 import scipy.stats as sts
@@ -9,11 +10,21 @@ class Report:
     def __init__(self, report_t):
         self._report_type = report_t
 
-    def genome_report(self, chromosomes):
+    def genome_report(self, genome):
         """ Generates a report for Genome objects """
-        keys = list(chromosomes.keys())
-        keys.sort(key = lambda x: int(x[3:]))
-        return '\n'.join([chromosomes[key].report(report_type=self._report_type) for key in keys])
+        if self._report_type == 'bed':
+            keys = list(genome.chromosomes.keys())
+            keys.sort(key = lambda x: int(x[3:]))
+            report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
+        elif self._report_type == 'params':
+            shift = np.sqrt(genome.genome_medians['k']['A']**2+1)*genome.genome_medians['k']['up_thr']
+            report = '\n'.join(['m' + '\t' + str(genome.genome_medians['COV']['m']),
+                                'a' + '\t' + str(genome.genome_medians['k']['A']),
+                                'b' + '\t' + str(genome.genome_medians['k']['C']),
+                                'bt' + '\t' + str(genome.genome_medians['k']['C']-shift)])
+        else:
+            report = ""     
+        return report
 
     def chromosome_report(self, segments, runs):
         """ Generates a report for Chromosome objects """
@@ -52,8 +63,8 @@ class Report:
                 B = segment.genome_medians['k']['B']
                 C = segment.genome_medians['k']['C']
                 up_thr = segment.genome_medians['k']['up_thr']
-                x = -np.log10((segment.end - segment.start)/10**6)
-                y = -np.log10(segment.parameters['k'])
+                x = np.log10((segment.end - segment.start)/10**6)
+                y = np.log10(segment.parameters['k'])
                 d = (A*x+B*y+C)/np.sqrt (A**2+B**2)
                 try:
                     k_score = -np.log10(sts.norm.sf(d, segment.genome_medians['k']['m'], segment.genome_medians['k']['std'] ))               
@@ -61,13 +72,21 @@ class Report:
                     k_score = np.inf
 
                 status = 'CNV' if d >= up_thr else ''
+                
+            if np.isnan (segment.parameters['k']):
+                if segment.parameters['fraction_1'] > 0.95:
+                    k = 1
+                else:
+                    k = np.nan
+            else:
+                k = segment.parameters['k']
 
-
+                    
 
             report = '\t'.join([str(p) for p in [segment.parameters['m'],
                                                  2*segment.parameters['m']/segment.genome_medians['COV']['m'],
                                                  segment.parameters['model'], segment.parameters['d'], model_score,
-                                                 segment.parameters['k'], d, k_score, segment.cytobands,
+                                                 k, d, k_score, segment.cytobands,
                                                  segment.centromere_fraction, segment.parameters['ai'], ai_score, status]])
         else:
             report = ''

@@ -47,28 +47,31 @@ class Genome:
         
         self.chromosomes = {}
         self.logger.debug ("Creating chromosomes...")
-        for chrom, data in self.data.groupby (by = 'chrom'):
+        for chrom, data in self.data.loc[~self.data['vaf'].isna()].groupby (by = 'chrom'):
             if chrom not in Consts.SEX_CHROMS:
                 self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
                                                                  self.config, self.logger,
                                                                  self.genome_medians, 
                                                                  self.CB.loc[self.CB['chrom'] == chrom])
             
-    def segment_genome (self, fb_alpha = Consts.FB_ALPHA):
+    def segment_genome (self, m0 = 0, fb_alpha = Consts.FB_ALPHA):
         
         self.logger.debug ('Starting testing ...')
         self.COV = Testing.Testing ('COV', self.chromosomes, self.logger)
         self.COV.run_test(no_processes = self.no_processes)
         self.COV.analyze (parameters = self.config['COV'])
-                
+                 
         if self.COV.medians['m'] < float(self.config['COV']['min_cov']):
             self.logger.critical (f"Coverage is below threshold {self.COV.medians['m']} < {self.config['COV']['min_cov']}")
             exit (0)
         
         self.logger.debug ("Genomewide coverage: " + f"\n" + str(self.COV.report_results()))
         self.logger.info ("Genome coverage medians: "+ f"\n" + str(self.COV.get_genome_medians()))
-                 
-        self.genome_medians['COV'] = self.COV.get_genome_medians()
+        
+        self.genome_medians['COV'] = self.COV.get_genome_medians()     
+        if m0 > 0:
+            self.logger.info (f"Using user supplied m0 = {m0}, instead of estimated m0 = {self.genome_medians['COV']['m']}")
+            self.genome_medians['COV']['m'] = m0
         
         self.HE = Testing.Testing ('HE', 
                                    self.chromosomes,
@@ -87,9 +90,15 @@ class Genome:
             exit(1)
       
         self.logger.debug ('First round of N/E marking.')
+        
         for chrom in self.chromosomes.keys():
-            self.chromosomes[chrom].markE_onHE (self.HE.get_parameters(chrom),
-                                                float(self.config['HE']['z_thr']))
+            status = self.HE.get_status (chrom)
+            if status:
+                self.chromosomes[chrom].markE_onHE (self.HE.get_parameters(chrom),
+                                                    float(self.config['HE']['z_thr']))
+            else:
+                self.chromosomes[chrom].markE_onHE (self.HE.get_genome_medians(),
+                                                    float(self.config['HE']['z_thr']))
         
         self.logger.debug ('Testing first round of N/E marking.')    
         
@@ -102,11 +111,29 @@ class Genome:
         
         self.genome_medians['VAF'] = self.VAF.get_genome_medians()
         
-        self.genome_medians['fb'] = Testing.get_outliers_thrdist (self.VAF.results.loc[self.VAF.get_inliers(), 'fb'],
+        inliers_fb = self.VAF.results.loc[self.VAF.get_inliers(), 'fb'].values
+        self.genome_medians['fb'] = Testing.get_outliers_thrdist (inliers_fb,
                                                                   alpha = fb_alpha, r = 0.5)[1]
-        self.logger.info (f"Widening parameters estimated at: {self.genome_medians['fb']}")
+        
+        if np.isnan (self.genome_medians['fb']):
+            self.genome_medians['fb'] = np.quantile (inliers_fb, q = 0.9) 
+            self.logger.info (f"Widening parameters estimated by quantiles: {self.genome_medians['fb']} on {len(inliers_fb)} values")
+        else:
+            self.logger.info (f"Widening parameters estimated at: {self.genome_medians['fb']} on normal approx.")
 
-       
+        if np.isnan (self.genome_medians['fb']):
+            self.logger.critical ('Widening failed. It was based on:')
+            self.logger.critical (self.VAF.results.loc[self.VAF.get_inliers(), 'fb'].values)
+            exit(1)
+
+        #self.genome_medians['all_chr_COV'] = self.genome_medians['COV']
+        #VAF_inliers = self.VAF.get_inliers()
+        #self.genome_medians['COV'] = self.COV.results.loc[VAF_inliers, ].median()
+
+        #self.logger.info (f'Inliers chromosomes: {VAF_inliers}')
+        #self.logger.info ("Genome inliers coverage medians: "+ f"\n" + str(self.COV.get_genome_medians())) 
+
+
         for chrom in self.chromosomes.keys():
             status = self.VAF.get_status (chrom)
             self.logger.debug (f'Chromosome {chrom} inlier: {status}')
@@ -178,9 +205,12 @@ class Genome:
                     ns.append (seg.parameters['n'])        
         z = np.array(zs)
         s = 1/np.sqrt(np.array(ns))
-        
-        popt, _ = opt.curve_fit (exp, z, np.linspace (0,1,len(z)), p0 = (10), sigma = s)
-        self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (popt[0]))
+        try:
+            popt, _ = opt.curve_fit (exp, z, np.linspace (0,1,len(z)), p0 = (10), sigma = s)
+            self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (popt[0]))
+        except ValueError:
+            popt = [np.nan]
+
         return {'a' : popt[0]}
 
     def get_k_params (self):
@@ -192,24 +222,36 @@ class Genome:
             for seg in self.chromosomes[chrom].segments:
                 size = (seg.end - seg.start)/10**6
                 score = -np.log10 (np.exp (-a*seg.parameters['d']))
-                if (score < Consts.MODEL_THR)&(seg.parameters['model'] != 'cnB')&(~np.isnan(seg.parameters['k'])&(seg.centromere_fraction < 0.1)):
+
+                big_filter = (seg.parameters['k'] < 0.11)|(size < 1)
+
+                if (score < Consts.MODEL_THR)&(seg.parameters['model'] != 'cnB')&(~np.isnan(seg.parameters['k'])&(seg.centromere_fraction < 0.1)&big_filter):
                     ks.append (seg.parameters['k'])
                     ss.append (size)
         k = np.log10 (np.array(ks))
         s = np.log10 (np.array(ss))
-        
-        huber = HuberRegressor(alpha = 0.0, epsilon = 1.35)
-        huber.fit(s[:, np.newaxis], k)
+        try:
+            huber = HuberRegressor(alpha = 0.0, epsilon = 1.35)
+            huber.fit(s[:, np.newaxis], k)
 
-        A = -huber.coef_[0]
-        B = 1
-        C = -huber.intercept_
-        d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
+            A = -huber.coef_[0]
+            B = 1
+            C = -huber.intercept_
+            d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
 
-        down, up = Testing.get_outliers_thrdist (d, alpha = 0.01)
-        m, std = sts.norm.fit (d[(d > down)&(d < up)])
-        self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
-        self.logger.info (f'Estimated normal range of usuallness: from {down} to {up}.')
+            down, up = Testing.get_outliers_thrdist (d, alpha = 0.005)
+            m, std = sts.norm.fit (d[(d > down)&(d < up)])
+            self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
+            self.logger.info (f'Normal estimation of distance to usual: m  = {m}, s = {std}.')
+            self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
+        except ValueError:
+            A = np.nan
+            B = np.nan
+            C = np.nan
+            down = np.nan
+            up = np.nan
+            m = np.nan
+            std = np.nan
         return {'A' : A, 'B' : B, 'C' : C, 'down_thr' : down, 'up_thr' : up, 'm' : m, 'std' : std}
         
     def get_ai_params (self, percentile = 50):
@@ -225,12 +267,16 @@ class Genome:
         s = 1/np.sqrt(np.array(ns))
         zsf = z*s
         zs = zsf[~np.isnan(zsf)]
-        popt, _ = opt.curve_fit (exp, zs, np.linspace (0,1,len(zs)), p0 = (10))
-        self.logger.info ('AI distribution (for non-cnB models): FI(ai) = exp(-{:.5f} ai)'.format (popt[0]))
+        try:
+            popt, _ = opt.curve_fit (exp, zs, np.linspace (0,1,len(zs)), p0 = (10))
+            self.logger.info ('AI distribution (for non-cnB models): FI(ai) = exp(-{:.5f} ai)'.format (popt[0]))
+        except ValueError:
+            popt = [np.nan]
+            
         return {'a' : popt[0]}
 
     def report (self, report_type = 'bed'):
-        return Report(report_type).genome_report(self.chromosomes)
+        return Report(report_type).genome_report(self)
     
 def f (c):
     c.find_runs()

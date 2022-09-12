@@ -32,21 +32,29 @@ def main():
                          help = 'Level of verbosity for std.err logger.')
     parser.add_argument ('-r', '--report_solutions', help = 'Generate report with all solutions.',
                          action = 'store_true')
+    
+    parser.add_argument ('-m0', '--coverage_diploid', required = False, type = float,
+                         help = 'Coverage of diploid.', default = 0)
+    
     parser.add_argument ('-v', '--version', help = 'Print version', action = 'version',
-                         version='doCNA v. {version}'.format(version = __version__))
+                         version = 'doCNA v. {version}'.format(version = __version__))
   
     
     args = parser.parse_args()
     ini = configparser.ConfigParser ()
     ini.read (args.config)
     sample = WGS.WGS (args.input_file,  sample_name = args.sample_name, parameters = ini,
-                      assembly = args.assembly, no_processes = args.no_processes, verbosity = args.level)
+                      assembly = args.assembly, no_processes = args.no_processes, 
+                      verbosity = args.level)
     
-    sample.analyze ()
+    sample.analyze (m0 = args.coverage_diploid)
     
     with open (args.sample_name + '.bed', 'w') as bed:
         bed.writelines (sample.report(report_type = 'bed'))
     
+    with open (args.sample_name + '.par', 'w') as params:
+        params.writelines (sample.report (report_type = 'params'))
+
     if args.report_solutions:
         with open (args.sample_name + '.solutions', 'w') as full:
             full.writelines (sample.report(report_type = 'solution'))
