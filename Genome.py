@@ -71,8 +71,10 @@ class Genome:
         self.genome_medians['COV'] = self.COV.get_genome_medians()     
         if m0 > 0:
             self.logger.info (f"Using user supplied m0 = {m0}, instead of estimated m0 = {self.genome_medians['COV']['m']}")
-            self.genome_medians['COV']['m'] = m0
-        
+            self.genome_medians['m'] = m0
+        else:
+            self.genome_medians['m'] = self.genome_medians['COV']['m']
+            
         self.HE = Testing.Testing ('HE', 
                                    self.chromosomes,
                                    self.logger)
