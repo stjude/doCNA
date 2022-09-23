@@ -46,7 +46,7 @@ class Testing:
                                                   index = self.chromosomes.keys())
         self.logger.info (f'Test finished.')
         
-    def analyze (self, parameters = {'alpha' : 0.01, 'r' : 0.5}, q = (5,99)):
+    def analyze (self, parameters = {'alpha' : 0.01, 'r' : 0.5}, q = (5,99), outliers = []):
         """
         Method to analyze results of the test.
         """        
@@ -54,7 +54,6 @@ class Testing:
         self.normal_range = {}
         columns = self.results.columns
         status = {}
-        
         for column in columns:
             try:
                 alpha = float(parameters[column + '_alpha'])
@@ -63,14 +62,34 @@ class Testing:
                 alpha, r = (0.01, 0.5)
             
             self.logger.debug (f'Parameter {column} being analyzed with alpha = {alpha} and r = {r}')
-            res = self.results.loc[self.results.notna().all(axis = 1), column].values
+            res = self.results.loc[[c not in outliers for c in self.results.index.tolist()] & (self.results.notna().all(axis = 1)), column].values
+        
+            ###Old stuff
+            #if len (res) < 4:
+            #    param_range = (res.min(), res.max())
+            #else:
+            #    try:
+            #        param_range = get_outliers_thrdist (res, alpha, r)
+            #    except:
+            #        self.logger.critical (f'Test {self.test_name}: estimation of {column} distribution failed. Maybe BMT?')
+            #        exit (1)
+            
+            ###New stuff
             try:
                 param_range = get_outliers_thrdist (res, alpha, r)
             except:
-                self.logger.critical (f'Test {self.test_name}: estimation of {column} distribution failed. Maybe BMT?')
+                self.logger.critical (f'Test {self.test_name}: estimation of {column} distribution failed for unknown reason.')
                 exit (1)
+
+            if (len (res) < 4)|(np.isnan(param_range[0]))|(np.isnan(param_range[1])):
+                    param_range = (res.min(), res.max())
+                    self.logger.warning(f'Parameter {column} range estimation based on normal approximation failed. Min max used.')
+
+            ###End of new stuff 
+
+
             self.logger.info ('Estimated normal ragne of {} is from {} to {}'.format (column, *param_range))
-            in_or_out = (self.results[column] > param_range[0]) & (self.results[column] < param_range[1])
+            in_or_out = (self.results[column].values >= param_range[0]) & (self.results[column].values <= param_range[1])
             self.results[column + '_status'] = in_or_out
             
             status[column] = ['inlier' if iou else 'outlier' for iou in in_or_out]
@@ -209,7 +228,8 @@ def VAF_test (data, m, **kwargs):
     #m = kwargs['m']
     vaf_bounds = Consts.VAF_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds'] 
     n_thr = Consts.VAF_N_THR if 'n_thr' not in kwargs else kwargs['n_thr']
-        
+    run_fb = True if 'run_fb' not in kwargs else kwargs['run_fb']    
+    
     def chi2 (v, counts):
         chi2 = 0
         cc = 0
@@ -235,13 +255,18 @@ def VAF_test (data, m, **kwargs):
         counts.append ((c, h[0], n))
         del (h)
             
-    res = opt.minimize (chi2, x0 = (0.5) , args = (counts), method = 'L-BFGS-B',
+    if max([c[2] for c in counts]) > n_thr:
+        res = opt.minimize (chi2, x0 = (0.5) , args = (counts), method = 'L-BFGS-B',
                         bounds = (vaf_bounds,))        
-    
-    fb = find_fb (np.sort(data.loc[data['symbol'] == Consts.E_SYMBOL, 'vaf'].values), m,
-                  f_max = Consts.FB_F_MAX, eps = Consts.FB_EPS)    
-    
-    return VAF_results (chi2 = res.fun, vaf = res.x[0], fb = fb)
+        if run_fb:
+            fb = find_fb (np.sort(data.loc[data['symbol'] == Consts.E_SYMBOL, 'vaf'].values), m,
+                                  f_max = Consts.FB_F_MAX, eps = Consts.FB_EPS)
+        else:
+            fb = np.nan    
+        results = VAF_results (chi2 = res.fun, vaf = res.x[0], fb = fb)
+    else:
+        results = VAF_results (chi2 = 0, vaf = 0, fb = 0)
+    return results
 
 def find_fb (vafs, m, f_max = 1.4, eps = 1e-4):
     
