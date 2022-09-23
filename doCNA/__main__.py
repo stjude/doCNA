@@ -24,9 +24,6 @@ def main():
     parser.add_argument ('-c', '--config', required = False, default = 'config.ini',
                          help = 'INI file with parameters')
     
-    parser.add_argument ('-a', '--assembly', help = 'Assembly', default = 'hg19',
-                         required = False)
-    
     parser.add_argument ('-l', '--level', default = 'INFO', 
                          choices = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'NOTSET'],
                          help = 'Level of verbosity for std.err logger.')
@@ -43,7 +40,7 @@ def main():
     ini = configparser.ConfigParser ()
     ini.read (args.config)
     sample = WGS.WGS (args.input_file,  sample_name = args.sample_name, parameters = ini,
-                      assembly = args.assembly, no_processes = args.no_processes, 
+                      no_processes = args.no_processes, 
                       verbosity = args.level)
     
     sample.analyze (m0 = args.coverage_diploid)

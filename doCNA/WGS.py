@@ -4,15 +4,14 @@ from doCNA import Genome
 
 class WGS:
     """Class to handle WGS read counts file and create the genome."""
-    def __init__ (self, wgs_file_name,  sample_name, parameters, assembly = 'hg19',  
+    def __init__ (self, wgs_file_name,  sample_name, parameters,   
                   no_processes = 1, verbosity = 'INFO'):        
         self.sample_name = sample_name
-        self.assembly = assembly
         self.no_processes = no_processes
         self.wgs_file = open (wgs_file_name, 'r')
         self.config = parameters
-        self.SG_file = open (assembly + self.config['Input']['SuperGood_core_name'], 'rb')
-        self.CB_file = open (assembly + self.config['Input']['cytoband_core_name'], 'r')
+        self.SG_file = open (self.config['Input']['SuperGood_name'], 'rb')
+        self.CB_file = open (self.config['Input']['cytoband_name'], 'r')
         self.logger = self.create_logger (verbosity)
         self.logger.debug ("WGS object created.")
         
