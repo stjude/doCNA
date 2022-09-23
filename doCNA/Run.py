@@ -83,7 +83,7 @@ class Run:
     def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
                           z_thr = Consts.AI_SENSITIVE_Z):
         tmpf = 1
-        s0 = np.sqrt (0.25/self.genome_medians['COV']['m'])
+        s0 = np.sqrt (0.25/self.genome_medians['m'])
         
         vafs = []
         for window in self.windows:
@@ -140,7 +140,7 @@ class Run:
               
                 popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = [dv0, ones0/c.sum(), 2, f0, 0.5, b], 
                                             bounds = ((0,   0,   1, 0, 0.45, 1),
-                                                      (0.5, 0.95, 5, 1, 0.55, 10)))
+                                                      (0.51, 0.95, 5, 1, 0.55, 10)))
                 dvs.append (popt[0])
                 v0s.append (popt[-1])
             except RuntimeError:

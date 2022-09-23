@@ -6,7 +6,7 @@ from doCNA.Run import Solution
 from doCNA import WGS
 
 _description = "Scan chromosomes in search for non-HE segments. Assigns copy numbers if can."
-__version__ = '0.8.0'
+__version__ = '0.8.1'
 
 def main():
     parser = argparse.ArgumentParser (description = _description)
@@ -38,8 +38,7 @@ def main():
     
     parser.add_argument ('-v', '--version', help = 'Print version', action = 'version',
                          version = 'doCNA v. {version}'.format(version = __version__))
-  
-    
+   
     args = parser.parse_args()
     ini = configparser.ConfigParser ()
     ini.read (args.config)

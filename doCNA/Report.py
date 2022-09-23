@@ -18,7 +18,7 @@ class Report:
             report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
         elif self._report_type == 'params':
             shift = np.sqrt(genome.genome_medians['k']['A']**2+1)*genome.genome_medians['k']['up_thr']
-            report = '\n'.join(['m' + '\t' + str(genome.genome_medians['COV']['m']),
+            report = '\n'.join(['m' + '\t' + str(genome.genome_medians['m']),
                                 'a' + '\t' + str(genome.genome_medians['k']['A']),
                                 'b' + '\t' + str(genome.genome_medians['k']['C']),
                                 'bt' + '\t' + str(genome.genome_medians['k']['C']-shift)])
@@ -47,11 +47,13 @@ class Report:
                 ai_score = model_score
                 m = segment.genome_medians['clonality_cnB']['m']
                 s = segment.genome_medians['clonality_cnB']['s']
+                up_thr = segment.genome_medians['clonality_cnB']['up_thr']
                 try:
                     k_score = -np.log10(sts.norm.sf(segment.parameters['k']/np.sqrt(segment.parameters['n']), m, s))
+                    #k_score = -np.log10(sts.norm.sf(segment.parameters['k'], m, s))
                 except RuntimeWarning:
                     k_score = np.inf
-                status = '' 
+                status = 'CNV-b' if k_score < 0.005 else ''
                 d = -1
             else:
                 a = segment.genome_medians['model_d']['a']
@@ -84,7 +86,7 @@ class Report:
                     
 
             report = '\t'.join([str(p) for p in [segment.parameters['m'],
-                                                 2*segment.parameters['m']/segment.genome_medians['COV']['m'],
+                                                 2*segment.parameters['m']/segment.genome_medians['m'],
                                                  segment.parameters['model'], segment.parameters['d'], model_score,
                                                  k, d, k_score, segment.cytobands,
                                                  segment.centromere_fraction, segment.parameters['ai'], ai_score, status]])

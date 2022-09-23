@@ -10,7 +10,6 @@ from doCNA import Run
 from doCNA import Consts
 from doCNA.Report import Report
 
-
 Run_treshold =  namedtuple('Run_treshold', [Consts.N_SYMBOL, Consts.E_SYMBOL])
 
 
@@ -55,7 +54,13 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         for r in indexes:
             start = self.windows_positions[r[0]][0]
             end = self.windows_positions [r[1]][1]
-            chi2, vaf, fb = Testing.VAF_test (self.data.loc[(self.data['position'] >= start)&(self.data['position'] <= end),], m)
+            try:
+                chi2, vaf, fb = Testing.VAF_test (self.data.loc[(self.data['position'] >= start)&(self.data['position'] <= end),],
+                                                  m, run_fb = False)
+            except:
+                chi2 = 0.0
+                 
+
             ai = np.median (self.dv[r[0]:r[1]])
             outlier = (ai > 0.07) & ((chi2 > float(self.config['VAF']['chi2_high'])) | (chi2 == 0))
                       
@@ -153,6 +158,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         
     def generate_segments (self):
         """Method to generate genomic segments of same CNA status, based on Runs."""
+
         self.segments = []
         unr = []
         for nr in self.Nruns:
@@ -202,6 +208,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
     
     def find_Nruns (self):
         vaf_thr = (self.genome_medians['COV']['m'] - 1)/self.genome_medians['COV']['m']
+
         symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != Consts.U_SYMBOL), 'symbol'].values
         if len (symbol_list) >= Consts.N_STR_LEN_THR:    
             self.Nruns_indexes, self.Nruns_threshold, self.Nruns_threshold_first = analyze_string_N (symbol_list, N = Consts.N_SYMBOL, E = Consts.E_SYMBOL)

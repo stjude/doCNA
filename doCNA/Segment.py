@@ -33,6 +33,8 @@ class Segment:
         self.estimate_parameters ()
         self.select_model ()
         self.logger.debug ('Segment analyzed.')
+
+ 
         
     def tostring(self) -> str:
         return '\n'.join ([self.name, str(self.parameters)])
@@ -46,14 +48,14 @@ class Segment:
         if self.symbol == Consts.E_SYMBOL:
             self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == Consts.E_SYMBOL,],
                                              self.genome_medians['fb'],
-                                             self.genome_medians['COV']['m'])
+                                             self.genome_medians['m'])
             method = 'sensitive'
             if self.parameters['ai'] > Consts.MAX_AI_THRESHOLD_FOR_SENSITIVE:
-                self.parameters = get_full (self.data)
+                self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',])
                 method = 'full'
             
         else:
-            self.parameters = get_full (self.data)
+            self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',])
             method = 'full'
             
         if self.parameters['success']:
@@ -70,11 +72,11 @@ class Segment:
         if self.parameters['success']:
             m = self.parameters['m']
             v = self.parameters['ai']
-            m0 = self.genome_medians['COV']['m']
+            m0 = self.genome_medians['m']
         
             self.distances = np.array ([calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
             picked = np.where(self.distances == self.distances.min())[0][0]
-            
+                        
             self.parameters['d'] = self.distances.min()
             self.parameters['model'] = list(model_presets.keys())[picked]
             k = model_presets[self.parameters['model']].k(m,v,m0) 
@@ -88,7 +90,11 @@ class Segment:
                         
 
 def calculate_distance (preset, m, ai, m0):
-    return np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
+    try:
+        d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
+    except:
+        d = np.inf
+    return d
     
 Preset = namedtuple ('Preset', ['A', 'B', 'C', 'D', 'k'])
 model_presets = {'cn1' : Preset(A = lambda m,dv,m0: -m0/2,
@@ -118,7 +124,7 @@ model_presets = {'cn1' : Preset(A = lambda m,dv,m0: -m0/2,
 def get_sensitive (data, fb, mG, z_thr = 1.5):
     
     vafs = data['vaf'].values
-    covs = data['cov'].values
+    #covs = data['cov'].values
     
     #this only works for E
     def ai (v, dv, a):
@@ -147,7 +153,7 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
 def get_full (data, b = 1.01):
     
     vafs = data['vaf'].values
-    covs = data['cov'].values
+    #covs = data['cov'].values
     
     m, dm, l, dl = Testing.COV_test (data)
     
@@ -158,29 +164,34 @@ def get_full (data, b = 1.01):
     v, c = np.unique(vafs[~np.isnan(vafs)], return_counts = True)
 
     try:
-        p0 = 'Not yet calculated'
         cnor = np.cumsum(c)/np.sum(c)
         ones0 = c[v >= (m-1)/m].sum()
         
+
         f0 = c[v < v0].sum()/(c.sum() - ones0) 
         dv0 = v0 - np.median (v[v < v0])
 
         p0 = [dv0, ones0/c.sum(), 2, 0.5, 0.5, b]
+        
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
-                                              (0.55, 0.95, 5, 1, 0.55, 10)))
+                                              (0.5, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt
-        
+      
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
                       'fraction_1' : ones0/c.sum(), 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'status' : 'valid'}
+
     except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
                        'fraction_1' : ones0/c.sum(), 'status' : 'Fit failed'}
     except ValueError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,  
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters failed'}
-        
+    
+    if ones0/c.sum() > 0.9:
+        parameters = {'m': m, 'l': l, 'ai' : 0.5, 'success' : True, 'n' : 0,
+                      'fraction_1' : ones0/c.sum(), 'status' : 'Parameters guessed'}    
         
     return parameters
 

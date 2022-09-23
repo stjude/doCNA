@@ -74,23 +74,33 @@ class Genome:
             self.genome_medians['m'] = m0
         else:
             self.genome_medians['m'] = self.genome_medians['COV']['m']
-            
+        
         self.HE = Testing.Testing ('HE', 
                                    self.chromosomes,
                                    self.logger)
         
         self.HE.run_test(no_processes = self.no_processes)
-        self.HE.analyze (parameters = self.config['HE'])
-       
+
         self.logger.debug ("Genomewide heterozygosity: " + f"\n" + str(self.HE.report_results()))
+                
+        outliers = self.HE.results.loc[self.HE.results['chi2'] > float(self.config['HE']['max_chi2'])].index.tolist()
+        outliers_fraction = len(outliers)/len(self.HE.results)
+        
+        if outliers_fraction == 1:
+            self.logger.critical ('Sample failed HE model. All chromosomes chi2 above threshold.')
+            exit (1)
+        elif outliers_fraction > 0.5:
+            self.logger.warning ('Half or more of the chromosomes above threshold. May be inaccurate.')
+        
+                     
+        self.HE.analyze (parameters = self.config['HE'], outliers = outliers)
+       
+        
         self.logger.info ("Genome heterozygosity medians: "+ f"\n" + str(self.HE.get_genome_medians()))
         
         self.genome_medians['HE'] = self.HE.get_genome_medians()        
         
-        if self.genome_medians['HE']['chi2'] > float(self.config['HE']['max_chi2']):#Consts.HE_CHI2_THR:
-            self.logger.critical (f"Marking of the genome failed. HE_chi2 = {self.genome_medians['HE']['chi2']} > {self.config['HE']['max_chi2']}")
-            exit(1)
-      
+        
         self.logger.debug ('First round of N/E marking.')
         
         for chrom in self.chromosomes.keys():
@@ -114,34 +124,21 @@ class Genome:
         self.genome_medians['VAF'] = self.VAF.get_genome_medians()
         
         inliers_fb = self.VAF.results.loc[self.VAF.get_inliers(), 'fb'].values
-        self.genome_medians['fb'] = Testing.get_outliers_thrdist (inliers_fb,
+         
+        try:
+            self.genome_medians['fb'] = Testing.get_outliers_thrdist (inliers_fb,
                                                                   alpha = fb_alpha, r = 0.5)[1]
-        
-        if np.isnan (self.genome_medians['fb']):
+            self.logger.info (f"Widening parameters estimated at: {self.genome_medians['fb']} on normal approx.")
+        except:
+            self.logger.warning ("Distribution based estimation of fb failed.")
             self.genome_medians['fb'] = np.quantile (inliers_fb, q = 0.9) 
             self.logger.info (f"Widening parameters estimated by quantiles: {self.genome_medians['fb']} on {len(inliers_fb)} values")
-        else:
-            self.logger.info (f"Widening parameters estimated at: {self.genome_medians['fb']} on normal approx.")
-
-        if np.isnan (self.genome_medians['fb']):
-            self.logger.critical ('Widening failed. It was based on:')
-            self.logger.critical (self.VAF.results.loc[self.VAF.get_inliers(), 'fb'].values)
-            exit(1)
-
-        #self.genome_medians['all_chr_COV'] = self.genome_medians['COV']
-        #VAF_inliers = self.VAF.get_inliers()
-        #self.genome_medians['COV'] = self.COV.results.loc[VAF_inliers, ].median()
-
-        #self.logger.info (f'Inliers chromosomes: {VAF_inliers}')
-        #self.logger.info ("Genome inliers coverage medians: "+ f"\n" + str(self.COV.get_genome_medians())) 
-
 
         for chrom in self.chromosomes.keys():
             status = self.VAF.get_status (chrom)
             self.logger.debug (f'Chromosome {chrom} inlier: {status}')
             if ~status:
                 params = self.VAF.get_parameters (chrom)
-                #if params['chi2'] >= float(self.config['VAF']['chi2_high']):
                 self.logger.debug (f'Chromosome {chrom} marked on full model.')
                 self.chromosomes[chrom].mark_on_full_model (self.COV.medians['m'])
 
@@ -173,6 +170,7 @@ class Genome:
     def get_clonality_cnB_params (self, percentiles = (1,80)):
 
         ks = []
+        ns = []
         a = self.genome_medians['model_d']['a']
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
@@ -182,17 +180,23 @@ class Genome:
                     #Consts.SIZE_THR
                     if (size > Consts.SIZE_THR)&(score < Consts.MODEL_THR):
                         ks.append (seg.parameters['k'])
-                        #ns.append (seg.parameters['n'])
+                        ns.append (seg.parameters['n'])
         try:
-            z = np.array(ks)
+            z = np.array(ks)/np.sqrt(np.array(ns))
+            
             pp = np.percentile (z[~np.isnan(z)], percentiles)
             zz = z[(z >= pp[0])&(z <= pp[1])]
             res, _ = opt.curve_fit (sts.norm.cdf, np.sort(zz), np.linspace (0,1,len(zz)), p0 = [0.01, 0.01])
             self.logger.info (f'Clonality distribution (for cnB model): FI(k) = G({res[0]}, {res[1]}))')
+            down, up = Testing.get_outliers_thrdist (zz, alpha = 0.005)
+            self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
         except (IndexError,TypeError, RuntimeError, ValueError):
             res = (np.nan, np.nan)
             self.logger.warning ('Automatic estimation of clonality distribution for cnB model failed.')
-        return {'m' : res[0], 's' : res[1]}
+            down = np.nan
+            up = np.nan
+            
+        return {'m' : res[0], 's' : res[1], 'down_thr' : down, 'up_thr' : up}
     
     
                 
