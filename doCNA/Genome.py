@@ -116,15 +116,21 @@ class Genome:
         
         self.VAF = Testing.Testing ('VAF', self.chromosomes, self.logger)
         self.VAF.run_test (self.COV.medians['m'], no_processes = self.no_processes)
+        self.logger.debug ("Genomewide VAF: " + f"\n" + str(self.VAF.report_results()))
         self.VAF.analyze (parameters = self.config['VAF'])
         
-        self.logger.debug ("Genomewide VAF: " + f"\n" + str(self.VAF.report_results()))
         self.logger.info ("Genome VAF medians: "+ f"\n" + str(self.VAF.get_genome_medians()))
         
         self.genome_medians['VAF'] = self.VAF.get_genome_medians()
         
         inliers_fb = self.VAF.results.loc[self.VAF.get_inliers(), 'fb'].values
          
+        if m0 > 0:
+            self.logger.info (f"Using user supplied m0 = {m0}, instead of estimated m0 = {self.genome_medians['COV']['m']}")
+            self.genome_medians['m'] = m0
+        else:
+            self.genome_medians['m'] = self.COV.results.loc[[c in self.VAF.get_inliers() for c in self.COV.results.index.values],'m'].median()
+
         try:
             self.genome_medians['fb'] = Testing.get_outliers_thrdist (inliers_fb,
                                                                   alpha = fb_alpha, r = 0.5)[1]

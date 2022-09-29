@@ -57,9 +57,17 @@ class Report:
                 d = -1
             else:
                 a = segment.genome_medians['model_d']['a']
-                model_score = -np.log10(np.exp (-a*segment.parameters['d']))
+                try:
+                    model_score = -np.log10(np.exp (-a*segment.parameters['d']))
+                except:
+                    model_score = np.inf
+
                 a = segment.genome_medians['ai']['a']
-                ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
+                
+                try:
+                    ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
+                except:
+                    ai_score = np.nan
 
                 A = segment.genome_medians['k']['A'] 
                 B = segment.genome_medians['k']['B']

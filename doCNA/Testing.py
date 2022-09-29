@@ -64,30 +64,16 @@ class Testing:
             self.logger.debug (f'Parameter {column} being analyzed with alpha = {alpha} and r = {r}')
             res = self.results.loc[[c not in outliers for c in self.results.index.tolist()] & (self.results.notna().all(axis = 1)), column].values
         
-            ###Old stuff
-            #if len (res) < 4:
-            #    param_range = (res.min(), res.max())
-            #else:
-            #    try:
-            #        param_range = get_outliers_thrdist (res, alpha, r)
-            #    except:
-            #        self.logger.critical (f'Test {self.test_name}: estimation of {column} distribution failed. Maybe BMT?')
-            #        exit (1)
+            if len (np.unique(res)) < 5:
+                param_range = (res.min(), res.max())
+                self.logger.warning(f'Parameter {column} range estimation based on normal approximation not possible. Min max used.')
+            else:
+                try:
+                    param_range = get_outliers_thrdist (np.unique(res), alpha, r)
+                except:
+                    self.logger.critical (f'Test {self.test_name}: estimation of {column} distribution failed. Maybe BMT or bad measurement?')
+                    exit (1)
             
-            ###New stuff
-            try:
-                param_range = get_outliers_thrdist (res, alpha, r)
-            except:
-                self.logger.critical (f'Test {self.test_name}: estimation of {column} distribution failed for unknown reason.')
-                exit (1)
-
-            if (len (res) < 4)|(np.isnan(param_range[0]))|(np.isnan(param_range[1])):
-                    param_range = (res.min(), res.max())
-                    self.logger.warning(f'Parameter {column} range estimation based on normal approximation failed. Min max used.')
-
-            ###End of new stuff 
-
-
             self.logger.info ('Estimated normal ragne of {} is from {} to {}'.format (column, *param_range))
             in_or_out = (self.results[column].values >= param_range[0]) & (self.results[column].values <= param_range[1])
             self.results[column + '_status'] = in_or_out
@@ -254,8 +240,12 @@ def VAF_test (data, m, **kwargs):
         n = len(d)
         counts.append ((c, h[0], n))
         del (h)
-            
-    if max([c[2] for c in counts]) > n_thr:
+    ###safe if counts is empty
+    c_max = 0
+    for c in counts:
+        if c[2] > c_max:
+            c_max = c[2]        
+    if c_max > n_thr:
         res = opt.minimize (chi2, x0 = (0.5) , args = (counts), method = 'L-BFGS-B',
                         bounds = (vaf_bounds,))        
         if run_fb:
@@ -265,7 +255,8 @@ def VAF_test (data, m, **kwargs):
             fb = np.nan    
         results = VAF_results (chi2 = res.fun, vaf = res.x[0], fb = fb)
     else:
-        results = VAF_results (chi2 = 0, vaf = 0, fb = 0)
+        print (c_max)
+        results = VAF_results (chi2 = 0, vaf = 0, fb = np.nan)
     return results
 
 def find_fb (vafs, m, f_max = 1.4, eps = 1e-4):
@@ -276,7 +267,7 @@ def find_fb (vafs, m, f_max = 1.4, eps = 1e-4):
     
     s = np.sqrt (0.25/m)
     f = 1.0
-    df = 0.02
+    df = 0.01
     smin = s*f
     cdf = np.linspace (0,1, len(vafs))
     popt, _ = opt.curve_fit (two_gauss, vafs, cdf, p0 = [0.01, 0.5],
@@ -304,7 +295,7 @@ def find_fb (vafs, m, f_max = 1.4, eps = 1e-4):
     a_zero = a_next
     a_nzero = a_prev
     
-    df = -df/2
+    df = 0.001
     
     while (a_nzero > 2*eps)&(a_nzero - a_zero > eps)&(np.abs(df) > eps)&(f < f_max):
         f = f + df
@@ -350,5 +341,4 @@ def get_outliers_thrdist (values, alpha = 0.01, r = 0.5):
             mc = np.mean(current)
             sc = np.std (current)
             
-    #return (core.min(), core.max()),(sts.norm.ppf (alpha, mc,sc), sts.norm.ppf (1-alpha, mc,sc)), (mc,sc)
     return (sts.norm.ppf (alpha, mc,sc), sts.norm.ppf (1-alpha, mc,sc))
