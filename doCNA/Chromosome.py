@@ -196,7 +196,8 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
                     cytobands_str = cytobands[0] + '-' + cytobands[-1]
                 else:
                     cytobands_str = cytobands[0]
-                            
+                
+                #print (start, end, cytobands, len(data_view), data_view.symbol.value_counts())            
                 self.segments.append (Segment.Segment (data = data_view, 
                                                        config = self.config, 
                                                        logger = self.logger, 
@@ -207,7 +208,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
                                                        cytobands = cytobands_str))
     
     def find_Nruns (self):
-        vaf_thr = (self.genome_medians['COV']['m'] - 1)/self.genome_medians['COV']['m']
+        vaf_thr = (self.genome_medians['m'] - 1)/self.genome_medians['m']
 
         symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != Consts.U_SYMBOL), 'symbol'].values
         if len (symbol_list) >= Consts.N_STR_LEN_THR:    

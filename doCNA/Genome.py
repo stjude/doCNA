@@ -57,24 +57,79 @@ class Genome:
     def segment_genome (self, m0 = 0, fb_alpha = Consts.FB_ALPHA):
         
         self.logger.debug ('Starting testing ...')
-        self.COV = Testing.Testing ('COV', self.chromosomes, self.logger)
-        self.COV.run_test(no_processes = self.no_processes)
-        self.COV.analyze (parameters = self.config['COV'])
+        #self.COV = Testing.Testing ('COV', self.chromosomes, self.logger)
+        #self.COV.run_test(no_processes = self.no_processes)
+        #self.COV.analyze (parameters = self.config['COV'])
                  
-        if self.COV.medians['m'] < float(self.config['COV']['min_cov']):
-            self.logger.critical (f"Coverage is below threshold {self.COV.medians['m']} < {self.config['COV']['min_cov']}")
-            exit (0)
+        #if self.COV.medians['m'] < float(self.config['COV']['min_cov']):
+        #    self.logger.critical (f"Coverage is below threshold {self.COV.medians['m']} < {self.config['COV']['min_cov']}")
+        #    exit (0)
         
-        self.logger.debug ("Genomewide coverage: " + f"\n" + str(self.COV.report_results()))
-        self.logger.info ("Genome coverage medians: "+ f"\n" + str(self.COV.get_genome_medians()))
+        #self.logger.debug ("Genomewide coverage: " + f"\n" + str(self.COV.report_results()))
+        #self.logger.info ("Genome coverage medians: "+ f"\n" + str(self.COV.get_genome_medians()))
         
-        self.genome_medians['COV'] = self.COV.get_genome_medians()     
-        if m0 > 0:
-            self.logger.info (f"Using user supplied m0 = {m0}, instead of estimated m0 = {self.genome_medians['COV']['m']}")
-            self.genome_medians['m'] = m0
-        else:
-            self.genome_medians['m'] = self.genome_medians['COV']['m']
+        #self.genome_medians['COV'] = self.COV.get_genome_medians()     
+        #if m0 > 0:
+        #    self.logger.info (f"Using user supplied m0 = {m0}, instead of estimated m0 = {self.genome_medians['COV']['m']}")
+        #    self.genome_medians['m'] = m0
+        #else:
+        #    self.genome_medians['m'] = self.genome_medians['COV']['m']
         
+        #self.HE = Testing.Testing ('HE', 
+        #                           self.chromosomes,
+        #                           self.logger)
+        
+        #self.HE.run_test(no_processes = self.no_processes)
+
+        #self.logger.debug ("Genomewide heterozygosity: " + f"\n" + str(self.HE.report_results()))
+                
+        #outliers = self.HE.results.loc[self.HE.results['chi2'] > float(self.config['HE']['max_chi2'])].index.tolist()
+        #outliers_fraction = len(outliers)/len(self.HE.results)
+        
+        #if outliers_fraction == 1:
+        #    self.logger.critical ('Sample failed HE model. All chromosomes chi2 above threshold.')
+        #    exit (1)
+        #elif outliers_fraction > 0.5:
+        #    self.logger.warning ('Half or more of the chromosomes above threshold. May be inaccurate.')
+        
+                     
+        #self.HE.analyze (parameters = self.config['HE'], outliers = outliers)
+       
+        
+        #self.logger.info ("Genome heterozygosity medians: "+ f"\n" + str(self.HE.get_genome_medians()))
+        
+        #self.genome_medians['HE'] = self.HE.get_genome_medians()        
+                
+        #self.logger.debug ('First round of N/E marking.')
+        
+        #for chrom in self.chromosomes.keys():
+        #    status = self.HE.get_status (chrom)
+        #    if status:
+        #        self.chromosomes[chrom].markE_onHE (self.HE.get_parameters(chrom),
+        #                                            float(self.config['HE']['z_thr']))
+        #    else:
+        #        self.chromosomes[chrom].markE_onHE (self.HE.get_genome_medians(),
+        #                                            float(self.config['HE']['z_thr']))
+        
+        #self.logger.debug ('Testing first round of N/E marking.')    
+        
+        #self.VAF = Testing.Testing ('VAF', self.chromosomes, self.logger)
+        #self.VAF.run_test (self.COV.medians['m'], no_processes = self.no_processes)
+        #self.logger.debug ("Genomewide VAF: " + f"\n" + str(self.VAF.report_results()))
+        #self.VAF.analyze (parameters = self.config['VAF'])
+        
+        #self.logger.info ("Genome VAF medians: "+ f"\n" + str(self.VAF.get_genome_medians()))
+        
+        #self.genome_medians['VAF'] = self.VAF.get_genome_medians()
+        
+        #inliers_fb = self.VAF.results.loc[self.VAF.get_inliers(), 'fb'].values
+         
+        #if m0 > 0:
+        #    self.logger.info (f"Using user supplied m0 = {m0}, instead of estimated m0 = {self.genome_medians['COV']['m']}")
+        #    self.genome_medians['m'] = m0
+        #else:
+        #    self.genome_medians['m'] = self.COV.results.loc[[c in self.VAF.get_inliers() for c in self.COV.results.index.values],'m'].median()
+
         self.HE = Testing.Testing ('HE', 
                                    self.chromosomes,
                                    self.logger)
@@ -85,68 +140,103 @@ class Genome:
                 
         outliers = self.HE.results.loc[self.HE.results['chi2'] > float(self.config['HE']['max_chi2'])].index.tolist()
         outliers_fraction = len(outliers)/len(self.HE.results)
-        
+        if len(outliers):
+            self.logger.info (f'HE outliers due to chi2: {outliers}.')
         if outliers_fraction == 1:
             self.logger.critical ('Sample failed HE model. All chromosomes chi2 above threshold.')
             exit (1)
         elif outliers_fraction > 0.5:
             self.logger.warning ('Half or more of the chromosomes above threshold. May be inaccurate.')
+               
+        self.HE.analyze (parameters = self.config['HE'], outliers = outliers, skip_par = ['cov'])
+        self.logger.info ("Genome heterozygosity reference: "+ f"\n" + str(self.HE.get_genome_medians()))
         
-                     
-        self.HE.analyze (parameters = self.config['HE'], outliers = outliers)
-       
+        self.genome_medians['HE'] = self.HE.get_genome_medians()
         
-        self.logger.info ("Genome heterozygosity medians: "+ f"\n" + str(self.HE.get_genome_medians()))
-        
-        self.genome_medians['HE'] = self.HE.get_genome_medians()        
-        
-        
-        self.logger.debug ('First round of N/E marking.')
+        self.logger.debug ('Running N/E marking.')
         
         for chrom in self.chromosomes.keys():
             status = self.HE.get_status (chrom)
-            if status:
-                self.chromosomes[chrom].markE_onHE (self.HE.get_parameters(chrom),
+            params = self.HE.get_parameters(chrom).copy()
+            #print (status)
+            #print (params)
+            for  par in status.index.values:
+                if ~status[par]:
+                    params[par] = self.HE.get_genome_medians()[par]  
+            #if status:
+            self.chromosomes[chrom].markE_onHE (params, #self.HE.get_parameters(chrom),
                                                     float(self.config['HE']['z_thr']))
-            else:
-                self.chromosomes[chrom].markE_onHE (self.HE.get_genome_medians(),
-                                                    float(self.config['HE']['z_thr']))
+            #else:
+            #    self.chromosomes[chrom].markE_onHE (self.HE.get_genome_medians(),
+            #                                        float(self.config['HE']['z_thr']))
         
-        self.logger.debug ('Testing first round of N/E marking.')    
+        self.logger.debug ('Testing N/E marking.')    
         
         self.VAF = Testing.Testing ('VAF', self.chromosomes, self.logger)
-        self.VAF.run_test (self.COV.medians['m'], no_processes = self.no_processes)
+        self.VAF.run_test (self.HE.medians['cov'], no_processes = self.no_processes)
+        
         self.logger.debug ("Genomewide VAF: " + f"\n" + str(self.VAF.report_results()))
-        self.VAF.analyze (parameters = self.config['VAF'])
         
-        self.logger.info ("Genome VAF medians: "+ f"\n" + str(self.VAF.get_genome_medians()))
         
+        VAFS_chi2 = self.VAF.results['chi2']
+        thr_chi2 = float(self.config['VAF']['max_chi2'])
+
+        outliers = self.VAF.results.loc[(VAFS_chi2 > thr_chi2)|(VAFS_chi2 == 0)].index.tolist()
+        outliers_fraction = len(outliers)/len(self.HE.results)
+        if len(outliers):
+            self.logger.info (f'VAF outliers due to chi2: {outliers}.')
+        if outliers_fraction == 1:
+            self.logger.critical ('All chromosoms failed VAF model. All chromosomes chi2 above threshold.')
+            exit (1)
+        elif outliers_fraction > 0.5:
+            self.logger.warning ('Half or more of the chromosomes above threshold. May be inaccurate.')
+        self.VAF.analyze (parameters = self.config['VAF'], outliers = outliers)
+        
+        self.logger.info ("Genome VAF reference: "+ f"\n" + str(self.VAF.get_genome_medians()))
         self.genome_medians['VAF'] = self.VAF.get_genome_medians()
         
-        inliers_fb = self.VAF.results.loc[self.VAF.get_inliers(), 'fb'].values
-         
+        for chrom in self.chromosomes.keys():
+            status = self.VAF.get_status (chrom)
+            self.logger.debug (f'Chromosome {chrom} inlier: {status}')
+            if ~status.T.all(axis = 0):
+                params = self.VAF.get_parameters (chrom)
+                self.logger.debug (f'Chromosome {chrom} marked on full model.')
+                self.chromosomes[chrom].mark_on_full_model (self.HE.medians['cov']) 
+                
+        self.COV = Testing.Testing ('COV', self.chromosomes, self.logger)
+        self.COV.run_test(no_processes = self.no_processes,
+                          exclude_symbol = [Consts.N_SYMBOL, Consts.U_SYMBOL])
+        self.logger.debug ('Genomewide COV: ' + f"\n" + str(self.COV.report_results()))
+        
+        self.COV.analyze (parameters = self.config['COV'], outliers = self.VAF.get_outliers())#outliers)
+        
+        self.logger.info ("Genome COV reference: " + f"\n" + str(self.COV.get_genome_medians()))
+        self.genome_medians['COV'] = self.COV.get_genome_medians()
+
+        inliers = self.VAF.get_inliers()
+        #print ('inliers: ', inliers)
+        inliers_fb = self.VAF.results.loc[inliers,'fb'].values
+        #print ('fb: ', inliers_fb)
+        
+        if len (np.unique(inliers_fb)) < 4:
+            self.genome_medians['fb'] = np.percentile (inliers_fb,1-fb_alpha)
+            self.logger.warning(f'Widening parameter estimation based on normal approximation not possible. {1-fb_alpha} percentile used.')
+        else:
+            try:
+                self.genome_medians['fb'] = Testing.get_outliers_thrdist (np.unique(inliers_fb), fb_alpha, r = 0.5)[1]
+            except:
+                self.logger.critical ('Estimation of fb failed.')
+                exit (1)
+  
         if m0 > 0:
             self.logger.info (f"Using user supplied m0 = {m0}, instead of estimated m0 = {self.genome_medians['COV']['m']}")
             self.genome_medians['m'] = m0
         else:
-            self.genome_medians['m'] = self.COV.results.loc[[c in self.VAF.get_inliers() for c in self.COV.results.index.values],'m'].median()
+            self.genome_medians['m'] = self.genome_medians['COV']['m'] 
 
-        try:
-            self.genome_medians['fb'] = Testing.get_outliers_thrdist (inliers_fb,
-                                                                  alpha = fb_alpha, r = 0.5)[1]
-            self.logger.info (f"Widening parameters estimated at: {self.genome_medians['fb']} on normal approx.")
-        except:
-            self.logger.warning ("Distribution based estimation of fb failed.")
-            self.genome_medians['fb'] = np.quantile (inliers_fb, q = 0.9) 
-            self.logger.info (f"Widening parameters estimated by quantiles: {self.genome_medians['fb']} on {len(inliers_fb)} values")
-
-        for chrom in self.chromosomes.keys():
-            status = self.VAF.get_status (chrom)
-            self.logger.debug (f'Chromosome {chrom} inlier: {status}')
-            if ~status:
-                params = self.VAF.get_parameters (chrom)
-                self.logger.debug (f'Chromosome {chrom} marked on full model.')
-                self.chromosomes[chrom].mark_on_full_model (self.COV.medians['m'])
+        if self.COV.medians['m'] < float(self.config['COV']['min_cov']):
+            self.logger.critical (f"Coverage is below threshold {self.COV.medians['m']} < {self.config['COV']['min_cov']}")
+            exit (1)
 
         self.logger.debug ("Starting segmentation.")
         if self.no_processes > 1:            
@@ -180,7 +270,7 @@ class Genome:
         a = self.genome_medians['model_d']['a']
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
-                if seg.parameters['model'] == 'cnB':
+                if seg.parameters['model'] == 'A(AB)B':
                     score = -np.log10 (np.exp (-a*seg.parameters['d']))
                     size = seg.end - seg.start
                     #Consts.SIZE_THR
@@ -233,13 +323,18 @@ class Genome:
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
                 size = (seg.end - seg.start)/10**6
+                #if np.exp (-a*seg.parameters['d']) == 0:
+                    #print (seg)
+                    #print (-np.log10 (np.exp (-a*seg.parameters['d'])))
                 score = -np.log10 (np.exp (-a*seg.parameters['d']))
 
                 big_filter = (seg.parameters['k'] < 0.11)|(size < 1)
-
-                if (score < Consts.MODEL_THR)&(seg.parameters['model'] != 'cnB')&(~np.isnan(seg.parameters['k'])&(seg.centromere_fraction < 0.1)&big_filter):
+                num_filter = (~np.isnan(seg.parameters['k']))& (~np.isinf(seg.parameters['k']))  
+                score_filter = (~np.isinf(score))&(~np.isnan(score))&(score < Consts.MODEL_THR)
+                if (seg.parameters['k']>0)&score_filter&(seg.parameters['model'] != 'A(AB)B')&num_filter&(seg.centromere_fraction < 0.1)&big_filter:
                     ks.append (seg.parameters['k'])
                     ss.append (size)
+        #print (ks)
         k = np.log10 (np.array(ks))
         s = np.log10 (np.array(ss))
         try:
@@ -278,7 +373,7 @@ class Genome:
         z = np.array(zs)
         s = 1/np.sqrt(np.array(ns))
         zsf = z*s
-        zs = zsf[~np.isnan(zsf)]
+        zs = np.sort(zsf[~np.isnan(zsf)]) 
         try:
             popt, _ = opt.curve_fit (exp, zs, np.linspace (0,1,len(zs)), p0 = (10))
             self.logger.info ('AI distribution (for non-cnB models): FI(ai) = exp(-{:.5f} ai)'.format (popt[0]))

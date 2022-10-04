@@ -41,7 +41,7 @@ class Report:
         namestr = segment.name.replace(':', '\t').replace ('-', '\t')
         if self._report_type == 'bed':
 
-            if segment.parameters['model'] == 'cnB':
+            if segment.parameters['model'] == 'A(AB)B':
                 a = segment.genome_medians['ai']['a']
                 model_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
                 ai_score = model_score

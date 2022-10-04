@@ -89,38 +89,126 @@ class Segment:
             self.logger.info ('No model for this segment.')
                         
 
-def calculate_distance (preset, m, ai, m0):
+def calculate_distance_old (preset, m, ai, m0):
     try:
         d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
     except:
         d = np.inf
     return d
+
+def calculate_distance (preset, m, ai, m0):
     
-Preset = namedtuple ('Preset', ['A', 'B', 'C', 'D', 'k'])
-model_presets = {'cn1' : Preset(A = lambda m,dv,m0: -m0/2,
+    try:
+        k = preset.k(m,ai,m0)
+    except ZeroDivisionError:
+        k = np.inf
+
+    if np.isnan(k):
+        d = np.inf
+    elif (k > 1) | (k < 0):
+        ks = np.linspace (0,1,1000)
+        ms = preset.m(k,m0)/m0
+        d = np.min(np.sqrt((ks-k)**2+(ms-m/m0)**2))
+    else:
+        d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
+    
+    return d
+
+
+Preset = namedtuple ('Preset', ['A', 'B', 'C', 'D', 'k','m', 'ai'])
+model_presets_2 = {#'cn1' 
+                 'AB+A'   : Preset(A = lambda m,dv,m0: -m0/2,
                                 B = lambda m,dv,m0: -1,
                                 C = lambda m,dv,m0: m0,
                                 D = lambda m,dv,m0: m0*(2*dv/(0.5+dv))/2+m,
-                                k = lambda m,dv,m0: 2*dv/(0.5+dv)),
+                                k = lambda m,dv,m0: 2*dv/(0.5+dv),
+                                m = lambda k,m0: (2-k)*m0/2,
+                                ai = lambda k,m0: k/(2*(2-k))),
                  
-                 'cnL' : Preset(A = lambda m,dv,m0: 0,
+                 #'cnL'
+                 'AB+AA'  : Preset(A = lambda m,dv,m0: 0,
                                 B = lambda m,dv,m0: -1,
                                 C = lambda m,dv,m0: m0,
                                 D = lambda m,dv,m0: m,
-                                k = lambda m,dv,m0: 2*dv),
+                                k = lambda m,dv,m0: 2*dv,
+                                m = lambda k,m0: np.repeat(m0, len(k)),
+                                ai = lambda k,m0: k/2),
                  
-                 'cn3' : Preset(A = lambda m,dv,m0: m0/2,
+                 #'cn3'
+                 'AB+AAB' : Preset(A = lambda m,dv,m0: m0/2,
                                 B = lambda m,dv,m0: -1,
                                 C = lambda m,dv,m0: m0,
                                 D = lambda m,dv,m0: -m0*(2*dv/(0.5-dv))/2+m,
-                                k = lambda m,dv,m0: 2*dv/(0.5-dv)),
+                                k = lambda m,dv,m0: 2*dv/(0.5-dv),
+                                m = lambda k,m0: (2+k)*m0/2,
+                                ai = lambda k,m0: k/(2*(2+k))),
 
-                 'cnB' : Preset(A = lambda m,dv,m0: 0,
-                                B = lambda m,dv,m0: 1/2,
-                                C = lambda m,dv,m0: dv,
-                                D = lambda m,dv,m0: 0,
-                                k = lambda m,dv,m0: np.abs(m/m0 - 1))}
+
+                 #'cnB'
+                 'A(AB)B' : Preset(A = lambda m,dv,m0: 0,
+                                   B = lambda m,dv,m0: 1/2,
+                                   C = lambda m,dv,m0: dv,
+                                   D = lambda m,dv,m0: 0,
+                                   k = lambda m,dv,m0: np.abs(m/m0 - 1),
+                                   m = lambda k,m0: (1+k)*m0,
+                                   ai = lambda k,m0: np.repeat(0, len(k)))} 
     
+
+model_presets_4 = {'AB+AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
+                                       B = lambda m,dv,m0 : -1,
+                                       C = lambda m,dv,m0 : m0,
+                                       D = lambda m,dv,m0 : m - 2*m0*dv/(1-2*dv),
+                                       k = lambda m,dv,m0 : 2*dv/(1-2*dv),
+                                       m = lambda k,m0 : (1+k)*m0,
+                                       ai = lambda k,m0 : k/(2+2*k)),
+                   
+                   #'AAB+AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
+                   #                     B = lambda m,dv,m0 : -1,
+                   #                     C = lambda m,dv,m0 : 3*m0/2,
+                   #                     D = lambda m,dv,m0 : m- m0/((6*dv-1)/(2-4*dv)),
+                   #                     k = lambda m,dv,m0 : (6*dv-1)/(1-2*dv),
+                   #                     m = lambda k,m0 : (3+k)*m0/2,
+                   #                     ai = lambda k,m0 : (1+k)/(6+2*k)),
+                   
+                   'AA+AAB' : Preset (A = lambda m,dv,m0 : m0/2,
+                                      B = lambda m,dv,m0 : -1,
+                                      C = lambda m,dv,m0 : m0,
+                                      D = lambda m,dv,m0 : m- m0*(1-2*dv)/(2*dv+1),
+                                      k = lambda m,dv,m0 : 2*(1-2*dv)/(2*dv+1),
+                                      m = lambda k,m0 : (2+k)*m0/2,
+                                      ai = lambda k,m0 : (2-k)/(4+2*k)),
+                   
+                    'AAB+AABB' : Preset (A = lambda m,dv,m0 : m0/2,
+                                        B = lambda m,dv,m0 : -1,
+                                        C = lambda m,dv,m0 : 3*m0/2,
+                                        D = lambda m,dv,m0 : m- m0*(1-6*dv)/(4*dv+1),
+                                        k = lambda m,dv,m0 : (1-6*dv)/(2*dv+1),
+                                        m = lambda k,m0 : (3+k)*m0/2,
+                                        ai = lambda k,m0 : (1-k)/(6+2*k)),
+                    
+                    'AB+AAA' : Preset (A = lambda m,dv,m0 : m0/2,
+                                       B = lambda m,dv,m0 : -1,
+                                       C = lambda m,dv,m0 : m0,
+                                       D = lambda m,dv,m0 : m - 2*dv*m0/(3-2*dv),
+                                       k = lambda m,dv,m0 : 4*dv/(3-2*dv),
+                                       m = lambda k,m0 : (2+k)*m0/2,
+                                       ai = lambda k,m0 : 3*k/(4+2*k)),
+                    
+                    'AB+AAAA' : Preset (A = lambda m,dv,m0 : m0/2,
+                                        B = lambda m,dv,m0 : -1,
+                                        C = lambda m,dv,m0 : m0,
+                                        D = lambda m,dv,m0 : m - dv*m0/(1-dv),
+                                        k = lambda m,dv,m0 : dv/(1-dv),
+                                        m = lambda k,m0 : (1+k)*m0,
+                                        ai = lambda k,m0 : k/(1+k))}
+
+model_presets = {}
+model_presets.update (model_presets_2)
+model_presets.update (model_presets_4)
+
+
+
+
 def get_sensitive (data, fb, mG, z_thr = 1.5):
     
     vafs = data['vaf'].values
