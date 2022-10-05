@@ -48,13 +48,14 @@ class Report:
                 m = segment.genome_medians['clonality_cnB']['m']
                 s = segment.genome_medians['clonality_cnB']['s']
                 up_thr = segment.genome_medians['clonality_cnB']['up_thr']
+                z = segment.parameters['k']/np.sqrt(segment.parameters['n'])
                 try:
-                    k_score = -np.log10(sts.norm.sf(segment.parameters['k']/np.sqrt(segment.parameters['n']), m, s))
+                    k_score = -np.log10(sts.norm.sf(z, m, s))
                     #k_score = -np.log10(sts.norm.sf(segment.parameters['k'], m, s))
                 except RuntimeWarning:
                     k_score = np.inf
-                status = 'CNV-b' if k_score < 0.005 else ''
-                d = -1
+                status = 'CNV-b' if z >= up_thr else 'norm'
+                d = np.nan
             else:
                 a = segment.genome_medians['model_d']['a']
                 try:
@@ -81,7 +82,7 @@ class Report:
                 except:
                     k_score = np.inf
 
-                status = 'CNV' if d >= up_thr else ''
+                status = 'CNV' if d >= up_thr else 'norm'
                 
             if np.isnan (segment.parameters['k']):
                 if segment.parameters['fraction_1'] > 0.95:
@@ -96,7 +97,7 @@ class Report:
             report = '\t'.join([str(p) for p in [segment.parameters['m'],
                                                  2*segment.parameters['m']/segment.genome_medians['m'],
                                                  segment.parameters['model'], segment.parameters['d'], model_score,
-                                                 k, d, k_score, segment.cytobands,
+                                                 k, k_score, d, segment.cytobands,
                                                  segment.centromere_fraction, segment.parameters['ai'], ai_score, status]])
         else:
             report = ''
