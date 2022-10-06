@@ -48,8 +48,10 @@ class Report:
                 m = segment.genome_medians['clonality_cnB']['m']
                 s = segment.genome_medians['clonality_cnB']['s']
                 up_thr = segment.genome_medians['clonality_cnB']['up_thr']
-                z = segment.parameters['k']/np.sqrt(segment.parameters['n'])
+                z = segment.parameters['k']*np.sqrt(segment.parameters['n'])
                 try:
+                    #print (z)
+                    #print (sts.norm.sf(z, m, s))
                     k_score = -np.log10(sts.norm.sf(z, m, s))
                     #k_score = -np.log10(sts.norm.sf(segment.parameters['k'], m, s))
                 except RuntimeWarning:

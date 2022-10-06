@@ -278,11 +278,12 @@ class Genome:
                         ks.append (seg.parameters['k'])
                         ns.append (seg.parameters['n'])
         try:
-            z = np.array(ks)/np.sqrt(np.array(ns))
+            z = np.array(ks)*np.sqrt(np.array(ns))
             
             pp = np.percentile (z[~np.isnan(z)], percentiles)
             zz = z[(z >= pp[0])&(z <= pp[1])]
-            res, _ = opt.curve_fit (sts.norm.cdf, np.sort(zz), np.linspace (0,1,len(zz)), p0 = [0.01, 0.01])
+            print (zz)
+            res, _ = opt.curve_fit (sts.norm.cdf, np.sort(zz), np.linspace (0,1,len(zz)), p0 = [np.mean(zz), np.std(zz)])
             self.logger.info (f'Clonality distribution (for cnB model): FI(k) = G({res[0]}, {res[1]}))')
             down, up = Testing.get_outliers_thrdist (zz, alpha = 0.005)
             self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
