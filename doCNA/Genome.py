@@ -297,13 +297,14 @@ class Genome:
     
     
                 
-    def get_distance_params (self, percentiles = (10,80)):
+    def get_distance_params (self, percentiles = (5,80)):
 
         zs = []
         ns = []
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
-                if (seg.symbol == Consts.E_SYMBOL)&(~np.isnan(seg.parameters['d'])):
+                #if (seg.symbol == Consts.E_SYMBOL)&(~np.isnan(seg.parameters['d'])):
+                if ~np.isnan(seg.parameters['d']):
                     zs.append (seg.parameters['d'])
                     ns.append (seg.parameters['n'])        
         z = np.array(zs)
