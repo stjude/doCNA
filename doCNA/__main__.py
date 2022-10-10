@@ -6,7 +6,7 @@ from doCNA.Run import Solution
 from doCNA import WGS
 
 _description = "Scan chromosomes in search for non-HE segments. Assigns copy numbers if can."
-__version__ = '0.8.3'
+__version__ = '0.8.3.1'
 
 def main():
     parser = argparse.ArgumentParser (description = _description)

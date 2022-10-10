@@ -7,6 +7,7 @@ import scipy.stats as sts
 from collections import namedtuple
 
 from doCNA import Consts
+from doCNA import Scoring
 
 COV_results = namedtuple ('COV_results', ['m', 'dm', 'l', 'dl'])
 VAF_results = namedtuple ('VAF_results', ['chi2', 'vaf', 'fb'])
@@ -36,7 +37,8 @@ class Testing:
         if no_processes > 1:
             self.logger.debug (f'Runnig test in {no_processes} processes.')
             with mpl.Pool (processes = no_processes) as pool:
-                results = pool.starmap (self.test, [(self.chromosomes[chrom].data, args, kwargs) for chrom in self.chromosomes.keys()])
+                results = pool.starmap (self.test, [(self.chromosomes[chrom].data, args, kwargs) 
+                                                    for chrom in self.chromosomes.keys()])
         else:
             results = []
             index = []

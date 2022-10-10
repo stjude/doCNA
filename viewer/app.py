@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.signal as sig
 
-__version__ = '0.1.3'
+__version__ = '0.1.3.1'
 
 chromlist = ['chr' + str (i) for i in range (1,23)]
 chromdic = {}
@@ -16,7 +16,7 @@ for c in chromlist:
 
 app_ui = ui.page_fluid(
     ui.h2 ({"style" : "text-align: center;"}, "doCNA results viewer. v. " + __version__),
-    ui.h4 ({"style" : "text-align: center;"}, "for doCNA >= 0.8.3"),
+    ui.h4 ({"style" : "text-align: center;"}, "for doCNA >= 0.8.3.1"),
     
     ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Segments filtering:"),
                                        ui.input_slider ('cent_thr', "Centromere fraction threshold",
@@ -156,8 +156,8 @@ def server(input, output, session):
         if not file_input:
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
-                   names = ['chrom', 'start', 'end', 'm', 'cn','model', 'd', 'model_score',
-                            'k', 'k_score','dd', 'cyto', 'cent', 'ai', 'ai_score', 'status'])
+                   names = ['chrom', 'start', 'end', 'ai', 'm', 'cn','model', 'd', 'model_score',
+                            'k', 'k_score','dd', 'cyto', 'cent', 'status'])
         df['size'] = (df['end'] - df['start'])/1e6
         data.set(pd.DataFrame())
         par.set({})
@@ -257,10 +257,8 @@ def server(input, output, session):
                          lw = 2, linestyle = '-', color = colorsCN[model], alpha  = 0.6)
             
             ax.set_xlim (0.9*bed_data.m.min(), 1.1*bed_data.m.max())
-            ax.set_ylim ((min(-0.02, -0.05*bed_data.ai.max()), bed_data.ai.max()*1.1))
-        
+            ax.set_ylim ((max(-0.02, -0.02*bed_data.ai.max()), bed_data.ai.max()*1.1))
             
-        
             return fig
     
     @output
