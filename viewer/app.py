@@ -33,9 +33,10 @@ app_ui = ui.page_fluid(
                       ui.panel_main(
                                     ui.navset_tab (
                                                    ui.nav("Genome-wide view",
-                                                          ui.row (ui.column(12, ui.output_plot ('model_legend'), height = '10%')),
+                                                          #ui.row (ui.column(12, ui.output_plot ('model_legend'), )),
                                                                   #ui.tags.img(src = 'www/models_legend.png', alt = 'models legend', height = '10%', width = '100%'),),
                                                           ui.row(ui.column(12,          
+                                                                 #ui.output_plot ('model_legend'),
                                                                  ui.input_file ('bed_file', "Choose BED file to upload:",
                                                                                 multiple = False),
                                                                  ui.output_plot ('genome_plot'),)),
@@ -105,17 +106,7 @@ def server(input, output, session):
     chrom_sizes = reactive.Value(pd.Series())
     m0 = reactive.Value(np.nan)
     m0_opt = reactive.Value(np.nan)
-    #models_dic = reactive.Value({})
     
-    
-    #@reactive.Effect
-    #@reactive.event(input.cn4_models)
-    #def _():
-    #    mp = {}
-    #    mp.update(model_presets)
-    #    if len(input.cn4_models()):
-    #        mp.update (model_presets_4)
-    #    models_dic.set (mp)    
     
     @output
     @render.text
@@ -159,6 +150,7 @@ def server(input, output, session):
                    names = ['chrom', 'start', 'end', 'ai', 'm', 'cn','model', 'd', 'model_score',
                             'k', 'k_score','dd', 'cyto', 'cent', 'status'])
         df['size'] = (df['end'] - df['start'])/1e6
+        #print (df.head())
         data.set(pd.DataFrame())
         par.set({})
         bed_full.set(df)
@@ -171,7 +163,8 @@ def server(input, output, session):
         tmp = bed_full()
         if len(tmp) > 0:
             chrom_sizes.set(tmp.groupby(by = 'chrom').agg({'end' : 'max'})['end'])
-            bed.set (tmp.loc[(tmp['cent'] <= input.cent_thr()) & (tmp['size'] >= input.size_thr())]) 
+            bed.set (tmp.loc[(tmp['cent'] <= input.cent_thr()) & (tmp['size'] >= input.size_thr())])
+            print (tmp.loc[(tmp['cent'] <= input.cent_thr()) & (tmp['size'] >= input.size_thr())].head()) 
     
         
     @reactive.Effect
@@ -211,6 +204,12 @@ def server(input, output, session):
             meerkat_plot (bed_data, axs, chrom_sizes(),
                           max_k_score = input.k_max(),
                           model_thr = input.model_thr())
+            
+            for model in colorsCN.keys():
+                axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
+            axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
+            axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
+            axs[0].legend (bbox_to_anchor = (0.9, 1.7), ncol = len(model_presets)+2)
             return fig
     
     @output
@@ -221,24 +220,32 @@ def server(input, output, session):
         #print (par_d)
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
-            leopard_plot (bed_data, par_d, ax, highlight = input.chroms_selected())
+            #leopard_plot (bed_data, par_d, ax, highlight = input.chroms_selected())
+            leopard_plot (bed_data.loc[bed_data['model'] != 'A(AB)B'], 
+                          (par_d['a_i'], par_d['b_i'], par_d['bt_i']),
+                          ax, highlight = input.chroms_selected(),
+                          color_norm = 'black', color_hit = 'darkred')
+            leopard_plot (bed_data.loc[bed_data['model'] == 'A(AB)B'], 
+                          (par_d['a_b'], par_d['b_b'], par_d['bt_b']),
+                          ax, highlight = input.chroms_selected(), 
+                          color_norm = 'gray', color_hit = 'darkorange')
             ax.set_xlim ((np.log10(0.95*input.size_thr()), 
                           np.log10(1.05*bed_data['size'].max())))
             ax.set_ylim ((np.log10(bed_data['k'].min()), 0.1))  # type: ignore
             return fig
     
-    @output
-    @render.plot (alt = "Models")
-    def model_legend():
-        fig, ax = plt.subplots (1,1, figsize = (12,1))
-        for model in colorsCN.keys():
-                ax.plot ((),(), lw = 10, color = colorsCN[model], label = model)
-        ax.plot ((),(), lw = 10, color = 'yellow', label = 'complex')
-        ax.plot ((),(), lw = 10, color = 'red', label = 'fail')
-        ax.legend (loc = "center right", ncol = len(model_presets)+2)
-        ax.axis('off')
+    #@output
+    #@render.plot (alt = "Models")
+    #def model_legend():
+    #    fig, ax = plt.subplots (1,1, figsize = (12,0.5))
+    #    for model in colorsCN.keys():
+    #            ax.plot ((),(), lw = 10, color = colorsCN[model], label = model)
+    #    ax.plot ((),(), lw = 10, color = 'yellow', label = 'complex')
+    #    ax.plot ((),(), lw = 10, color = 'red', label = 'fail')
+    #    ax.legend (loc = "center right", ncol = len(model_presets)+2)
+    #    ax.axis('off')
         
-        return fig
+    #    return fig
             
     @output
     @render.plot (alt = "Solution view")
