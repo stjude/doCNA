@@ -7,7 +7,7 @@ import scipy.stats as sts
 from collections import namedtuple
 
 from doCNA import Consts
-from doCNA import Scoring
+
 
 COV_results = namedtuple ('COV_results', ['m', 'dm', 'l', 'dl'])
 VAF_results = namedtuple ('VAF_results', ['chi2', 'vaf', 'fb'])

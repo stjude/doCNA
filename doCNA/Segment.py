@@ -228,11 +228,11 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
                                     bounds = ((0.0, 0.1),
                                               (0.3, 0.9)), check_finite = False)
         dv, a = popt
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'success' : True, 'n' : len (data),
+        parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'status' : 'valid', 'fraction_1' : np.nan}
         
     except (RuntimeError, ValueError):
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,
                       'status' : 'valid', 'fraction_1' : np.nan}
         
     
@@ -271,14 +271,14 @@ def get_full (data, b = 1.01):
                       'status' : 'valid'}
 
     except RuntimeError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,
                        'fraction_1' : ones0/c.sum(), 'status' : 'Fit failed'}
     except ValueError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,  
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,  
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters failed'}
     
     if ones0/c.sum() > 0.9:
-        parameters = {'m': m, 'l': l, 'ai' : 0.5, 'success' : True, 'n' : 0,
+        parameters = {'m': m, 'l': l, 'ai' : 0.5, 'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters guessed'}    
         
     return parameters
