@@ -7,7 +7,7 @@ K_THR = 0.11
 MODEL_THR = 3
 #alpha used to determine weidening threshold, using normal approximation 
 FB_ALPHA = 0.1
-KSCORE_ALPHA = 0.01
+DSCORE_ALPHA = 0.05
 
 
 ##Chromosome
