@@ -4,7 +4,7 @@ import warnings as warn
 import scipy.stats as sts
 
 from doCNA import Run
-from doCNA import Scoring
+
 
 class Report:
     """ Class that holds reports used by other objects in the program """
@@ -18,11 +18,16 @@ class Report:
             keys.sort(key = lambda x: int(x[3:]))
             report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
         elif self._report_type == 'params':
-            shift = np.sqrt(genome.genome_medians['k']['A']**2+1)*genome.genome_medians['k']['up_thr']
+            shift_b = np.sqrt(genome.genome_medians['clonality_balanced']['A']**2+1)*genome.genome_medians['clonality_balanced']['up']
+            shift_i = np.sqrt(genome.genome_medians['clonality_imbalanced']['A']**2+1)*genome.genome_medians['clonality_imbalanced']['up']
             report = '\n'.join(['m' + '\t' + str(genome.genome_medians['m']),
-                                'a' + '\t' + str(genome.genome_medians['k']['A']),
-                                'b' + '\t' + str(genome.genome_medians['k']['C']),
-                                'bt' + '\t' + str(genome.genome_medians['k']['C']-shift)])
+                                'a_model' + '\t' + str(genome.genome_medians['model_d']['a']),  
+                                'a_b' + '\t' + str(genome.genome_medians['clonality_balanced']['A']),
+                                'b_b' + '\t' + str(genome.genome_medians['clonality_balanced']['C']),
+                                'bt_b' + '\t' + str(genome.genome_medians['clonality_balanced']['C']-shift_b),
+                                'a_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['A']),
+                                'b_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['C']),
+                                'bt_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['C']-shift_b)])
         else:
             report = ""     
         return report
@@ -52,11 +57,11 @@ class Report:
                                                  segment.parameters['ai'], segment.parameters['m'],
                                                  2*segment.parameters['m']/segment.genome_medians['m'],
                                                  segment.parameters['model'], segment.parameters['d'], 
-                                                 segment['score']['model_score'],
-                                                 k, segment['score']['clonality_score'],
-                                                 segment['score']['k_d'], 
+                                                 segment.parameters['model_score'],
+                                                 k, segment.parameters['clonality_score'],
+                                                 segment.parameters['k_d'], 
                                                  segment.cytobands,
-                                                 segment.centromere_fraction, segment['score']['call']]])
+                                                 segment.centromere_fraction, segment.parameters['call']]])
         else:
             report = ''
         return report

@@ -11,7 +11,7 @@ from doCNA import Chromosome
 from doCNA import Run
 from doCNA import Consts
 from doCNA import Report
-#from doCNA.Scoring import Scoring
+
 
 class Genome:
     """Class to run genome wide tests of HE and create chromosomes."""
@@ -195,10 +195,11 @@ class Genome:
         
     def score_model_distance (self):
     
-        zs_ns = [(seg['d'], seg['n']) for seg in self.all_segments]
+        zs_ns = [(seg.parameters['d'], seg.parameters['n']) for seg in self.all_segments]
         
-        z_n = np.array(zs_ns)
-        
+        z_n_a = np.array(zs_ns)
+        z_n = z_n_a[~np.isnan(z_n_a[:,1]) ,:]
+        #print (z_n) 
         try:
             popt, _ = opt.curve_fit (exp, np.sort (z_n[:,0]), np.linspace (0,1,len(z_n[:,0])),
                                      p0 = (10), sigma = 1/np.sqrt(z_n[:,1])[np.argsort(z_n[:,0])])
@@ -208,25 +209,33 @@ class Genome:
             popt = [np.nan]
 
         for seg in self.all_segments:
-            seg.score = {'model_score' : -np.log10 (np.exp (-popt[0]*seg.parameters['d']))}
+            seg.parameters['model_score'] = -np.log10 (np.exp (-popt[0]*seg.parameters['d']))
         self.genome_medians['model_d'] = {'a' : popt[0]}
         
     def score_clonality (self, size_thr = 5e6, model_thr = 3, alpha = 0.01, k_thr = 0.11):
         balanced = [seg.parameters['model'] == 'A(AB)B' for seg in self.all_segments]
-        big = [seg.size > size_thr for seg in self.all_segments]
+        big = [(seg.end - seg.start)/1e6 > size_thr for seg in self.all_segments]
         notHO = [seg.parameters['k'] < k_thr for seg in self.all_segments]
-        fit_model = [seg.score['model_score'] < model_thr for seg in self.all_segments]
+        fit_model = [seg.parameters['model_score'] < model_thr for seg in self.all_segments]
         
-        all_data = [(seg.parameters['k'], seg.end - seg.start) for seg in self.all_segments]
+        #print (sum(balanced))
+        #print (sum(big))
+        #print (sum(notHO))
+        #print (sum(fit_model))
+        
+        all_data = np.array([(seg.parameters['k'], (seg.end - seg.start)/1e6) for seg in self.all_segments])
                 
         #balanced
         balanced_index = np.where ([ba&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
-        self.genome_medians['clonality_balanced'] = fit_huber (np.array([all_data[i] for i in balanced_index]),
+        #print (balanced_index)
+        #print (len(balanced_index))
+        #print (all_data[balanced_index,:])
+        self.genome_medians['clonality_balanced'] = fit_huber (all_data[balanced_index,:],
                                                                alpha)
                
-        #unbalanced
-        imbalanced_index = np.where ([~ba&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
-        self.genome_medians['clonality_imbalanced'] = fit_huber (np.array([all_data[i] for i in imbalanced_index]),
+        #imbalanced
+        imbalanced_index = np.where ([(~ba)&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
+        self.genome_medians['clonality_imbalanced'] = fit_huber (all_data[imbalanced_index,:],
                                                                  alpha)
 
         A = (self.genome_medians['clonality_balanced']['A'], self.genome_medians['clonality_imbalanced']['A'])
@@ -235,7 +244,7 @@ class Genome:
         m = (self.genome_medians['clonality_balanced']['m'], self.genome_medians['clonality_imbalanced']['m'])
         s = (self.genome_medians['clonality_balanced']['s'], self.genome_medians['clonality_imbalanced']['s'])
         up = (self.genome_medians['clonality_balanced']['up'], self.genome_medians['clonality_imbalanced']['up'])
-        down = (self.genome_medians['clonality_balanced']['up'], self.genome_medians['clonality_imbalanced']['up'])
+        down = (self.genome_medians['clonality_balanced']['down'], self.genome_medians['clonality_imbalanced']['down'])
         
         i = 0
         self.logger.info ('Score for balanced segments:')
@@ -244,7 +253,7 @@ class Genome:
         self.logger.info (f'Estimated normal range of distance to usual: from {down[i]} to {up[i]}.')
         
         i = 1
-        self.logger.info ('Score for balanced segments:')
+        self.logger.info ('Score for imbalanced segments:')
         self.logger.info (f'Core usuallness: log(k) = {-A[i]} log(s) + {-C[i]}')
         self.logger.info (f'Normal estimation of distance to usual: m  = {m[i]}, s = {s[i]}.')
         self.logger.info (f'Estimated normal range of distance to usual: from {down[i]} to {up[i]}.')
@@ -254,8 +263,8 @@ class Genome:
             y = np.log10(seg.parameters['k'])
             i = 0 if seg.parameters['model'] == 'A(AB)B' else 1
             seg.parameters['k_d'] = (A[i]*x+B[i]*y+C[i])/np.sqrt (A[i]**2+B[i]**2)
-            seg.score['clonality_score'] = -np.log10(sts.norm.sf(seg.parameters['k_d'], m[i], s[i]))
-            seg.score['call'] = 'CNV' if seg.score['clonality_score'] > up[i] else 'norm'
+            seg.parameters['clonality_score'] = -np.log10(sts.norm.sf(seg.parameters['k_d'], m[i], s[i]))
+            seg.parameters['call'] = 'CNV' if seg.parameters['k_d'] > up[i] else 'norm'
             
             
             
@@ -337,10 +346,10 @@ class Genome:
             up = np.nan
             m = np.nan
             std = np.nan
-        return {'A' : A, 'B' : B, 'C' : C, 'down_thr' : down, 'up_thr' : up, 'm' : m, 'std' : std}
+        return {'A' : A, 'B' : B, 'C' : C, 'down' : down, 'up' : up, 'm' : m, 'std' : std}
         
     def report (self, report_type = 'bed'):
-        return Report(report_type).genome_report(self)
+        return Report.Report(report_type).genome_report(self)
     
 def fit_huber (data, alpha):
     k = np.log10 (data[:,0])
@@ -364,7 +373,7 @@ def fit_huber (data, alpha):
     #    up = np.nan
     #    m = np.nan
     #    std = np.nan
-    return {'A' : A, 'B' : B, 'C' : C, 'down_thr' : down, 'up_thr' : up, 'm' : m, 'std' : std}
+    return {'A' : A, 'B' : B, 'C' : C, 'down' : down, 'up' : up, 'm' : m, 's' : std}
 
 
 def f (c):
