@@ -25,9 +25,13 @@ class Report:
                                 'a_b' + '\t' + str(genome.genome_medians['clonality_balanced']['A']),
                                 'b_b' + '\t' + str(genome.genome_medians['clonality_balanced']['C']),
                                 'bt_b' + '\t' + str(genome.genome_medians['clonality_balanced']['C']-shift_b),
+                                'm_a' + '\t' + str(genome.genome_medians['clonality_balanced']['m']),
+                                's_a' + '\t' + str(genome.genome_medians['clonality_balanced']['s']),
                                 'a_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['A']),
                                 'b_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['C']),
-                                'bt_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['C']-shift_i)])
+                                'bt_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['C']-shift_i),
+                                'm_a' + '\t' + str(genome.genome_medians['clonality_imbalanced']['m']),
+                                's_a' + '\t' + str(genome.genome_medians['clonality_imbalanced']['s'])])
         else:
             report = ""     
         return report
