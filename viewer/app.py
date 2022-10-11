@@ -209,7 +209,8 @@ def server(input, output, session):
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
-            axs[0].legend (bbox_to_anchor = (0.9, 1.7), ncol = len(model_presets)+2)
+            axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets)+2,
+                           loc = 'upper center')
             return fig
     
     @output

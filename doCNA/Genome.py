@@ -363,7 +363,7 @@ def fit_huber (data, alpha):
     C = -huber.intercept_
     d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
 
-    down, up = Testing.get_outliers_thrdist (d, alpha = 0.005)
+    down, up = Testing.get_outliers_thrdist (d, alpha = alpha)
     m, std = sts.norm.fit (d[(d > down)&(d < up)])
     #except ValueError:
     #    A = np.nan
