@@ -1,5 +1,5 @@
 from shiny import *
-from Plots import *
+from .Plots import *
 
 # Import modules for plot rendering
 import numpy as np

@@ -1,9 +1,10 @@
+import argparse as agp
 from collections import defaultdict, namedtuple
+
 import matplotlib.colors as mcl
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import argparse as agp
 
 colorsCN = defaultdict (lambda: 'purple')
 colorsCN['AB+A'] = 'lime'
