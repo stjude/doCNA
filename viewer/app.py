@@ -16,7 +16,9 @@ for c in chromlist:
 
 app_ui = ui.page_fluid(
     ui.h2 ({"style" : "text-align: center;"}, "doCNA results viewer. v. " + __version__),
+
     ui.h4 ({"style" : "text-align: center;"}, "for doCNA >= 0.8.4"),
+
     
     ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Segments filtering:"),
                                        ui.input_slider ('cent_thr', "Centromere fraction threshold",

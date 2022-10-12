@@ -193,16 +193,18 @@ def leopard_plot (bed_df, params, ax, highlight = '', color_norm = 'black', colo
     y = np.log10 (bed_df.loc[(bed_df.status != 'norm'), 'k'])
     ax.plot (x, y, marker = '.', c = color_hit, lw = 0, alpha = 1)
     
+
     for chrom in highlight:
         tmp = bed_df.loc[bed_df['chrom'] == chrom].sort_values (by = 'start')
         x = np.log10 (tmp['size'])
         y = np.log10 (tmp['k'])
         ax.plot (x, y, marker = 's', c = 'magenta', lw = 1, alpha = 1, fillstyle = 'none')
 
+
     xt = np.linspace (-3, 2.5, 10)
     ax.plot (xt, -a*xt - b, c = color_norm)
     ax.plot (xt, -a*xt - bt , c = color_hit)
-    
+
     ax.set_xlabel ('size (MB) / log')
     ax.set_ylabel ('clonality / log')
 

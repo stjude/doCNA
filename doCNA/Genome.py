@@ -184,7 +184,7 @@ class Genome:
         
         self.score_model_distance ()
         self.score_clonality (size_thr = Consts.SIZE_THR, model_thr = Consts.MODEL_THR, 
-                              alpha = Consts.DSCORE_ALPHA, k_thr = Consts.K_THR)                
+
         
     def score_model_distance (self):
     
@@ -238,6 +238,7 @@ class Genome:
             self.genome_medians['clonality_imbalanced'] = ed
             
             
+
         A = (self.genome_medians['clonality_balanced']['A'], self.genome_medians['clonality_imbalanced']['A'])
         B = (self.genome_medians['clonality_balanced']['B'], self.genome_medians['clonality_imbalanced']['B'])
         C = (self.genome_medians['clonality_balanced']['C'], self.genome_medians['clonality_imbalanced']['C'])
@@ -246,9 +247,7 @@ class Genome:
         up = (self.genome_medians['clonality_balanced']['up'], self.genome_medians['clonality_imbalanced']['up'])
         down = (self.genome_medians['clonality_balanced']['down'], self.genome_medians['clonality_imbalanced']['down'])
         
-        
-        
-        
+
         i = 0
         self.logger.info ('Score for balanced segments:')
         self.logger.info (f'Core usuallness: log(k) = {-A[i]} log(s) + {-C[i]}')
