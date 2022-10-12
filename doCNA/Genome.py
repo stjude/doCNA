@@ -199,6 +199,8 @@ class Genome:
             
         except ValueError:
             popt = [np.nan]
+            self.logger.warning ("Scoring of models failed. None of the scoring may sense.")
+            self.logger.warning ("Consider rerunning with manually set m0.")
 
         for seg in self.all_segments:
             seg.parameters['model_score'] = -np.log10 (np.exp (-popt[0]*seg.parameters['d']))
@@ -213,14 +215,20 @@ class Genome:
         all_data = np.array([(seg.parameters['k'], (seg.end - seg.start)/1e6) for seg in self.all_segments])
                 
         balanced_index = np.where ([ba&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
-        self.genome_medians['clonality_balanced'] = fit_huber (all_data[balanced_index,:],
-                                                               alpha)
-               
-        #imbalanced
         imbalanced_index = np.where ([(~ba)&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
-        self.genome_medians['clonality_imbalanced'] = fit_huber (all_data[imbalanced_index,:],
+        try:
+            self.genome_medians['clonality_balanced'] = fit_huber (all_data[balanced_index,:],
+                                                               alpha)
+            self.genome_medians['clonality_imbalanced'] = fit_huber (all_data[imbalanced_index,:],
                                                                  alpha)
-
+        except:
+            self.logger.warning ("Scoring of segments failed. None of the scoring may sense.")
+            ed = {'A' : np.nan, 'B' : np.nan, 'C' : np.nan, 'down' : np.nan, 
+                  'up' : np.nan, 'm' : np.nan, 's' : np.nan}
+            self.genome_medians['clonality_balanced'] = ed
+            self.genome_medians['clonality_imbalanced'] = ed
+            
+            
         A = (self.genome_medians['clonality_balanced']['A'], self.genome_medians['clonality_imbalanced']['A'])
         B = (self.genome_medians['clonality_balanced']['B'], self.genome_medians['clonality_imbalanced']['B'])
         C = (self.genome_medians['clonality_balanced']['C'], self.genome_medians['clonality_imbalanced']['C'])
@@ -228,6 +236,12 @@ class Genome:
         s = (self.genome_medians['clonality_balanced']['s'], self.genome_medians['clonality_imbalanced']['s'])
         up = (self.genome_medians['clonality_balanced']['up'], self.genome_medians['clonality_imbalanced']['up'])
         down = (self.genome_medians['clonality_balanced']['down'], self.genome_medians['clonality_imbalanced']['down'])
+        
+        if self.genome_medians['clonality_balanced']['A'] < 0:
+            self.logger.warning ("Scoring of balanced segments seems to fail. Check before you yell!")
+        if self.genome_medians['clonality_imbalanced']['A'] < 0:
+            self.logger.warning ("Scoring of imbalanced segments seems to fail. Check before you yell!")
+        
         
         i = 0
         self.logger.info ('Score for balanced segments:')

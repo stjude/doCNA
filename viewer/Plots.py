@@ -189,34 +189,20 @@ def leopard_plot (bed_df, params, ax, highlight = '', color_norm = 'black', colo
     y = np.log10 (bed_df['k'])
     ax.plot (x, y, marker = '.', c = color_norm, lw = 0, alpha = 0.5)
 
-    #x = np.log10 (bed_df.loc[(bed_df.model == 'A(AB)B'), 'size'])
-    #y = np.log10 (bed_df.loc[(bed_df.model == 'A(AB)B'), 'k'])
-    #ax.plot (x, y, marker = '.', c = 'lightgray', lw = 0, alpha = 0.5)
-
     x = np.log10 (bed_df.loc[(bed_df.status != 'norm'), 'size'])
     y = np.log10 (bed_df.loc[(bed_df.status != 'norm'), 'k'])
     ax.plot (x, y, marker = '.', c = color_hit, lw = 0, alpha = 1)
     
-    #x = np.log10 (bed_df.loc[(bed_df.status == 'CNV-b'), 'size'])
-    #y = np.log10 (bed_df.loc[(bed_df.status == 'CNV-b'), 'k'])
-    #ax.plot (x, y, marker = '.', c = 'darkorange', lw = 0, alpha = 1)
-
-    highlight_filter = [c in highlight for c in bed_df.chrom.tolist()]
-    
-    x = np.log10 (bed_df.loc[(highlight_filter), 'size'])
-    y = np.log10 (bed_df.loc[(highlight_filter), 'k'])
-    ax.plot (x, y, marker = 's', c = 'darkorange', lw = 1, alpha = 1, fillstyle = 'none')
-
-
-    #ax.plot ((np.log10(5), np.log10(5)), (np.log10(1), np.log10(0.01)), 'k:')
+    for chrom in highlight:
+        tmp = bed_df.loc[bed_df['chrom'] == chrom].sort_values (by = 'start')
+        x = np.log10 (tmp['size'])
+        y = np.log10 (tmp['k'])
+        ax.plot (x, y, marker = 's', c = 'magenta', lw = 1, alpha = 1, fillstyle = 'none')
 
     xt = np.linspace (-3, 2.5, 10)
     ax.plot (xt, -a*xt - b, c = color_norm)
     ax.plot (xt, -a*xt - bt , c = color_hit)
-    #ax.set_ylim (-2.51, 0.1) 
-    #ax.set_xlim (-2.01, 2.81) 
-
-
+    
     ax.set_xlabel ('size (MB) / log')
     ax.set_ylabel ('clonality / log')
 
