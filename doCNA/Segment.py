@@ -24,7 +24,6 @@ class Segment:
         self.start = data['position'].min()
         self.end = data['position'].max()
         self.name = data['chrom'].values[0]+ ':'+str(data['position'].min())+'-'+str(data['position'].max())
-        #-{self.name}
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.name}')
         self.logger.debug ('Segment created.')
         self.symbols = self.data.loc[self.data['vaf'] < 1, 'symbol'].value_counts()
@@ -65,7 +64,6 @@ class Segment:
             self.logger.debug (f"Parameters: {self.parameters}")
                 
     def report (self, report_type = 'bed'):
-        #return Report(report_type).segment_report(self.name, self.genome_medians, self.parameters, self.cytobands, self.centromere_fraction)
         return Report(report_type).segment_report(self)
                                                   
     def select_model (self):        
@@ -162,30 +160,6 @@ model_presets_4 = {'AB+AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
                                        m = lambda k,m0 : (1+k)*m0,
                                        ai = lambda k,m0 : k/(2+2*k)),
                    
-                   #'AAB+AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
-                   #                     B = lambda m,dv,m0 : -1,
-                   #                     C = lambda m,dv,m0 : 3*m0/2,
-                   #                     D = lambda m,dv,m0 : m- m0/((6*dv-1)/(2-4*dv)),
-                   #                     k = lambda m,dv,m0 : (6*dv-1)/(1-2*dv),
-                   #                     m = lambda k,m0 : (3+k)*m0/2,
-                   #                     ai = lambda k,m0 : (1+k)/(6+2*k)),
-                   
-                   #'AA+AAB' : Preset (A = lambda m,dv,m0 : m0/2,
-                   #                   B = lambda m,dv,m0 : -1,
-                   #                   C = lambda m,dv,m0 : m0,
-                   #                   D = lambda m,dv,m0 : m- m0*(1-2*dv)/(2*dv+1),
-                   #                   k = lambda m,dv,m0 : 2*(1-2*dv)/(2*dv+1),
-                   #                   m = lambda k,m0 : (2+k)*m0/2,
-                   #                   ai = lambda k,m0 : (2-k)/(4+2*k)),
-                   
-                    #'AAB+AABB' : Preset (A = lambda m,dv,m0 : m0/2,
-                    #                    B = lambda m,dv,m0 : -1,
-                    #                    C = lambda m,dv,m0 : 3*m0/2,
-                    #                    D = lambda m,dv,m0 : m- m0*(1-6*dv)/(4*dv+1),
-                    #                    k = lambda m,dv,m0 : (1-6*dv)/(2*dv+1),
-                    #                    m = lambda k,m0 : (3+k)*m0/2,
-                    #                    ai = lambda k,m0 : (1-k)/(6+2*k)),
-                    
                     'AB+AAA' : Preset (A = lambda m,dv,m0 : m0/2,
                                        B = lambda m,dv,m0 : -1,
                                        C = lambda m,dv,m0 : m0,
@@ -212,9 +186,7 @@ model_presets.update (model_presets_4)
 def get_sensitive (data, fb, mG, z_thr = 1.5):
     
     vafs = data['vaf'].values
-    #covs = data['cov'].values
     
-    #this only works for E
     def ai (v, dv, a):
         v0 = 0.5
         return a*sts.norm.cdf (v, v0 - dv, smin) + (1-a)*sts.norm.cdf (v, v0 + dv, smin)
@@ -240,43 +212,33 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
 
 def get_full (data, b = 1.01):
     
-    vafs = data['vaf'].values
-    #covs = data['cov'].values
-    
+    vafs = data['vaf'].values    
     m, dm, l, dl = Testing.COV_test (data)
-    
+
     def vaf_cdf (v, dv, a, lerr, f, vaf, b):
         return vaf_cdf_c (v, dv, a, lerr, f, vaf, b, m)
     
     v0 = 0.5
     v, c = np.unique(vafs[~np.isnan(vafs)], return_counts = True)
-
     try:
         cnor = np.cumsum(c)/np.sum(c)
-        ones0 = c[v >= (m-1)/m].sum()
-        
-
+        ones0 = c[v >= (m-1)/m].sum()        
         f0 = c[v < v0].sum()/(c.sum() - ones0) 
         dv0 = v0 - np.median (v[v < v0])
-
-        p0 = [dv0, ones0/c.sum(), 2, 0.5, 0.5, b]
-        
+        p0 = [dv0, ones0/c.sum(), 2, 0.5, 0.5, b]        
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
                                               (0.5, 0.95, 5, 1, 0.55, 10)))
-        dv, a, lerr, f, vaf, b = popt
-      
+        dv, a, lerr, f, vaf, b = popt      
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
                       'fraction_1' : ones0/c.sum(), 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'status' : 'valid'}
-
     except RuntimeError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,
                        'fraction_1' : ones0/c.sum(), 'status' : 'Fit failed'}
     except ValueError:
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,  
-                      'fraction_1' : ones0/c.sum(), 'status' : 'Parameters failed'}
-    
+                      'fraction_1' : ones0/c.sum(), 'status' : 'Parameters failed'}    
     if ones0/c.sum() > 0.9:
         parameters = {'m': m, 'l': l, 'ai' : 0.5, 'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters guessed'}    
@@ -292,8 +254,6 @@ def vaf_HO (v, lerr):
     return np.exp ((v-1)*err)
 
 def vaf_cdf_c (v, dv, a, lerr, f, vaf, b, cov):
-    #cn2 = vaf_cn2 (v, vaf, cov)
     cnai = vaf_cnai (v, dv, f, vaf, b, cov)
     cnHO = vaf_HO (v, lerr)
-    
     return a*cnHO + (1 - a)*cnai

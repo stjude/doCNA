@@ -37,9 +37,6 @@ class Chromosome:
         zc = (self.data['cov'].values - he_parameters['cov']) / np.sqrt (he_parameters['b']*he_parameters['cov'])
         z = zv**2+zc**2
  
-        #self.data['symbol'] = Consts.N_SYMBOL       
-        #indexes = self.data.loc[z < z_thr, :].index.values.tolist()
-        #self.data.loc[indexes, 'symbol'] = Consts.E_SYMBOL
         self.data['symbol'] = [Consts.N_SYMBOL if zi >= z_thr else Consts.E_SYMBOL for zi in z]
         self.logger.info (f"""Chromosome {self.name} marked based on parameters
 v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
@@ -197,7 +194,6 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
                 else:
                     cytobands_str = cytobands[0]
                 
-                #print (start, end, cytobands, len(data_view), data_view.symbol.value_counts())            
                 self.segments.append (Segment.Segment (data = data_view, 
                                                        config = self.config, 
                                                        logger = self.logger, 
@@ -257,7 +253,6 @@ def analyze_string_N (symbol_list, N = 'N', E = 'E'):
 def find_runs_thr (values, counts, N = 'N', E = 'E'):
     assert len (values) == len (counts), 'Wrong input!! Go away!'
     hist = np.unique(counts[values == N], return_counts = True)
-    #x = np.log10 (hist[0])
     x = hist[0]
     y = np.log10 (hist[1])
     

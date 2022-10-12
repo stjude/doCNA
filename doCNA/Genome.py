@@ -92,8 +92,7 @@ class Genome:
                 if ~status[par]:
                     params[par] = self.HE.get_genome_medians()[par]  
             
-            self.chromosomes[chrom].markE_onHE (params, #self.HE.get_parameters(chrom),
-                                                    float(self.config['HE']['z_thr']))
+            self.chromosomes[chrom].markE_onHE (params, float(self.config['HE']['z_thr']))
                     
         self.logger.debug ('Testing N/E marking.')    
         
@@ -133,15 +132,13 @@ class Genome:
                           exclude_symbol = [Consts.N_SYMBOL, Consts.U_SYMBOL])
         self.logger.debug ('Genomewide COV: ' + f"\n" + str(self.COV.report_results()))
         
-        self.COV.analyze (parameters = self.config['COV'], outliers = self.VAF.get_outliers())#outliers)
+        self.COV.analyze (parameters = self.config['COV'], outliers = self.VAF.get_outliers())
         
         self.logger.info ("Genome COV reference: " + f"\n" + str(self.COV.get_genome_medians()))
         self.genome_medians['COV'] = self.COV.get_genome_medians()
 
         inliers = self.VAF.get_inliers()
-        #print ('inliers: ', inliers)
         inliers_fb = self.VAF.results.loc[inliers,'fb'].values
-        #print ('fb: ', inliers_fb)
         
         if len (np.unique(inliers_fb)) < 4:
             self.genome_medians['fb'] = np.percentile (inliers_fb,1-fb_alpha)
@@ -150,7 +147,7 @@ class Genome:
             try:
                 self.genome_medians['fb'] = Testing.get_outliers_thrdist (np.unique(inliers_fb), fb_alpha, r = 0.5)[1]
             except:
-                self.logger.critical ('Estimation of fb failed.')
+                self.logger.exception ('Estimation of fb failed.')
                 exit (1)
   
         if m0 > 0:
@@ -187,11 +184,7 @@ class Genome:
         
         self.score_model_distance ()
         self.score_clonality (size_thr = Consts.SIZE_THR, model_thr = Consts.MODEL_THR, 
-                              alpha = Consts.DSCORE_ALPHA, k_thr = Consts.K_THR)
-        
-        #self.genome_medians['k'] = self.get_k_params ()
-        #self.genome_medians['clonality_cnB'] = self.get_clonality_cnB_params ()
-        
+                              alpha = Consts.DSCORE_ALPHA, k_thr = Consts.K_THR)                
         
     def score_model_distance (self):
     
@@ -199,7 +192,6 @@ class Genome:
         
         z_n_a = np.array(zs_ns)
         z_n = z_n_a[~np.isnan(z_n_a[:,1]) ,:]
-        #print (z_n) 
         try:
             popt, _ = opt.curve_fit (exp, np.sort (z_n[:,0]), np.linspace (0,1,len(z_n[:,0])),
                                      p0 = (10), sigma = 1/np.sqrt(z_n[:,1])[np.argsort(z_n[:,0])])
@@ -218,18 +210,9 @@ class Genome:
         notHO = [seg.parameters['k'] < k_thr for seg in self.all_segments]
         fit_model = [seg.parameters['model_score'] < model_thr for seg in self.all_segments]
         
-        #print (sum(balanced))
-        #print (sum(big))
-        #print (sum(notHO))
-        #print (sum(fit_model))
-        
         all_data = np.array([(seg.parameters['k'], (seg.end - seg.start)/1e6) for seg in self.all_segments])
                 
-        #balanced
         balanced_index = np.where ([ba&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
-        #print (balanced_index)
-        #print (len(balanced_index))
-        #print (all_data[balanced_index,:])
         self.genome_medians['clonality_balanced'] = fit_huber (all_data[balanced_index,:],
                                                                alpha)
                
@@ -280,7 +263,6 @@ class Genome:
                 if seg.parameters['model'] == 'A(AB)B':
                     score = -np.log10 (np.exp (-a*seg.parameters['d']))
                     size = seg.end - seg.start
-                    #Consts.SIZE_THR
                     if (size > Consts.SIZE_THR)&(score < Consts.MODEL_THR):
                         ks.append (seg.parameters['k'])
                         ns.append (seg.parameters['n'])
@@ -289,7 +271,6 @@ class Genome:
             
             pp = np.percentile (z[~np.isnan(z)], percentiles)
             zz = z[(z >= pp[0])&(z <= pp[1])]
-            #print (zz)
             res, _ = opt.curve_fit (sts.norm.cdf, np.sort(zz), np.linspace (0,1,len(zz)), p0 = [np.mean(zz), np.std(zz)])
             self.logger.info (f'Clonality distribution (for cnB model): FI(k) = G({res[0]}, {res[1]}))')
             down, up = Testing.get_outliers_thrdist (zz, alpha = 0.005)
@@ -310,9 +291,6 @@ class Genome:
         for chrom in self.chromosomes.keys():
             for seg in self.chromosomes[chrom].segments:
                 size = (seg.end - seg.start)/10**6
-                #if np.exp (-a*seg.parameters['d']) == 0:
-                    #print (seg)
-                    #print (-np.log10 (np.exp (-a*seg.parameters['d'])))
                 score = -np.log10 (np.exp (-a*seg.parameters['d']))
 
                 big_filter = (seg.parameters['k'] < 0.11)|(size < 1)
@@ -321,7 +299,6 @@ class Genome:
                 if (seg.parameters['k']>0)&score_filter&(seg.parameters['model'] != 'A(AB)B')&num_filter&(seg.centromere_fraction < 0.1)&big_filter:
                     ks.append (seg.parameters['k'])
                     ss.append (size)
-        #print (ks)
         k = np.log10 (np.array(ks))
         s = np.log10 (np.array(ss))
         try:
@@ -354,7 +331,6 @@ class Genome:
 def fit_huber (data, alpha):
     k = np.log10 (data[:,0])
     s = np.log10 (data[:,1])
-    #try:
     huber = HuberRegressor(alpha = 0.0, epsilon = 1.35)
     huber.fit(s[:, np.newaxis], k)
 
@@ -365,14 +341,6 @@ def fit_huber (data, alpha):
 
     down, up = Testing.get_outliers_thrdist (d, alpha = alpha)
     m, std = sts.norm.fit (d[(d > down)&(d < up)])
-    #except ValueError:
-    #    A = np.nan
-    #    B = np.nan
-    #    C = np.nan
-    #    down = np.nan
-    #    up = np.nan
-    #    m = np.nan
-    #    std = np.nan
     return {'A' : A, 'B' : B, 'C' : C, 'down' : down, 'up' : up, 'm' : m, 's' : std}
 
 
