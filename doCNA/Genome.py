@@ -183,7 +183,8 @@ class Genome:
                 
         
         self.score_model_distance ()
-        self.score_clonality (size_thr = Consts.SIZE_THR, model_thr = Consts.MODEL_THR, 
+        self.score_clonality (size_thr = Consts.SIZE_THR, model_thr = Consts.MODEL_THR,
+                              alpha = Consts.DSCORE_ALPHA, k_thr = Consts.K_THR)
 
         
     def score_model_distance (self):
