@@ -224,7 +224,7 @@ class Genome:
             if self.genome_medians['clonality_balanced']['A'] < 0:
                 self.logger.warning ("Scoring of balanced segments seems to fail. Check before you yell!")
         except:
-            self.logger.warning ("Scoring of balanced segments failed. None of the scoring may sense.")    
+            self.logger.warning ("Scoring of balanced segments failed. None of the scoring makes sense.")    
             self.genome_medians['clonality_balanced'] = ed
             
         try:            
@@ -234,7 +234,7 @@ class Genome:
                 self.logger.warning ("Scoring of imbalanced segments seems to fail. Check before you yell!")
         
         except:
-            self.logger.warning ("Scoring of imbalanced segments failed. None of the scoring may sense.")    
+            self.logger.warning ("Scoring of imbalanced segments failed. None of the scoring makes sense.")    
             self.genome_medians['clonality_imbalanced'] = ed
             
             
@@ -266,11 +266,8 @@ class Genome:
             i = 0 if seg.parameters['model'] == 'A(AB)B' else 1
             seg.parameters['k_d'] = (A[i]*x+B[i]*y+C[i])/np.sqrt (A[i]**2+B[i]**2)
             seg.parameters['clonality_score'] = -np.log10(sts.norm.sf(seg.parameters['k_d'], m[i], s[i]))
-            seg.parameters['call'] = 'CNV' if seg.parameters['k_d'] > up[i] else 'norm'
-            
-            
-            
-            
+            seg.parameters['call'] = 'CNV' if seg.parameters['k_d'] > up[i] else 'norm'                                                
+
                    
     def get_clonality_cnB_params (self, percentiles = (1,80)):
 
