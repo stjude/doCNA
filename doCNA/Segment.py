@@ -24,7 +24,6 @@ class Segment:
         self.start = data['position'].min()
         self.end = data['position'].max()
         self.name = data['chrom'].values[0]+ ':'+str(data['position'].min())+'-'+str(data['position'].max())
-        #-{self.name}
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.name}')
         self.logger.debug ('Segment created.')
         self.symbols = self.data.loc[self.data['vaf'] < 1, 'symbol'].value_counts()
@@ -65,7 +64,6 @@ class Segment:
             self.logger.debug (f"Parameters: {self.parameters}")
                 
     def report (self, report_type = 'bed'):
-        #return Report(report_type).segment_report(self.name, self.genome_medians, self.parameters, self.cytobands, self.centromere_fraction)
         return Report(report_type).segment_report(self)
                                                   
     def select_model (self):        
@@ -89,44 +87,106 @@ class Segment:
             self.logger.info ('No model for this segment.')
                         
 
-def calculate_distance (preset, m, ai, m0):
+def calculate_distance_old (preset, m, ai, m0):
     try:
         d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
     except:
         d = np.inf
     return d
+
+def calculate_distance (preset, m, ai, m0):
     
-Preset = namedtuple ('Preset', ['A', 'B', 'C', 'D', 'k'])
-model_presets = {'cn1' : Preset(A = lambda m,dv,m0: -m0/2,
+    try:
+        k = preset.k(m,ai,m0)
+    except ZeroDivisionError:
+        k = np.inf
+
+    if np.isnan(k):
+        d = np.inf
+    elif (k > 1) | (k < 0):
+        ks = np.linspace (0,1,1000)
+        ms = preset.m(k,m0)/m0
+        d = np.min(np.sqrt((ks-k)**2+(ms-m/m0)**2))
+    else:
+        d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
+    
+    return d
+
+
+Preset = namedtuple ('Preset', ['A', 'B', 'C', 'D', 'k','m', 'ai'])
+model_presets_2 = {#'cn1' 
+                 'AB+A'   : Preset(A = lambda m,dv,m0: -m0/2,
                                 B = lambda m,dv,m0: -1,
                                 C = lambda m,dv,m0: m0,
                                 D = lambda m,dv,m0: m0*(2*dv/(0.5+dv))/2+m,
-                                k = lambda m,dv,m0: 2*dv/(0.5+dv)),
+                                k = lambda m,dv,m0: 2*dv/(0.5+dv),
+                                m = lambda k,m0: (2-k)*m0/2,
+                                ai = lambda k,m0: k/(2*(2-k))),
                  
-                 'cnL' : Preset(A = lambda m,dv,m0: 0,
+                 #'cnL'
+                 'AB+AA'  : Preset(A = lambda m,dv,m0: 0,
                                 B = lambda m,dv,m0: -1,
                                 C = lambda m,dv,m0: m0,
                                 D = lambda m,dv,m0: m,
-                                k = lambda m,dv,m0: 2*dv),
+                                k = lambda m,dv,m0: 2*dv,
+                                m = lambda k,m0: np.repeat(m0, len(k)),
+                                ai = lambda k,m0: k/2),
                  
-                 'cn3' : Preset(A = lambda m,dv,m0: m0/2,
+                 #'cn3'
+                 'AB+AAB' : Preset(A = lambda m,dv,m0: m0/2,
                                 B = lambda m,dv,m0: -1,
                                 C = lambda m,dv,m0: m0,
                                 D = lambda m,dv,m0: -m0*(2*dv/(0.5-dv))/2+m,
-                                k = lambda m,dv,m0: 2*dv/(0.5-dv)),
+                                k = lambda m,dv,m0: 2*dv/(0.5-dv),
+                                m = lambda k,m0: (2+k)*m0/2,
+                                ai = lambda k,m0: k/(2*(2+k))),
 
-                 'cnB' : Preset(A = lambda m,dv,m0: 0,
-                                B = lambda m,dv,m0: 1/2,
-                                C = lambda m,dv,m0: dv,
-                                D = lambda m,dv,m0: 0,
-                                k = lambda m,dv,m0: np.abs(m/m0 - 1))}
+
+                 #'cnB'
+                 'A(AB)B' : Preset(A = lambda m,dv,m0: 0,
+                                   B = lambda m,dv,m0: 1/2,
+                                   C = lambda m,dv,m0: dv,
+                                   D = lambda m,dv,m0: 0,
+                                   k = lambda m,dv,m0: np.abs(m/m0 - 1),
+                                   m = lambda k,m0: (1+k)*m0,
+                                   ai = lambda k,m0: np.repeat(0, len(k)))} 
     
+
+model_presets_4 = {'AB+AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
+                                       B = lambda m,dv,m0 : -1,
+                                       C = lambda m,dv,m0 : m0,
+                                       D = lambda m,dv,m0 : m - 2*m0*dv/(1-2*dv),
+                                       k = lambda m,dv,m0 : 2*dv/(1-2*dv),
+                                       m = lambda k,m0 : (1+k)*m0,
+                                       ai = lambda k,m0 : k/(2+2*k)),
+                   
+                    'AB+AAA' : Preset (A = lambda m,dv,m0 : m0/2,
+                                       B = lambda m,dv,m0 : -1,
+                                       C = lambda m,dv,m0 : m0,
+                                       D = lambda m,dv,m0 : m - 2*dv*m0/(3-2*dv),
+                                       k = lambda m,dv,m0 : 4*dv/(3-2*dv),
+                                       m = lambda k,m0 : (2+k)*m0/2,
+                                       ai = lambda k,m0 : 3*k/(4+2*k)),
+                    
+                    'AB+AAAA' : Preset (A = lambda m,dv,m0 : m0/2,
+                                        B = lambda m,dv,m0 : -1,
+                                        C = lambda m,dv,m0 : m0,
+                                        D = lambda m,dv,m0 : m - dv*m0/(1-dv),
+                                        k = lambda m,dv,m0 : dv/(1-dv),
+                                        m = lambda k,m0 : (1+k)*m0,
+                                        ai = lambda k,m0 : k/(1+k))}
+
+model_presets = {}
+model_presets.update (model_presets_2)
+model_presets.update (model_presets_4)
+
+
+
+
 def get_sensitive (data, fb, mG, z_thr = 1.5):
     
     vafs = data['vaf'].values
-    #covs = data['cov'].values
     
-    #this only works for E
     def ai (v, dv, a):
         v0 = 0.5
         return a*sts.norm.cdf (v, v0 - dv, smin) + (1-a)*sts.norm.cdf (v, v0 + dv, smin)
@@ -140,11 +200,11 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
                                     bounds = ((0.0, 0.1),
                                               (0.3, 0.9)), check_finite = False)
         dv, a = popt
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'success' : True, 'n' : len (data),
+        parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'status' : 'valid', 'fraction_1' : np.nan}
         
     except (RuntimeError, ValueError):
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,
                       'status' : 'valid', 'fraction_1' : np.nan}
         
     
@@ -152,45 +212,35 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
 
 def get_full (data, b = 1.01):
     
-    vafs = data['vaf'].values
-    #covs = data['cov'].values
-    
+    vafs = data['vaf'].values    
     m, dm, l, dl = Testing.COV_test (data)
-    
+
     def vaf_cdf (v, dv, a, lerr, f, vaf, b):
         return vaf_cdf_c (v, dv, a, lerr, f, vaf, b, m)
     
     v0 = 0.5
     v, c = np.unique(vafs[~np.isnan(vafs)], return_counts = True)
-
     try:
         cnor = np.cumsum(c)/np.sum(c)
-        ones0 = c[v >= (m-1)/m].sum()
-        
-
+        ones0 = c[v >= (m-1)/m].sum()        
         f0 = c[v < v0].sum()/(c.sum() - ones0) 
         dv0 = v0 - np.median (v[v < v0])
-
-        p0 = [dv0, ones0/c.sum(), 2, 0.5, 0.5, b]
-        
+        p0 = [dv0, ones0/c.sum(), 2, 0.5, 0.5, b]        
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
                                               (0.5, 0.95, 5, 1, 0.55, 10)))
-        dv, a, lerr, f, vaf, b = popt
-      
+        dv, a, lerr, f, vaf, b = popt      
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
                       'fraction_1' : ones0/c.sum(), 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'status' : 'valid'}
-
     except RuntimeError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,
                        'fraction_1' : ones0/c.sum(), 'status' : 'Fit failed'}
     except ValueError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : 0,  
-                      'fraction_1' : ones0/c.sum(), 'status' : 'Parameters failed'}
-    
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,  
+                      'fraction_1' : ones0/c.sum(), 'status' : 'Parameters failed'}    
     if ones0/c.sum() > 0.9:
-        parameters = {'m': m, 'l': l, 'ai' : 0.5, 'success' : True, 'n' : 0,
+        parameters = {'m': m, 'l': l, 'ai' : 0.5, 'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters guessed'}    
         
     return parameters
@@ -204,8 +254,6 @@ def vaf_HO (v, lerr):
     return np.exp ((v-1)*err)
 
 def vaf_cdf_c (v, dv, a, lerr, f, vaf, b, cov):
-    #cn2 = vaf_cn2 (v, vaf, cov)
     cnai = vaf_cnai (v, dv, f, vaf, b, cov)
     cnHO = vaf_HO (v, lerr)
-    
     return a*cnHO + (1 - a)*cnai

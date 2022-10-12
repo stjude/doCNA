@@ -8,6 +8,7 @@ from collections import namedtuple
 
 from doCNA import Consts
 
+
 COV_results = namedtuple ('COV_results', ['m', 'dm', 'l', 'dl'])
 VAF_results = namedtuple ('VAF_results', ['chi2', 'vaf', 'fb'])
 HE_results = namedtuple ('HE_results', ['chi2', 'vaf', 'cov', 'b'])
@@ -29,32 +30,38 @@ class Testing:
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.test.__name__}')
         self.logger.debug (f'Object {self.test.__name__} created.')
         
-    def run_test (self, *args, no_processes = 1):
+    def run_test (self, *args, no_processes = 1, exclude_symbol = []):
         """
         Method that runs test
         """        
         if no_processes > 1:
             self.logger.debug (f'Runnig test in {no_processes} processes.')
             with mpl.Pool (processes = no_processes) as pool:
-                results = pool.starmap (self.test, [(self.chromosomes[chrom].data, args) for chrom in self.chromosomes.keys()])
+                results = pool.starmap (self.test, [(self.chromosomes[chrom].data, args, kwargs) 
+                                                    for chrom in self.chromosomes.keys()])
         else:
             results = []
+            index = []
             for chrom in self.chromosomes.keys():
-                results.append((self.test (self.chromosomes[chrom].data, args)))
+                
+                res = self.test (self.chromosomes[chrom].data, args, exclude_symbol = exclude_symbol)
+                if res is not None:
+                    results.append (res)
+                    index.append (chrom)
                 self.logger.debug (f'Runnig test for {chrom}.')
         self.results = pd.DataFrame.from_records (results, columns = results[0]._fields, 
-                                                  index = self.chromosomes.keys())
+                                                  index = index)
         self.logger.info (f'Test finished.')
         
-    def analyze (self, parameters = {'alpha' : 0.01, 'r' : 0.5}, q = (5,99), outliers = []):
-        """
+    def analyze (self, parameters = {'alpha' : 0.01, 'r' : 0.5}, q = (5,99), outliers = [], skip_par = []):
+        """ 
         Method to analyze results of the test.
         """        
         self.logger.debug (f'Starting to analyze test results.')
         self.normal_range = {}
         columns = self.results.columns
         status = {}
-        for column in columns:
+        for column in columns[[c not in skip_par for c in columns]]:
             try:
                 alpha = float(parameters[column + '_alpha'])
                 r = float(parameters[column + '_r'])
@@ -71,7 +78,7 @@ class Testing:
                 try:
                     param_range = get_outliers_thrdist (np.unique(res), alpha, r)
                 except:
-                    self.logger.critical (f'Test {self.test_name}: estimation of {column} distribution failed. Maybe BMT or bad measurement?')
+                    self.logger.exception (f'Test {self.test_name}: estimation of {column} distribution failed. Maybe BMT or bad measurement?')
                     exit (1)
             
             self.logger.info ('Estimated normal ragne of {} is from {} to {}'.format (column, *param_range))
@@ -99,7 +106,7 @@ class Testing:
     
     def get_status (self, chromosome):
         try:
-            status = (self.status.T[chromosome] == 'inlier').all(axis = 0)
+            status = (self.status.T[chromosome] == 'inlier').T
         except KeyError:
             status = False
         return status
@@ -123,22 +130,28 @@ def COV_test (data, *args, **kwargs):
     
     initial_shape = Consts.COV_INITIAL_SHAPE if 'initial_shape' not in kwargs else kwargs['initial_shape']
     shape_range = Consts.COV_SHAPE_RANGE if 'shape_range' not in kwargs else kwargs['shape_range']
-        
-    
+    exclude_symbol = [] if 'exclude_symbol' not in kwargs else kwargs['exclude_symbol']    
     percentiles = np.arange (0.01, 0.99, 0.01)
-    covs = data['cov'].values   
-    y = np.percentile (covs, percentiles*100)
-    cov_range = (floor(y[0]*0.5) , ceil (y[-1]*1.05))
-    initial_m = np.median(covs)
-             
-    #here may be good place for try except
-    popt, pcov = opt.curve_fit (lambda_cdf, percentiles, y, p0 = [initial_m, initial_shape],
-                                bounds = [(cov_range[0],shape_range[0]),
-                                          (cov_range[1],shape_range[1])])
-    m, l  = popt
-    dm, dl  = np.sqrt(np.diag(pcov)) 
+     
+    if len(exclude_symbol):
+        covs = data.loc[[s not in exclude_symbol for s in data.symbol.tolist()] , 'cov'].values
+    else:
+        covs = data['cov'].values
     
-    return COV_results (m = m, dm = dm, l = l, dl = dl)
+    try:
+        y = np.percentile (covs, percentiles*100)
+        cov_range = (floor(y[0]*0.5) , ceil (y[-1]*1.05))
+        initial_m = np.median(covs)
+             
+        #here may be good place for try except
+        popt, pcov = opt.curve_fit (lambda_cdf, percentiles, y, p0 = [initial_m, initial_shape],
+                                    bounds = [(cov_range[0],shape_range[0]),
+                                              (cov_range[1],shape_range[1])])
+        m, l  = popt
+        dm, dl  = np.sqrt(np.diag(pcov)) 
+        return COV_results (m = m, dm = dm, l = l, dl = dl)
+    except:
+        return None
     
 def Q (p,l):
     if l == 0:
@@ -157,8 +170,7 @@ def HE_test (data, *args, **kwargs):
     fN_bounds = Consts.HE_FN_BOUNDS if 'fN_bounds' not in kwargs else kwargs['fN_bounds']
     a_bounds = Consts.HE_A_BOUNDS if 'a_bounds' not in kwargs else kwargs['a_bounds']
     b_bounds = Consts.HE_B_BOUNDS if 'b_bounds' not in kwargs else kwargs['b_bounds']
-    lerr_bounds = Consts.HE_LERR_BOUNDS if 'lerr_bounds' not in kwargs else kwargs['lerr_bounds']
-        
+    lerr_bounds = Consts.HE_LERR_BOUNDS if 'lerr_bounds' not in kwargs else kwargs['lerr_bounds']    
     
     def chi2 (params, counts, N):
         vaf, fcov, fN, a, b, l = params
@@ -190,12 +202,9 @@ def HE_test (data, *args, **kwargs):
     fcov = (data['cov'].median() - cov_min)/(cov_max - cov_min)
     
     res = opt.minimize (chi2, x0 = (0.5, fcov, 0.5,0.8, 1.3, 6), args = (counts, N),
-                    bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, b_bounds, lerr_bounds))
-    
-    vaf, fcov, fN, a, b, l = res.x
-    
-    cov = cov_min + fcov*(cov_max-cov_min)
-    
+                    bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, b_bounds, lerr_bounds))    
+    vaf, fcov, fN, a, b, l = res.x    
+    cov = cov_min + fcov*(cov_max-cov_min)    
     return HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
 
 def cn2_vaf_pdf (x,v,c):
@@ -210,8 +219,6 @@ def HO_vaf_pdf (i, n, fe = 10**-6,b=1):
 
 def VAF_test (data, m, **kwargs):
     
-    #assert m in kwargs, 'Median coverage needed for VAF test'
-    #m = kwargs['m']
     vaf_bounds = Consts.VAF_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds'] 
     n_thr = Consts.VAF_N_THR if 'n_thr' not in kwargs else kwargs['n_thr']
     run_fb = True if 'run_fb' not in kwargs else kwargs['run_fb']    
@@ -255,7 +262,6 @@ def VAF_test (data, m, **kwargs):
             fb = np.nan    
         results = VAF_results (chi2 = res.fun, vaf = res.x[0], fb = fb)
     else:
-        print (c_max)
         results = VAF_results (chi2 = 0, vaf = 0, fb = np.nan)
     return results
 
@@ -274,8 +280,6 @@ def find_fb (vafs, m, f_max = 1.4, eps = 1e-4):
                             bounds = ((0, 0.0),
                                       (1, 1)))
     a_prev = popt[1]
-    #a_prev = 0.5
-    
     f = f + df
     popt, _ = opt.curve_fit (two_gauss, vafs, cdf, p0 = [0.01, 0.5],
                             bounds = ((0, 0.0),
@@ -312,7 +316,6 @@ def find_fb (vafs, m, f_max = 1.4, eps = 1e-4):
     if f < f_max:
          ff = f - df
     else:
-        #print (f)
         ff = np.nan
     
     return ff

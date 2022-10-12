@@ -156,8 +156,6 @@ def fit_double_G (values_all, alpha, r):
                   np.percentile (a, 55), 0.1*np.percentile (a, 90)-0.1*np.percentile (a, 60)],
               [1, np.percentile (a, 45), 2*np.percentile (a, 40)-2*np.percentile (a, 10),
                   np.percentile (a, 95), 2*np.percentile (a, 90)-2*np.percentile (a, 60)]]
-#    print ('p0 = ', p0)
-#    print ('bounds = ', check_bounds(bounds))
     popt, pcov = opt.curve_fit (gaus2, np.sort(a), np.linspace (0,1,len(a)), p0 = p0,
                                   bounds = check_bounds(bounds)) 
     
@@ -185,7 +183,6 @@ def  check_bounds(bounds):
             upper[2] = 0.05
         if upper[4] == 0.0:
             upper[4] = 0.05
-    #print ([lower, upper])
     return [lower, upper]
 
 def gaus2 (v, a, m0, s0, m1, s1):

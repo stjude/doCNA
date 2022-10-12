@@ -5,6 +5,7 @@ import scipy.stats as sts
 
 from doCNA import Run
 
+
 class Report:
     """ Class that holds reports used by other objects in the program """
     def __init__(self, report_t):
@@ -17,11 +18,20 @@ class Report:
             keys.sort(key = lambda x: int(x[3:]))
             report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
         elif self._report_type == 'params':
-            shift = np.sqrt(genome.genome_medians['k']['A']**2+1)*genome.genome_medians['k']['up_thr']
+            shift_b = genome.genome_medians['clonality_balanced']['up']
+            shift_i = genome.genome_medians['clonality_imbalanced']['up']
             report = '\n'.join(['m' + '\t' + str(genome.genome_medians['m']),
-                                'a' + '\t' + str(genome.genome_medians['k']['A']),
-                                'b' + '\t' + str(genome.genome_medians['k']['C']),
-                                'bt' + '\t' + str(genome.genome_medians['k']['C']-shift)])
+                                'a_model' + '\t' + str(genome.genome_medians['model_d']['a']),  
+                                'a_b' + '\t' + str(genome.genome_medians['clonality_balanced']['A']),
+                                'b_b' + '\t' + str(genome.genome_medians['clonality_balanced']['C']),
+                                'bt_b' + '\t' + str(genome.genome_medians['clonality_balanced']['C']-shift_b),
+                                'm_a' + '\t' + str(genome.genome_medians['clonality_balanced']['m']),
+                                's_a' + '\t' + str(genome.genome_medians['clonality_balanced']['s']),
+                                'a_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['A']),
+                                'b_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['C']),
+                                'bt_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['C']-shift_i),
+                                'm_a' + '\t' + str(genome.genome_medians['clonality_imbalanced']['m']),
+                                's_a' + '\t' + str(genome.genome_medians['clonality_imbalanced']['s'])])
         else:
             report = ""     
         return report
@@ -38,51 +48,7 @@ class Report:
     def segment_report (self, segment):
 
         """ Generates a report for Segment objects """
-        namestr = segment.name.replace(':', '\t').replace ('-', '\t')
-        if self._report_type == 'bed':
-
-            if segment.parameters['model'] == 'cnB':
-                a = segment.genome_medians['ai']['a']
-                model_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
-                ai_score = model_score
-                m = segment.genome_medians['clonality_cnB']['m']
-                s = segment.genome_medians['clonality_cnB']['s']
-                up_thr = segment.genome_medians['clonality_cnB']['up_thr']
-                try:
-                    k_score = -np.log10(sts.norm.sf(segment.parameters['k']/np.sqrt(segment.parameters['n']), m, s))
-                    #k_score = -np.log10(sts.norm.sf(segment.parameters['k'], m, s))
-                except RuntimeWarning:
-                    k_score = np.inf
-                status = 'CNV-b' if k_score < 0.005 else ''
-                d = -1
-            else:
-                a = segment.genome_medians['model_d']['a']
-                try:
-                    model_score = -np.log10(np.exp (-a*segment.parameters['d']))
-                except:
-                    model_score = np.inf
-
-                a = segment.genome_medians['ai']['a']
-                
-                try:
-                    ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
-                except:
-                    ai_score = np.nan
-
-                A = segment.genome_medians['k']['A'] 
-                B = segment.genome_medians['k']['B']
-                C = segment.genome_medians['k']['C']
-                up_thr = segment.genome_medians['k']['up_thr']
-                x = np.log10((segment.end - segment.start)/10**6)
-                y = np.log10(segment.parameters['k'])
-                d = (A*x+B*y+C)/np.sqrt (A**2+B**2)
-                try:
-                    k_score = -np.log10(sts.norm.sf(d, segment.genome_medians['k']['m'], segment.genome_medians['k']['std'] ))               
-                except:
-                    k_score = np.inf
-
-                status = 'CNV' if d >= up_thr else ''
-                
+        if self._report_type == 'bed':    
             if np.isnan (segment.parameters['k']):
                 if segment.parameters['fraction_1'] > 0.95:
                     k = 1
@@ -91,16 +57,18 @@ class Report:
             else:
                 k = segment.parameters['k']
 
-                    
-
-            report = '\t'.join([str(p) for p in [segment.parameters['m'],
+            report = '\t'.join([str(p) for p in [segment.chrom, segment.start, segment.end,
+                                                 segment.parameters['ai'], segment.parameters['m'],
                                                  2*segment.parameters['m']/segment.genome_medians['m'],
-                                                 segment.parameters['model'], segment.parameters['d'], model_score,
-                                                 k, d, k_score, segment.cytobands,
-                                                 segment.centromere_fraction, segment.parameters['ai'], ai_score, status]])
+                                                 segment.parameters['model'], segment.parameters['d'], 
+                                                 segment.parameters['model_score'],
+                                                 k, segment.parameters['clonality_score'],
+                                                 segment.parameters['k_d'], 
+                                                 segment.cytobands,
+                                                 segment.centromere_fraction, segment.parameters['call']]])
         else:
             report = ''
-        return '\t'.join([namestr, report])
+        return report
 
 
 

@@ -20,7 +20,6 @@ class WGS:
         logger.setLevel(logging.DEBUG)
         fh = logging.FileHandler(self.sample_name + '.log', mode = 'w')
         fh.setLevel(logging.DEBUG)
-        #%(funcName)s:
         fh_formatter = logging.Formatter('%(asctime)s %(name)s: %(levelname)s: %(message)s', datefmt='%H:%M:%S')
         fh.setFormatter(fh_formatter)
         logger.addHandler(fh)
