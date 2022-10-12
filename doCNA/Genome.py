@@ -216,16 +216,25 @@ class Genome:
                 
         balanced_index = np.where ([ba&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
         imbalanced_index = np.where ([(~ba)&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
+        ed = {'A' : np.nan, 'B' : np.nan, 'C' : np.nan, 'down' : np.nan, 
+                  'up' : np.nan, 'm' : np.nan, 's' : np.nan}
         try:
             self.genome_medians['clonality_balanced'] = fit_huber (all_data[balanced_index,:],
                                                                alpha)
+            if self.genome_medians['clonality_balanced']['A'] < 0:
+                self.logger.warning ("Scoring of balanced segments seems to fail. Check before you yell!")
+        except:
+            self.logger.warning ("Scoring of balanced segments failed. None of the scoring may sense.")    
+            self.genome_medians['clonality_balanced'] = ed
+            
+        try:            
             self.genome_medians['clonality_imbalanced'] = fit_huber (all_data[imbalanced_index,:],
                                                                  alpha)
+            if self.genome_medians['clonality_imbalanced']['A'] < 0:
+                self.logger.warning ("Scoring of imbalanced segments seems to fail. Check before you yell!")
+        
         except:
-            self.logger.warning ("Scoring of segments failed. None of the scoring may sense.")
-            ed = {'A' : np.nan, 'B' : np.nan, 'C' : np.nan, 'down' : np.nan, 
-                  'up' : np.nan, 'm' : np.nan, 's' : np.nan}
-            self.genome_medians['clonality_balanced'] = ed
+            self.logger.warning ("Scoring of imbalanced segments failed. None of the scoring may sense.")    
             self.genome_medians['clonality_imbalanced'] = ed
             
             
@@ -237,10 +246,7 @@ class Genome:
         up = (self.genome_medians['clonality_balanced']['up'], self.genome_medians['clonality_imbalanced']['up'])
         down = (self.genome_medians['clonality_balanced']['down'], self.genome_medians['clonality_imbalanced']['down'])
         
-        if self.genome_medians['clonality_balanced']['A'] < 0:
-            self.logger.warning ("Scoring of balanced segments seems to fail. Check before you yell!")
-        if self.genome_medians['clonality_imbalanced']['A'] < 0:
-            self.logger.warning ("Scoring of imbalanced segments seems to fail. Check before you yell!")
+        
         
         
         i = 0
