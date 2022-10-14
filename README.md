@@ -38,11 +38,12 @@ All done
 ```shell
 docna viewer
 **********
-Access dashboard in browser via: http://10.220.24.115:33469
+Access dashboard in browser via: http://10.220.16.129:39738
 **********
-INFO:     Started server process [19596]
+INFO:     Started server process [11716]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:33469 (Press CTRL+C to quit)
+INFO:     Uvicorn running on http://10.220.16.129:39738 (Press CTRL+C to quit)
 ```
-
+5. Load files:
+![example](./examples/docna.gif)

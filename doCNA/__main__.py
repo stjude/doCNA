@@ -92,7 +92,7 @@ def viewer(args):
     s.bind(("", 0))
     open_port = str(s.getsockname()[1])
     s.close()
-    cmd = ["shiny", "run", "--port", open_port, "doCNA.viewer.app"]
+    cmd = ["shiny", "run", "--port", open_port, "--host", private_ip, "doCNA.viewer.app"]
     print("**********")
     print(f"Access dashboard in browser via: http://{private_ip}:{open_port}")
     print("**********")
