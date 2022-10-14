@@ -45,7 +45,6 @@ def main():
 
     ### Viewer subparser ###
     parser_viewer = subparsers.add_parser ("viewer", description="launches the viewer")
-    parser_viewer.add_argument ("-p", "--port", default="8000", help="the port to launch the viewier")
     parser_viewer.set_defaults (func=viewer)
 
     ### Get Config subparser ###
@@ -85,9 +84,20 @@ def analyze(args):
     print ('All done')
 
 def viewer(args):
-    """ launches the viewer """
-    cmd = ["shiny", "run", "--port", args.port, "doCNA.viewer.app"]
-    proc = subprocess.run(cmd, stdout=sys.stdout, stderr=sys.stderr)
+    """ launches the viewer - we get a port not in use"""
+    import socket
+    s = socket.socket()
+    hostname = socket.gethostname()
+    private_ip = socket.gethostbyname(hostname)
+    s.bind(("", 0))
+    open_port = str(s.getsockname()[1])
+    s.close()
+    cmd = ["shiny", "run", "--port", open_port, "doCNA.viewer.app"]
+    print("**********")
+    print(f"Access dashboard in browser via: http://{private_ip}:{open_port}")
+    print("**********")
+
+    proc = subprocess.run(cmd, stdout=sys.stdout, stderr=sys.stderr)    
 
 def get_docna_config(args):
     """ local helper to copy config to current working directory """

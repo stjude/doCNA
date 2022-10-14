@@ -37,9 +37,12 @@ All done
 4. Launch the viewer and visualize output:
 ```shell
 docna viewer
-INFO:     Started server process [50301]
+**********
+Access dashboard in browser via: http://10.220.24.115:33469
+**********
+INFO:     Started server process [19596]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Uvicorn running on http://127.0.0.1:33469 (Press CTRL+C to quit)
 ```
 
