@@ -1,6 +1,9 @@
-import sys
 import argparse
 import configparser
+import os
+import shutil
+import subprocess
+import sys
 
 import pandas as pd
 from doCNA.Run import Solution
@@ -13,27 +16,49 @@ __version__ = '0.8.4'
 
 
 def main():
-    parser = argparse.ArgumentParser (description = _description)
-    parser.add_argument ('-s', '--sample_name', required = False, 
+    parser = argparse.ArgumentParser (prog="docna", description = _description)
+    subparsers = parser.add_subparsers(title="actions", dest="action")
+    subparsers.required = True
+
+    ### Analyze subparser ###
+    parser_analyze = subparsers.add_parser("analyze", description="runs the analysis")
+    parser_analyze.add_argument ('-s', '--sample_name', required = False, 
                                  type = str, default = '',
                                  help = 'Input sample name. Default: from file name.')
-    parser.add_argument ('-n', '--no_processes', required = False, default = 1, type = int,
+    parser_analyze.add_argument ('-n', '--no_processes', required = False, default = 1, type = int,
                                  help = 'Number of processes. Default: 1')
-    parser.add_argument ('-i', '--input_file', required = True,
+    parser_analyze.add_argument ('-i', '--input_file', required = True,
                                  type = str, default = '',
                                  help = 'Input file name.')
-    parser.add_argument ('-c', '--config', required = False, default = 'config.ini',
+    parser_analyze.add_argument ('-c', '--config', required = False, default = 'config.ini',
                                  help = 'INI file with parameters')
-    parser.add_argument ('-l', '--level', default = 'INFO', 
+    parser_analyze.add_argument ('-l', '--level', default = 'INFO', 
                                  choices = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'NOTSET'],
                                  help = 'Level of verbosity for std.err logger.')
-    parser.add_argument ('-r', '--report_solutions', help = 'Generate report with all solutions.',
+    parser_analyze.add_argument ('-r', '--report_solutions', help = 'Generate report with all solutions.',
                                  action = 'store_true')
-    parser.add_argument ('-m0', '--coverage_diploid', required = False, type = float,
+    parser_analyze.add_argument ('-m0', '--coverage_diploid', required = False, type = float,
                                  help = 'Coverage of diploid.', default = 0)    
-    parser.add_argument ('-v', '--version', help = 'Print version', action = 'version',
+    parser_analyze.add_argument ('-v', '--version', help = 'Print version', action = 'version',
                                  version = 'doCNA v. {version}'.format(version = __version__))
+    parser_analyze.set_defaults (func=analyze)
 
+    ### Viewer subparser ###
+    parser_viewer = subparsers.add_parser ("viewer", description="launches the viewer")
+    parser_viewer.add_argument ("-p", "--port", default="8000", help="the port to launch the viewier")
+    parser_viewer.set_defaults (func=viewer)
+
+    ### Get Config subparser ###
+    get_config = subparsers.add_parser ("getconfig", description="copies default docna config to current dir")
+    get_config.add_argument ("-d", "--directory", default=os.getcwd(),
+                             help="copies config to this dir. Default is current working directory.")
+    get_config.set_defaults (func=get_docna_config)
+
+    args = parser.parse_args()
+    args.func(args)
+
+def analyze(args):
+    """ runs the analysis """
     ini = configparser.ConfigParser ()
     ini.read (args.config)
     sample = WGS.WGS (args.input_file,  sample_name = args.sample_name, parameters = ini,
@@ -58,6 +83,17 @@ def main():
     data.to_csv (args.sample_name + '.dat', index = None, sep = '\t')
 
     print ('All done')
+
+def viewer(args):
+    """ launches the viewer """
+    cmd = ["shiny", "run", "--port", args.port, "doCNA.viewer.app"]
+    proc = subprocess.run(cmd, stdout=sys.stdout, stderr=sys.stderr)
+
+def get_docna_config(args):
+    """ local helper to copy config to current working directory """
+    configdir = os.path.dirname (os.path.realpath(__file__))
+    shutil.copyfile (f'{configdir}/doCNA.ini', f'{args.directory}/doCNA.ini')
+    
 
 if __name__ == '__main__':
     sys.exit(main())
