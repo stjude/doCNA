@@ -113,7 +113,7 @@ def fit_single_G (values, alpha = 0.01, r = 0.5):
                    's': np.array([popt[1], popt[1]])},
             'thr' : thr, 'a' : np.ones(1)}
 
-def fit_double_G (values_all, alpha, r):
+def fit_double_G (values_all, alpha):
     """
     Function to fit two Gauss' to _values_
     

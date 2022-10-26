@@ -62,7 +62,7 @@ class Report:
                                                  2*segment.parameters['m']/segment.genome_medians['m'],
                                                  segment.parameters['model'], segment.parameters['d'], 
                                                  segment.parameters['model_score'],
-                                                 k, segment.parameters['clonality_score'],
+                                                 np.abs(k), segment.parameters['clonality_score'],
                                                  segment.parameters['k_d'], 
                                                  segment.cytobands,
                                                  segment.centromere_fraction, segment.parameters['call']]])

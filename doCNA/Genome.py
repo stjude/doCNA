@@ -8,7 +8,7 @@ from sklearn.linear_model import HuberRegressor
 
 from doCNA import Testing
 from doCNA import Chromosome
-from doCNA import Run
+from doCNA import Distribution
 from doCNA import Consts
 from doCNA import Report
 
@@ -219,14 +219,6 @@ class Genome:
         imbalanced_index = np.where ([(~ba)&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
         ed = {'A' : np.nan, 'B' : np.nan, 'C' : np.nan, 'down' : np.nan, 
                   'up' : np.nan, 'm' : np.nan, 's' : np.nan}
-        try:
-            self.genome_medians['clonality_balanced'] = fit_huber (all_data[balanced_index,:],
-                                                               alpha)
-            if self.genome_medians['clonality_balanced']['A'] < 0:
-                self.logger.warning ("Scoring of balanced segments seems to fail. Check before you yell!")
-        except:
-            self.logger.warning ("Scoring of balanced segments failed. None of the scoring makes sense.")    
-            self.genome_medians['clonality_balanced'] = ed
             
         try:            
             self.genome_medians['clonality_imbalanced'] = fit_huber (all_data[imbalanced_index,:],
@@ -238,36 +230,54 @@ class Genome:
             self.logger.warning ("Scoring of imbalanced segments failed. None of the scoring makes sense.")    
             self.genome_medians['clonality_imbalanced'] = ed
             
-            
-
-        A = (self.genome_medians['clonality_balanced']['A'], self.genome_medians['clonality_imbalanced']['A'])
-        B = (self.genome_medians['clonality_balanced']['B'], self.genome_medians['clonality_imbalanced']['B'])
-        C = (self.genome_medians['clonality_balanced']['C'], self.genome_medians['clonality_imbalanced']['C'])
-        m = (self.genome_medians['clonality_balanced']['m'], self.genome_medians['clonality_imbalanced']['m'])
-        s = (self.genome_medians['clonality_balanced']['s'], self.genome_medians['clonality_imbalanced']['s'])
-        up = (self.genome_medians['clonality_balanced']['up'], self.genome_medians['clonality_imbalanced']['up'])
-        down = (self.genome_medians['clonality_balanced']['down'], self.genome_medians['clonality_imbalanced']['down'])
+        A = self.genome_medians['clonality_balanced']['A']
+        B = self.genome_medians['clonality_balanced']['B']
+        C = self.genome_medians['clonality_balanced']['C']
+        m = self.genome_medians['clonality_balanced']['m']
+        s = self.genome_medians['clonality_balanced']['s']
+        up = self.genome_medians['clonality_balanced']['up']
+        down = self.genome_medians['clonality_balanced']['down']
         
-
-        i = 0
-        self.logger.info ('Score for balanced segments:')
-        self.logger.info (f'Core usuallness: log(k) = {-A[i]} log(s) + {-C[i]}')
-        self.logger.info (f'Normal estimation of distance to usual: m  = {m[i]}, s = {s[i]}.')
-        self.logger.info (f'Estimated normal range of distance to usual: from {down[i]} to {up[i]}.')
-        
-        i = 1
         self.logger.info ('Score for imbalanced segments:')
-        self.logger.info (f'Core usuallness: log(k) = {-A[i]} log(s) + {-C[i]}')
-        self.logger.info (f'Normal estimation of distance to usual: m  = {m[i]}, s = {s[i]}.')
-        self.logger.info (f'Estimated normal range of distance to usual: from {down[i]} to {up[i]}.')
+        self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
+        self.logger.info (f'Normal estimation of distance to usual: m  = {m}, s = {s}.')
+        self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
+                
+        #old, based on single distribution        
+        #try:
+        #    self.genome_medians['clonality_balanced'] = fit_huber (all_data[balanced_index,:],
+        #                                                       alpha)
+        #    if self.genome_medians['clonality_balanced']['A'] < 0:
+        #        self.logger.warning ("Scoring of balanced segments seems to fail. Check before you yell!")
+        #except:
+        #    self.logger.warning ("Scoring of balanced segments failed. None of the scoring makes sense.")    
+        #    self.genome_medians['clonality_balanced'] = ed
+        
+        #new, based on double distribution
+        
+        params = Distribution.fit_double_G (all_data[balanced_index,'k'].values, alpha = 0.01)
+        print (params)    
+
+        self.logger.info ('Score for balanced segments:')
+        self.logger.info (f'Double normal estimation of k: m  = {params["m"]}, s = {params["s"]}.')
+        self.logger.info (f'Estimation fits double normal as: p = {params["p"]}.')
+        self.logger.info (f'Note on quality: ')
         
         for seg in self.all_segments:
             x = np.log10((seg.end - seg.start)/10**6)
             y = np.log10(seg.parameters['k'])
-            i = 0 if seg.parameters['model'] == 'A(AB)B' else 1
-            seg.parameters['k_d'] = (A[i]*x+B[i]*y+C[i])/np.sqrt (A[i]**2+B[i]**2)
-            seg.parameters['clonality_score'] = -np.log10(sts.norm.sf(seg.parameters['k_d'], m[i], s[i]))
-            seg.parameters['call'] = 'CNV' if seg.parameters['k_d'] > up[i] else 'norm'                                                
+            if seg.parameters['model'] != 'A(AB)B':
+                seg.parameters['k_d'] = (A*x+B*y+C)/np.sqrt (A**2+B**2)
+                seg.parameters['clonality_score'] = -np.log10(sts.norm.sf(seg.parameters['k_d'], m, s))
+                seg.parameters['call'] = 'CNVi' if seg.parameters['k_d'] > up else 'norm'                                                
+            else:
+                k = seg.parameters['k']
+                z = (k - params['m'])/params['s']
+                p = np.array(sts.norm.cdf (z[0]), sts.norm.sf (z[1]))
+                ind = np.argmin (z)
+                seg.parameters['k_d'] = np.nan
+                seg.parameters['clonality_score'] = -np.log10(p[ind])
+                seg.parameters['call'] = 'norm' if (k < params['thr'][1]) & (k > params['thr'][0]) else 'CNVb'
 
                    
     def get_clonality_cnB_params (self, percentiles = (1,80)):
