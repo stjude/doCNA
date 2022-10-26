@@ -230,13 +230,13 @@ class Genome:
             self.logger.warning ("Scoring of imbalanced segments failed. None of the scoring makes sense.")    
             self.genome_medians['clonality_imbalanced'] = ed
             
-        A = self.genome_medians['clonality_balanced']['A']
-        B = self.genome_medians['clonality_balanced']['B']
-        C = self.genome_medians['clonality_balanced']['C']
-        m = self.genome_medians['clonality_balanced']['m']
-        s = self.genome_medians['clonality_balanced']['s']
-        up = self.genome_medians['clonality_balanced']['up']
-        down = self.genome_medians['clonality_balanced']['down']
+        A = self.genome_medians['clonality_imbalanced']['A']
+        B = self.genome_medians['clonality_imbalanced']['B']
+        C = self.genome_medians['clonality_imbalanced']['C']
+        m = self.genome_medians['clonality_imbalanced']['m']
+        s = self.genome_medians['clonality_imbalanced']['s']
+        up = self.genome_medians['clonality_imbalanced']['up']
+        down = self.genome_medians['clonality_imbalanced']['down']
         
         self.logger.info ('Score for imbalanced segments:')
         self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
@@ -254,15 +254,19 @@ class Genome:
         #    self.genome_medians['clonality_balanced'] = ed
         
         #new, based on double distribution
+        params = Distribution.fit_double_G (all_data[balanced_index,0], alpha = 0.01)
         
-        params = Distribution.fit_double_G (all_data[balanced_index,'k'].values, alpha = 0.01)
-        print (params)    
+        self.genome_medians['clonality_balanced'] = params
 
         self.logger.info ('Score for balanced segments:')
         self.logger.info (f'Double normal estimation of k: m  = {params["m"]}, s = {params["s"]}.')
         self.logger.info (f'Estimation fits double normal as: p = {params["p"]}.')
-        self.logger.info (f'Note on quality: ')
-        
+        self.logger.info ('Note on quality')
+        self.logger.info ('Distance of balanced distributions to k = 0:')
+        self.logger.info (f'Absolute: m = {params["m"]}')
+        self.logger.info (f'Relative: z = {params["m"]/params["s"]}')
+
+ 
         for seg in self.all_segments:
             x = np.log10((seg.end - seg.start)/10**6)
             y = np.log10(seg.parameters['k'])
@@ -273,7 +277,7 @@ class Genome:
             else:
                 k = seg.parameters['k']
                 z = (k - params['m'])/params['s']
-                p = np.array(sts.norm.cdf (z[0]), sts.norm.sf (z[1]))
+                p = np.array((sts.norm.cdf (z[0]), sts.norm.sf (z[1])))
                 ind = np.argmin (z)
                 seg.parameters['k_d'] = np.nan
                 seg.parameters['clonality_score'] = -np.log10(p[ind])

@@ -97,7 +97,7 @@ def calculate_distance_old (preset, m, ai, m0):
 def calculate_distance (preset, m, ai, m0):
     
     try:
-        k = preset.k(m,ai,m0)
+        k = np.abs(preset.k(m,ai,m0))
     except ZeroDivisionError:
         k = np.inf
 
