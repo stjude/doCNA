@@ -252,7 +252,8 @@ def server(input, output, session):
                           color_norm = 'gray', color_hit = 'darkorange', alpha = 0.3)
             ax.set_xlim ((np.log10(0.95*input.size_thr()), 
                           np.log10(1.05*bed_data['size'].max())))
-            ax.set_ylim ((np.log10(bed_data['k'].min()), 0.1))  # type: ignore
+            k_pos = bed_data.loc[bed_data['k'] > 0, 'k'].values
+            ax.set_ylim ((np.log10(k_pos.min()), 0.1))  # type: ignore
             return fig
     
     
@@ -283,9 +284,9 @@ def server(input, output, session):
         par_d = par()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, axs = plt.subplots (1, 2, figsize = (6,3), sharey = True)
-            
-            plot_cdf (bed_data.loc[bed_data.model != 'A(AB)B', 'dd'].values,
-                      ax = axs[0], par = ((par_d['m_i']),(par_d['s_i']), (1)))
+            tmp = bed_data.loc[bed_data.model != 'A(AB)B']
+            plot_cdf (tmp['dd'].values,
+                      ax = axs[0], par = ((par_d['m_i'],),(par_d['s_i'],), (sum(tmp.status == 'norm')/len(tmp),)))
             axs[0].set_title ('Imbalanced')
             axs[0].set_xlabel ('Distance to usual')
             axs[0].set_ylabel ('cdf')

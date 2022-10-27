@@ -1,6 +1,7 @@
 from collections import defaultdict, namedtuple
 import matplotlib.colors as mcl
 import matplotlib.pyplot as plt
+import scipy.stats as sts
 import pandas as pd
 import numpy as np
 import argparse as agp
@@ -208,11 +209,13 @@ def leopard_plot (bed_df, params, ax, highlight = '', color_norm = 'black', colo
     ax.set_xlabel ('size (MB) / log')
     ax.set_ylabel ('clonality / log')
 
-def plot_cdf (values, ax, par = ((0),(1),(1)), n = 100):
-    ax.scatter (np.sort(values), np.linspace (0,1, len(values)), 'bo')
-    x = np.linspace (0.9*min(values), 1.1*max(values), n)
+def plot_cdf (values, ax, par = ((0,),(1,),(1,)), n = 100):
+    ax.scatter (np.sort(values), np.linspace (0,1, len(values)))
+    l = 0.6*(max(values) - min(values))
+    x = np.linspace ((max(values) + min(values))/2 - l, (max(values) + min(values))/2 + l, n)
     y = np.zeros (n)
-    for m, s, a in zip (par[0], par[1], par[3]):
+    print (par)
+    for m, s, a in zip (par[0], par[1], par[2]):
         y += a*sts.norm.cdf (x, m, s)
     ax.plot (x,y, 'r-')
 
