@@ -37,10 +37,10 @@ class Report:
                            'a_model\t' + str(genome.genome_medians['model_d']['a']),
                            'Imbalanced:']
             for key in genome.genome_medians['clonality_imbalanced'].keys():
-                report_list.append (key + '\t' + str(genome.genome_medians['clonality_imbalanced'][key])) 
+                report_list.append (key + '_i\t' + str(genome.genome_medians['clonality_imbalanced'][key])) 
             report_list.append ('Balanced:')
             for key in genome.genome_medians['clonality_balanced'].keys():
-                report_list.append (key + '\t' + str(genome.genome_medians['clonality_balanced'][key]))
+                report_list.append (key + '_b\t' + str(genome.genome_medians['clonality_balanced'][key]))
             report = '\n'.join(report_list)
         else:
             report = ""     
@@ -72,7 +72,7 @@ class Report:
                                                  2*segment.parameters['m']/segment.genome_medians['m'],
                                                  segment.parameters['model'], segment.parameters['d'], 
                                                  segment.parameters['model_score'],
-                                                 np.abs(k), segment.parameters['clonality_score'],
+                                                 k, segment.parameters['clonality_score'],
                                                  segment.parameters['k_d'], 
                                                  segment.cytobands,
                                                  segment.centromere_fraction, segment.parameters['call']]])
