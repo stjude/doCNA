@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.signal as sig
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 chromlist = ['chr' + str (i) for i in range (1,23)]
 chromdic = {}
@@ -17,7 +17,7 @@ for c in chromlist:
 app_ui = ui.page_fluid(
     ui.h2 ({"style" : "text-align: center;"}, "doCNA results viewer. v. " + __version__),
 
-    ui.h4 ({"style" : "text-align: center;"}, "for doCNA >= 0.8.4"),
+    ui.h4 ({"style" : "text-align: center;"}, "for doCNA 0.8.5"),
 
     
     ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Segments filtering:"),
@@ -54,6 +54,11 @@ app_ui = ui.page_fluid(
                                                                  ui.column(6,
                                                                            ui.row(ui.output_plot ('solution_plot'),),)),
                                                          ),
+                                                   ui.nav("CNVs",
+                                                         ui.row(ui.input_checkbox_group ('sort_CNV_by',
+                                                                                         "Sort list by:",
+                                                                                         {'position':'position', 'score':'score'}, inline = True)),)),
+                                                         ui.row(ui.output_table (id = 'CNVs'),)),
                                                    ui.nav("Solution test",
                                                           ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Optimize settings:"),
                                                                                              ui.input_slider ('min_cn', "Min cov (relative):",
@@ -96,8 +101,8 @@ app_ui = ui.page_fluid(
                                                           ui.row(ui.output_table (id = 'chrom_segments'),))
                                                    )
                                    )
-          )
-        ) 
+#          )
+#        ) 
 
 def server(input, output, session):
     bed_full = reactive.Value(pd.DataFrame())
@@ -179,8 +184,11 @@ def server(input, output, session):
         pard = {}
         with open(file_input[0]['datapath'],'r') as f:
             for line in f.readlines():
-                key, value = line.split('\t')
-                pard[key] = float(value)
+                try:
+                    key, value = line.split('\t')
+                    pard[key] = float(value)
+                except:
+                    print ('Line: ' + line + 'not parsed.')
         par.set(pard)
         opt_solution.set ((np.array([]), np.array([])))
         m0.set(float(pard['m']))
@@ -321,6 +329,17 @@ def server(input, output, session):
         bed_data = bed()
         if (len(bed_data) != 0):
             return bed_data.loc[bed_data.chrom == input.chrom_view()].sort_values(by = 'start')
+
+    @output
+    @render.table
+    def CNVs ():
+        bed_data = bed()
+        if (len(bed_data) != 0):
+            if input.sort_CNV_by() == 'score':
+                tmp_bed = bed_data.loc[bed_data.status != 'norm'].sort_values(by = 'k_score', ascending = False)
+            else:
+                tmp_bed = bed_data.loc[bed_data.status != 'norm']
+            return tmp_bed
 
     @output
     @render.plot
