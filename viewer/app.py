@@ -195,11 +195,12 @@ def server(input, output, session):
                     pard[key] = float(value)
                 except:
                     try:
-                        value0, value1 = value[1:-2].split(' ')
+                        value0, value1 = value.split(' ')
                         pard[key] = (float(value0),float(value1))
                     except:
                         print ('Line: ' + line + 'not parsed.')
         par.set(pard)
+        print (pard)
         opt_solution.set ((np.array([]), np.array([])))
         m0.set(float(pard['m0']))
         m0_opt.set(float(pard['m0']))

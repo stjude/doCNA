@@ -40,7 +40,12 @@ class Report:
                 report_list.append (key + '_i\t' + str(genome.genome_medians['clonality_imbalanced'][key])) 
             report_list.append ('Balanced:')
             for key in genome.genome_medians['clonality_balanced'].keys():
-                report_list.append (key + '_b\t' + str(genome.genome_medians['clonality_balanced'][key]))
+                value = genome.genome_medians['clonality_balanced'][key]
+                if hasattr(value, '__iter__'):
+                    value_str = ' '.join([str(v) for v in value])
+                else:
+                    value_str = str(value)
+                report_list.append (key + '_b\t' + value_str)
             report = '\n'.join(report_list)
         else:
             report = ""     
