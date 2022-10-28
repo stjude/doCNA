@@ -80,7 +80,8 @@ class Report:
                                                  k, segment.parameters['clonality_score'],
                                                  segment.parameters['k_d'], 
                                                  segment.cytobands,
-                                                 segment.centromere_fraction, segment.parameters['call']]])
+                                                 segment.centromere_fraction, 
+                                                 segment.parameters['call'], segment.parameters['call_FDR']]])
         else:
             report = ''
         return report
