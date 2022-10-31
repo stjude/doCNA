@@ -216,7 +216,7 @@ class Genome:
         
         all_data = np.array([(seg.parameters['k'], (seg.end - seg.start)/1e6) for seg in self.all_segments])
                 
-        balanced_index = np.where ([ba&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
+        balanced_index = np.where ([ba&bi&fi for ba,bi,fi in zip(balanced, big, fit_model)])[0]
         imbalanced_index = np.where ([(~ba)&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
         ed = {'A' : np.nan, 'B' : np.nan, 'C' : np.nan, 'down' : np.nan, 
                   'up' : np.nan, 'm' : np.nan, 's' : np.nan, 'score_FDR' : np.inf}
@@ -238,13 +238,22 @@ class Genome:
         up = self.genome_medians['clonality_imbalanced']['up']
         down = self.genome_medians['clonality_imbalanced']['down']
         
+        imbalanced_all_index = np.where ([(~ba)&bi&fi for ba,bi,fi in zip(balanced, big, fit_model)])[0] 
+        data = all_data[imbalanced_all_index,:]
+        ks = np.log10 (data[:,0])
+        ss = np.log10 (data[:,1])
+        d = (A*ss+B*ks+C)/np.sqrt (A**2+B**2)
+        
+        self.genome_medians["clonality_imbalanced"]["score_FDR"] = FDR(np.sort(sts.norm.sf (d, m, s), dalpha))
+
         self.logger.info ('Score for imbalanced segments:')
         self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
         self.logger.info (f'Normal estimation of distance to usual: m  = {m}, s = {s}.')
         self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
         self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_imbalanced"]["score_FDR"]}.')
-
-        params = Distribution.fit_double_G (all_data[balanced_index,0], alpha = kalpha)
+        
+        k = all_data[balanced_index,0]
+        params = Distribution.fit_double_G (k, alpha = kalpha)
         
         self.genome_medians['clonality_balanced'] = params
         self.genome_medians['clonality_balanced']['score_FDR'] = FDR (score_double_gauss (k[:,np.newaxis],
@@ -260,7 +269,7 @@ class Genome:
         self.logger.info ('Distance of balanced distributions to k = 0:')
         self.logger.info (f'Absolute: m = {params["m"]}')
         self.logger.info (f'Relative: z = {params["m"]/params["s"]}')
-
+        self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_balanced"]["score_FDR"]}.')
  
         for seg in self.all_segments:
             x = np.log10((seg.end - seg.start)/10**6)
@@ -269,7 +278,7 @@ class Genome:
                 seg.parameters['k_d'] = (A*x+B*y+C)/np.sqrt (A**2+B**2)
                 seg.parameters['clonality_score'] = -np.log10(sts.norm.sf(seg.parameters['k_d'], m, s))
                 seg.parameters['call'] = 'CNVi' if seg.parameters['k_d'] > up else 'norm'
-                seg.parameters['call_FDR'] = 'CNVi' if seg.parameters['clonality_score'] >= self.genome_medians["clonality_imbalanced"]["score_FDR"] else 'norm'
+                seg.parameters['call_FDR'] = 'CNVi' if seg.parameters['clonality_score'] > self.genome_medians["clonality_imbalanced"]["score_FDR"] else 'norm'
             else:
                 k = seg.parameters['k']
                 z = (k - params['m'])/params['s']
@@ -277,7 +286,7 @@ class Genome:
                 seg.parameters['k_d'] = np.nan
                 seg.parameters['clonality_score'] = -np.log10(p)
                 seg.parameters['call'] = 'norm' if (k < params['thr'][1]) & (k > params['thr'][0]) else 'CNVb'
-                seg.parameters['call_FDR'] = 'norm' if seg.parameters['clonality_score'] < self.genome_medians['clonality_balanced']['score_FDR'] else 'CNVb'
+                seg.parameters['call_FDR'] = 'CNVb' if seg.parameters['clonality_score'] > self.genome_medians['clonality_balanced']['score_FDR'] else 'norm'
                    
             
     def report (self, report_type = 'bed'):
@@ -302,8 +311,8 @@ def fit_huber (data, alpha):
 
     down, up = Testing.get_outliers_thrdist (d, alpha = alpha)
     m, std = sts.norm.fit (d[(d > down)&(d < up)])
-
-    score_FDR = -np.log10(FDR (np.sort(sts.norm.sf (d, m, s)), alpha))
+    
+    #score_FDR = FDR (np.sort(sts.norm.sf (d, m, std)), alpha)
 
     return {'A' : A, 'B' : B, 'C' : C, 'down' : down, 'up' : up, 'm' : m,
             's' : std, 'score_FDR' : score_FDR}
@@ -312,7 +321,7 @@ def FDR (p, alpha):
     k = np.arange (1, len(p)+1)
     index = np.where(p <= alpha*k/len(p))[0]
     try:
-        return p[np.max(index)]
+        return -np.log10(p[np.max(index)])
     except:
         return np.inf
 

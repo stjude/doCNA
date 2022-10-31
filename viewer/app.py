@@ -161,7 +161,7 @@ def server(input, output, session):
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
                    names = ['chrom', 'start', 'end', 'ai', 'm', 'cn','model', 'd', 'model_score',
-                            'k', 'k_score','dd', 'cyto', 'cent', 'status', 'statusFDR'])
+                            'k', 'k_score','dd', 'cyto', 'cent', 'status_d', 'status'])
         df['size'] = (df['end'] - df['start'])/1e6
         #print (df.head())
         data.set(pd.DataFrame())
@@ -356,9 +356,9 @@ def server(input, output, session):
         bed_data = bed()
         if (len(bed_data) != 0):
             if input.sort_CNV_by() == 'score':
-                tmp_bed = bed_data.loc[bed_data.statusFDR != 'norm'].sort_values(by = 'k_score', ascending = False)
+                tmp_bed = bed_data.loc[bed_data.status != 'norm'].sort_values(by = 'k_score', ascending = False)
             else:
-                tmp_bed = bed_data.loc[bed_data.statusFDR != 'norm']
+                tmp_bed = bed_data.loc[bed_data.status != 'norm']
             return tmp_bed
 
     @output
