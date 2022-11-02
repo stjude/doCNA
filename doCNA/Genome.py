@@ -224,8 +224,10 @@ class Genome:
         try:            
             self.genome_medians['clonality_imbalanced'] = fit_huber (all_data[imbalanced_index,:],
                                                                      dalpha)
-            if self.genome_medians['clonality_imbalanced']['A'] < 0:
+            
+            if self.genome_medians['clonality_imbalanced']['A'] > 0:
                 self.logger.warning ("Scoring of imbalanced segments seems to fail. Check before you yell!")
+            
         except:
             self.logger.warning ("Scoring of imbalanced segments failed. None of the scoring makes sense.")    
             self.genome_medians['clonality_imbalanced'] = ed
@@ -244,7 +246,7 @@ class Genome:
         ss = np.log10 (data[:,1])
         d = (A*ss+B*ks+C)/np.sqrt (A**2+B**2)
         
-        self.genome_medians["clonality_imbalanced"]["score_FDR"] = FDR(np.sort(sts.norm.sf (d, m, s), dalpha))
+        self.genome_medians["clonality_imbalanced"]["score_FDR"] = FDR(np.sort(sts.norm.sf (d, m, s)), dalpha)
 
         self.logger.info ('Score for imbalanced segments:')
         self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
@@ -257,8 +259,8 @@ class Genome:
         
         self.genome_medians['clonality_balanced'] = params
         self.genome_medians['clonality_balanced']['score_FDR'] = FDR (score_double_gauss (k[:,np.newaxis],
-                                                                                          params['m'][np.newaxis, :],
-                                                                                          params['s'][np.newaxis, :]),
+                                                                                          params['m'][np.newaxis,:],
+                                                                                          params['s'][np.newaxis,:]),
                                                                       kalpha )
 
 
@@ -295,8 +297,9 @@ class Genome:
 #k, m, s must have correct dimentions
 def score_double_gauss (k, m, s):
     z = (k - m)/s
-    p = np.min((sts.norm.cdf (z[0]), sts.norm.sf (z[1])), axis = -1)
-    return  -np.log10(p)
+    ps =np.concatenate((sts.norm.cdf (z[:,0])[:, np.newaxis], sts.norm.sf (z[:,1])[:,np.newaxis]), axis = 1)
+    p = np.min(ps , axis = -1)
+    return  np.sort(p)
 
 def fit_huber (data, alpha):
     k = np.log10 (data[:,0])
@@ -308,11 +311,11 @@ def fit_huber (data, alpha):
     B = 1
     C = -huber.intercept_
     d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
-
+    
     down, up = Testing.get_outliers_thrdist (d, alpha = alpha)
     m, std = sts.norm.fit (d[(d > down)&(d < up)])
     
-    #score_FDR = FDR (np.sort(sts.norm.sf (d, m, std)), alpha)
+    score_FDR = FDR (np.sort(sts.norm.sf (d, m, std)), alpha)
 
     return {'A' : A, 'B' : B, 'C' : C, 'down' : down, 'up' : up, 'm' : m,
             's' : std, 'score_FDR' : score_FDR}
