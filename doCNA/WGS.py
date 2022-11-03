@@ -1,5 +1,4 @@
 import logging
-import sys
 import pickle as pkl
 from doCNA import Genome
 
@@ -11,14 +10,8 @@ class WGS:
         self.no_processes = no_processes
         self.wgs_file = open (wgs_file_name, 'r')
         self.config = parameters
-        try:
-            self.SG_file = open (self.config['Input']['SuperGood_filepath'], 'rb')
-        except FileNotFoundError:
-            sys.exit(f"SuperGood_filepath: {self.config['Input']['SuperGood_filepath']} should be the full real path to supergood file. Exiting")
-        try:
-            self.CB_file = open (self.config['Input']['CytoBand_filepath'], 'r')
-        except FileNotFoundError:
-            sys.exit(f"CytoBand_filepath: {self.config['Input']['CytoBand_filepath']} should be the full real path to cytoband file. Exiting")
+        self.SG_file = open (self.config['Input']['SuperGood_name'], 'rb')
+        self.CB_file = open (self.config['Input']['cytoband_name'], 'r')
         self.logger = self.create_logger (verbosity)
         self.logger.debug ("WGS object created.")
         

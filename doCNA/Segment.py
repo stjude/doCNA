@@ -97,7 +97,7 @@ def calculate_distance_old (preset, m, ai, m0):
 def calculate_distance (preset, m, ai, m0):
     
     try:
-        k = preset.k(m,ai,m0)
+        k = np.abs(preset.k(m,ai,m0))
     except ZeroDivisionError:
         k = np.inf
 
@@ -147,7 +147,7 @@ model_presets_2 = {#'cn1'
                                    B = lambda m,dv,m0: 1/2,
                                    C = lambda m,dv,m0: dv,
                                    D = lambda m,dv,m0: 0,
-                                   k = lambda m,dv,m0: np.abs(m/m0 - 1),
+                                   k = lambda m,dv,m0: m/m0 - 1,
                                    m = lambda k,m0: (1+k)*m0,
                                    ai = lambda k,m0: np.repeat(0, len(k)))} 
     

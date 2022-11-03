@@ -8,10 +8,10 @@ from sklearn.linear_model import HuberRegressor
 
 from doCNA import Testing
 from doCNA import Chromosome
-from doCNA import Run
+from doCNA import Distribution
 from doCNA import Consts
 from doCNA import Report
-
+from doCNA import Run
 
 class Genome:
     """Class to run genome wide tests of HE and create chromosomes."""
@@ -184,7 +184,8 @@ class Genome:
         
         self.score_model_distance ()
         self.score_clonality (size_thr = Consts.SIZE_THR, model_thr = Consts.MODEL_THR,
-                              alpha = Consts.DSCORE_ALPHA, k_thr = Consts.K_THR)
+                              dalpha = Consts.DSCORE_ALPHA, kalpha = Consts.KSCORE_ALPHA,
+                              k_thr = Consts.K_THR)
 
         
     def score_model_distance (self):
@@ -207,7 +208,7 @@ class Genome:
             seg.parameters['model_score'] = -np.log10 (np.exp (-popt[0]*seg.parameters['d']))
         self.genome_medians['model_d'] = {'a' : popt[0]}
         
-    def score_clonality (self, size_thr = 5e6, model_thr = 3, alpha = 0.01, k_thr = 0.11):
+    def score_clonality (self, size_thr = 5e6, model_thr = 3, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
         balanced = [seg.parameters['model'] == 'A(AB)B' for seg in self.all_segments]
         big = [(seg.end - seg.start)/1e6 > size_thr for seg in self.all_segments]
         notHO = [seg.parameters['k'] < k_thr for seg in self.all_segments]
@@ -215,136 +216,101 @@ class Genome:
         
         all_data = np.array([(seg.parameters['k'], (seg.end - seg.start)/1e6) for seg in self.all_segments])
                 
-        balanced_index = np.where ([ba&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
+        balanced_index = np.where ([ba&bi&fi for ba,bi,fi in zip(balanced, big, fit_model)])[0]
         imbalanced_index = np.where ([(~ba)&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
         ed = {'A' : np.nan, 'B' : np.nan, 'C' : np.nan, 'down' : np.nan, 
-                  'up' : np.nan, 'm' : np.nan, 's' : np.nan}
-        try:
-            self.genome_medians['clonality_balanced'] = fit_huber (all_data[balanced_index,:],
-                                                               alpha)
-            if self.genome_medians['clonality_balanced']['A'] < 0:
-                self.logger.warning ("Scoring of balanced segments seems to fail. Check before you yell!")
-        except:
-            self.logger.warning ("Scoring of balanced segments failed. None of the scoring makes sense.")    
-            self.genome_medians['clonality_balanced'] = ed
+                  'up' : np.nan, 'm' : np.nan, 's' : np.nan, 'score_FDR' : np.inf}
             
         try:            
             self.genome_medians['clonality_imbalanced'] = fit_huber (all_data[imbalanced_index,:],
-                                                                 alpha)
-            if self.genome_medians['clonality_imbalanced']['A'] < 0:
+                                                                     dalpha)
+            
+            if self.genome_medians['clonality_imbalanced']['A'] > 0:
                 self.logger.warning ("Scoring of imbalanced segments seems to fail. Check before you yell!")
-        
+            
         except:
             self.logger.warning ("Scoring of imbalanced segments failed. None of the scoring makes sense.")    
             self.genome_medians['clonality_imbalanced'] = ed
             
-            
-
-        A = (self.genome_medians['clonality_balanced']['A'], self.genome_medians['clonality_imbalanced']['A'])
-        B = (self.genome_medians['clonality_balanced']['B'], self.genome_medians['clonality_imbalanced']['B'])
-        C = (self.genome_medians['clonality_balanced']['C'], self.genome_medians['clonality_imbalanced']['C'])
-        m = (self.genome_medians['clonality_balanced']['m'], self.genome_medians['clonality_imbalanced']['m'])
-        s = (self.genome_medians['clonality_balanced']['s'], self.genome_medians['clonality_imbalanced']['s'])
-        up = (self.genome_medians['clonality_balanced']['up'], self.genome_medians['clonality_imbalanced']['up'])
-        down = (self.genome_medians['clonality_balanced']['down'], self.genome_medians['clonality_imbalanced']['down'])
+        A = self.genome_medians['clonality_imbalanced']['A']
+        B = self.genome_medians['clonality_imbalanced']['B']
+        C = self.genome_medians['clonality_imbalanced']['C']
+        m = self.genome_medians['clonality_imbalanced']['m']
+        s = self.genome_medians['clonality_imbalanced']['s']
+        up = self.genome_medians['clonality_imbalanced']['up']
+        down = self.genome_medians['clonality_imbalanced']['down']
         
-
-        i = 0
-        self.logger.info ('Score for balanced segments:')
-        self.logger.info (f'Core usuallness: log(k) = {-A[i]} log(s) + {-C[i]}')
-        self.logger.info (f'Normal estimation of distance to usual: m  = {m[i]}, s = {s[i]}.')
-        self.logger.info (f'Estimated normal range of distance to usual: from {down[i]} to {up[i]}.')
+        imbalanced_all_index = np.where ([(~ba)&bi&fi for ba,bi,fi in zip(balanced, big, fit_model)])[0] 
+        data = all_data[imbalanced_all_index,:]
+        ks = np.log10 (data[:,0])
+        ss = np.log10 (data[:,1])
+        d = (A*ss+B*ks+C)/np.sqrt (A**2+B**2)
         
-        i = 1
+        self.genome_medians["clonality_imbalanced"]["score_FDR"] = FDR(np.sort(sts.norm.sf (d, m, s)), dalpha)
+
         self.logger.info ('Score for imbalanced segments:')
-        self.logger.info (f'Core usuallness: log(k) = {-A[i]} log(s) + {-C[i]}')
-        self.logger.info (f'Normal estimation of distance to usual: m  = {m[i]}, s = {s[i]}.')
-        self.logger.info (f'Estimated normal range of distance to usual: from {down[i]} to {up[i]}.')
+        self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
+        self.logger.info (f'Normal estimation of distance to usual: m  = {m}, s = {s}.')
+        self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
+        self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_imbalanced"]["score_FDR"]}.')
         
+        k = all_data[balanced_index,0]
+        try:
+            params = Distribution.fit_double_G (k, alpha = kalpha, r = 0.2)
+            self.genome_medians['clonality_balanced'] = params
+            self.genome_medians['clonality_balanced']['score_FDR'] = FDR (score_double_gauss (k[:,np.newaxis],
+                                                                                          params['m'][np.newaxis,:],
+                                                                                          params['s'][np.newaxis,:]),
+                                                                          kalpha )
+
+
+            self.logger.info ('Score for balanced segments:')
+            self.logger.info (f'Double normal estimation of k: m  = {params["m"]}, s = {params["s"]}.')
+            self.logger.info (f'Estimation fits double normal as: p = {params["p"]}.')
+            self.logger.info ('Note on quality')
+            self.logger.info ('Distance of balanced distributions to k = 0:')
+            self.logger.info (f'Absolute: m = {params["m"]}')
+            self.logger.info (f'Relative: z = {params["m"]/params["s"]}')
+            self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_balanced"]["score_FDR"]}.')
+        except:
+            params = {'p' : np.nan,
+                      'm' : np.array([np.nan, np.nan]),
+                      's' : np.array([np.nan, np.nan]),
+                      'a' : np.array([np.nan, np.nan]),
+                      'thr' : np.array([np.nan, np.nan]),
+                      'score_FDR' : np.inf}
+
+            self.logger.warning ('Scoring of balanced regions failed and it makes no sense.')
+            self.genome_medians['clonality_balanced'] = params
+
         for seg in self.all_segments:
             x = np.log10((seg.end - seg.start)/10**6)
             y = np.log10(seg.parameters['k'])
-            i = 0 if seg.parameters['model'] == 'A(AB)B' else 1
-            seg.parameters['k_d'] = (A[i]*x+B[i]*y+C[i])/np.sqrt (A[i]**2+B[i]**2)
-            seg.parameters['clonality_score'] = -np.log10(sts.norm.sf(seg.parameters['k_d'], m[i], s[i]))
-            seg.parameters['call'] = 'CNV' if seg.parameters['k_d'] > up[i] else 'norm'                                                
-
+            if seg.parameters['model'] != 'A(AB)B':
+                seg.parameters['k_d'] = (A*x+B*y+C)/np.sqrt (A**2+B**2)
+                seg.parameters['clonality_score'] = -np.log10(sts.norm.sf(seg.parameters['k_d'], m, s))
+                seg.parameters['call'] = 'CNVi' if seg.parameters['k_d'] > up else 'norm'
+                seg.parameters['call_FDR'] = 'CNVi' if seg.parameters['clonality_score'] > self.genome_medians["clonality_imbalanced"]["score_FDR"] else 'norm'
+            else:
+                k = seg.parameters['k']
+                z = (k - params['m'])/params['s']
+                p = np.min((sts.norm.cdf (z[0]), sts.norm.sf (z[1])))
+                seg.parameters['k_d'] = np.nan
+                seg.parameters['clonality_score'] = -np.log10(p)
+                seg.parameters['call'] = 'norm' if (k < params['thr'][1]) & (k > params['thr'][0]) else 'CNVb'
+                seg.parameters['call_FDR'] = 'CNVb' if seg.parameters['clonality_score'] > self.genome_medians['clonality_balanced']['score_FDR'] else 'norm'
                    
-    def get_clonality_cnB_params (self, percentiles = (1,80)):
-
-        ks = []
-        ns = []
-        a = self.genome_medians['model_d']['a']
-        for chrom in self.chromosomes.keys():
-            for seg in self.chromosomes[chrom].segments:
-                if seg.parameters['model'] == 'A(AB)B':
-                    score = -np.log10 (np.exp (-a*seg.parameters['d']))
-                    size = seg.end - seg.start
-                    if (size > Consts.SIZE_THR)&(score < Consts.MODEL_THR):
-                        ks.append (seg.parameters['k'])
-                        ns.append (seg.parameters['n'])
-        try:
-            z = np.array(ks)*np.sqrt(np.array(ns))
             
-            pp = np.percentile (z[~np.isnan(z)], percentiles)
-            zz = z[(z >= pp[0])&(z <= pp[1])]
-            res, _ = opt.curve_fit (sts.norm.cdf, np.sort(zz), np.linspace (0,1,len(zz)), p0 = [np.mean(zz), np.std(zz)])
-            self.logger.info (f'Clonality distribution (for cnB model): FI(k) = G({res[0]}, {res[1]}))')
-            down, up = Testing.get_outliers_thrdist (zz, alpha = 0.005)
-            self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
-        except (IndexError,TypeError, RuntimeError, ValueError):
-            res = (np.nan, np.nan)
-            self.logger.warning ('Automatic estimation of clonality distribution for cnB model failed.')
-            down = np.nan
-            up = np.nan
-            
-        return {'m' : res[0], 's' : res[1], 'down_thr' : down, 'up_thr' : up}
-
-    def get_k_params (self):
-        
-        a = self.genome_medians['model_d']['a']
-        ks = []
-        ss = []
-        for chrom in self.chromosomes.keys():
-            for seg in self.chromosomes[chrom].segments:
-                size = (seg.end - seg.start)/10**6
-                score = -np.log10 (np.exp (-a*seg.parameters['d']))
-
-                big_filter = (seg.parameters['k'] < 0.11)|(size < 1)
-                num_filter = (~np.isnan(seg.parameters['k']))& (~np.isinf(seg.parameters['k']))  
-                score_filter = (~np.isinf(score))&(~np.isnan(score))&(score < Consts.MODEL_THR)
-                if (seg.parameters['k']>0)&score_filter&(seg.parameters['model'] != 'A(AB)B')&num_filter&(seg.centromere_fraction < 0.1)&big_filter:
-                    ks.append (seg.parameters['k'])
-                    ss.append (size)
-        k = np.log10 (np.array(ks))
-        s = np.log10 (np.array(ss))
-        try:
-            huber = HuberRegressor(alpha = 0.0, epsilon = 1.35)
-            huber.fit(s[:, np.newaxis], k)
-
-            A = -huber.coef_[0]
-            B = 1
-            C = -huber.intercept_
-            d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
-
-            down, up = Testing.get_outliers_thrdist (d, alpha = 0.005)
-            m, std = sts.norm.fit (d[(d > down)&(d < up)])
-            self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
-            self.logger.info (f'Normal estimation of distance to usual: m  = {m}, s = {std}.')
-            self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
-        except ValueError:
-            A = np.nan
-            B = np.nan
-            C = np.nan
-            down = np.nan
-            up = np.nan
-            m = np.nan
-            std = np.nan
-        return {'A' : A, 'B' : B, 'C' : C, 'down' : down, 'up' : up, 'm' : m, 'std' : std}
-        
     def report (self, report_type = 'bed'):
         return Report.Report(report_type).genome_report(self)
-    
+
+#k, m, s must have correct dimentions
+def score_double_gauss (k, m, s):
+    z = (k - m)/s
+    ps =np.concatenate((sts.norm.cdf (z[:,0])[:, np.newaxis], sts.norm.sf (z[:,1])[:,np.newaxis]), axis = 1)
+    p = np.min(ps , axis = -1)
+    return  np.sort(p)
+
 def fit_huber (data, alpha):
     k = np.log10 (data[:,0])
     s = np.log10 (data[:,1])
@@ -355,11 +321,22 @@ def fit_huber (data, alpha):
     B = 1
     C = -huber.intercept_
     d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
-
+    
     down, up = Testing.get_outliers_thrdist (d, alpha = alpha)
     m, std = sts.norm.fit (d[(d > down)&(d < up)])
-    return {'A' : A, 'B' : B, 'C' : C, 'down' : down, 'up' : up, 'm' : m, 's' : std}
+    
+    score_FDR = FDR (np.sort(sts.norm.sf (d, m, std)), alpha)
 
+    return {'A' : A, 'B' : B, 'C' : C, 'down' : down, 'up' : up, 'm' : m,
+            's' : std, 'score_FDR' : score_FDR}
+
+def FDR (p, alpha):
+    k = np.arange (1, len(p)+1)
+    index = np.where(p <= alpha*k/len(p))[0]
+    try:
+        return -np.log10(p[np.max(index)])
+    except:
+        return np.inf
 
 def f (c):
     c.find_runs()

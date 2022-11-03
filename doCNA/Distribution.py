@@ -99,7 +99,7 @@ def fit_single_G (values, alpha = 0.01, r = 0.5):
     
     Returns dictionary with parameters.
     """
-    thr = get_outliers_thrdist (np.sort(values))
+    thr = get_outliers_thrdist (np.sort(values), alpha, r)
     a = np.sort(values[(values >= thr[0])&(values <= thr[1])])
     popt, pcov = opt.curve_fit (sts.norm.cdf, a, np.linspace(0,1, len(a)), 
                                 p0 = [np.mean(a), np.std (a)])
@@ -113,15 +113,14 @@ def fit_single_G (values, alpha = 0.01, r = 0.5):
                    's': np.array([popt[1], popt[1]])},
             'thr' : thr, 'a' : np.ones(1)}
 
-def fit_double_G (values_all, alpha, r):
+def fit_double_G (values_all, alpha, r = 0.5):
     """
     Function to fit two Gauss' to _values_
     
     Returns dictionary with parameters.
     """
     
-    thr0 = get_outliers_thrdist (np.sort(values_all))
-    
+    thr0 = get_outliers_thrdist (np.sort(values_all), alpha, r)   
     values = values_all[(values_all >= thr0[0]) & (values_all <= thr0[1])]
     
     p0 = (0.5, np.percentile (values, 25), np.percentile(values,40)-np.percentile(values,10),
@@ -169,7 +168,7 @@ def fit_double_G (values_all, alpha, r):
             'a' : np.array([a0, 1-a0]),
             '2':{'m': np.array([m0,m1]), 
                  's': np.array([s0,s1]), 'a' : np.array([a0, 1-a0])},
-            'thr' : (out_min, out_max)}
+            'thr' : np.array((out_min, out_max))}
 
 def  check_bounds(bounds):
     lower = bounds[0].copy()

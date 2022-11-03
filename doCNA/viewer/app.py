@@ -1,5 +1,5 @@
 from shiny import *
-from .Plots import *
+from Plots import *
 
 # Import modules for plot rendering
 import numpy as np
@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.signal as sig
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 chromlist = ['chr' + str (i) for i in range (1,23)]
 chromdic = {}
@@ -17,7 +17,7 @@ for c in chromlist:
 app_ui = ui.page_fluid(
     ui.h2 ({"style" : "text-align: center;"}, "doCNA results viewer. v. " + __version__),
 
-    ui.h4 ({"style" : "text-align: center;"}, "for doCNA >= 0.8.4"),
+    ui.h4 ({"style" : "text-align: center;"}, "for doCNA 0.8.5"),
 
     
     ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Segments filtering:"),
@@ -46,14 +46,25 @@ app_ui = ui.page_fluid(
                                                                            ui.input_checkbox_group ('chroms_selected',
                                                                                                     "Select chromosomes to highlight",
                                                                                                     chromdic, inline = True)),),   
+                                                          ui.row (ui.input_file ('par_file', "Choose PAR file to upload:",
+                                                                                          multiple = False)),
                                                           ui.row(ui.column(6,
-                                                                           ui.input_file ('par_file', "Choose PAR file to upload:",
-                                                                                          multiple = False),
-                                                                           ui.output_plot ('CNV_plot'),
+                                                                           ui.h5 ('Solution review:'),
+                                                                           ui.output_plot ('solution_plot'),
                                                                            ),
                                                                  ui.column(6,
-                                                                           ui.row(ui.output_plot ('solution_plot'),),)),
+                                                                           ui.row(
+                                                                                  ui.h5 ('Scoring review'),
+                                                                                  ui.output_plot ('CNV_plot'),),
+                                                                           ui.row(
+                                                                                  ui.output_plot('scoring_dists')),
+                                                                           )),
                                                          ),
+                                                   ui.nav("CNVs",
+                                                         ui.row(ui.input_radio_buttons ('sort_CNV_by',
+                                                                                         "Sort list by:",
+                                                                                         {'position':'position', 'score':'score'}, inline = True)),
+                                                         ui.row(ui.output_table (id = 'CNVs'),)),
                                                    ui.nav("Solution test",
                                                           ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Optimize settings:"),
                                                                                              ui.input_slider ('min_cn', "Min cov (relative):",
@@ -150,7 +161,7 @@ def server(input, output, session):
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
                    names = ['chrom', 'start', 'end', 'ai', 'm', 'cn','model', 'd', 'model_score',
-                            'k', 'k_score','dd', 'cyto', 'cent', 'status'])
+                            'k', 'k_score','dd', 'cyto', 'cent', 'status_d', 'status'])
         df['size'] = (df['end'] - df['start'])/1e6
         #print (df.head())
         data.set(pd.DataFrame())
@@ -179,12 +190,20 @@ def server(input, output, session):
         pard = {}
         with open(file_input[0]['datapath'],'r') as f:
             for line in f.readlines():
-                key, value = line.split('\t')
-                pard[key] = float(value)
+                try:
+                    key, value = line.split('\t')
+                    pard[key] = float(value)
+                except:
+                    try:
+                        value0, value1 = value.split(' ')
+                        pard[key] = (float(value0),float(value1))
+                    except:
+                        print ('Line: ' + line + 'not parsed.')
         par.set(pard)
+        print (pard)
         opt_solution.set ((np.array([]), np.array([])))
-        m0.set(float(pard['m']))
-        m0_opt.set(float(pard['m']))
+        m0.set(float(pard['m0']))
+        m0_opt.set(float(pard['m0']))
         
         
     @reactive.Effect
@@ -222,46 +241,34 @@ def server(input, output, session):
         par_d = par()
         #print (par_d)
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
-            fig, ax = plt.subplots (1, 1, figsize = (6,6))
+            fig, ax = plt.subplots (1, 1, figsize = (6,3))
             #leopard_plot (bed_data, par_d, ax, highlight = input.chroms_selected())
             leopard_plot (bed_data.loc[bed_data['model'] != 'A(AB)B'], 
-                          (par_d['a_i'], par_d['b_i'], par_d['bt_i']),
+                          (par_d['A_i'], par_d['C_i'], par_d['C_i']-par_d['up_i']),
                           ax, highlight = input.chroms_selected(),
                           color_norm = 'black', color_hit = 'darkred')
             leopard_plot (bed_data.loc[bed_data['model'] == 'A(AB)B'], 
-                          (par_d['a_b'], par_d['b_b'], par_d['bt_b']),
+                          (np.nan, np.nan, np.nan),
                           ax, highlight = input.chroms_selected(), 
-                          color_norm = 'gray', color_hit = 'darkorange')
+                          color_norm = 'gray', color_hit = 'darkorange', alpha = 0.3)
             ax.set_xlim ((np.log10(0.95*input.size_thr()), 
                           np.log10(1.05*bed_data['size'].max())))
-            ax.set_ylim ((np.log10(bed_data['k'].min()), 0.1))  # type: ignore
+            k_pos = bed_data.loc[bed_data['k'] > 0, 'k'].values
+            ax.set_ylim ((np.log10(k_pos.min()), 0.1))  # type: ignore
             return fig
     
-    #@output
-    #@render.plot (alt = "Models")
-    #def model_legend():
-    #    fig, ax = plt.subplots (1,1, figsize = (12,0.5))
-    #    for model in colorsCN.keys():
-    #            ax.plot ((),(), lw = 10, color = colorsCN[model], label = model)
-    #    ax.plot ((),(), lw = 10, color = 'yellow', label = 'complex')
-    #    ax.plot ((),(), lw = 10, color = 'red', label = 'fail')
-    #    ax.legend (loc = "center right", ncol = len(model_presets)+2)
-    #    ax.axis('off')
-        
-    #    return fig
-            
+    
     @output
     @render.plot (alt = "Solution view")
     def solution_plot ():
         bed_data = bed()
         par_d = par()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
-            #models = models_dic()
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
             check_solution_plot_opt (bed_data, par_d, ax, 
                                           highlight = input.chroms_selected())
             k = np.linspace (0,1,100)
-            m0 = par_d['m']
+            m0 = par_d['m0']
             for model in colorsCN.keys():
                 ax.plot (model_presets[model].m(k, m0), model_presets[model].ai(k, m0),  
                          lw = 2, linestyle = '-', color = colorsCN[model], alpha  = 0.6)
@@ -270,6 +277,27 @@ def server(input, output, session):
             ax.set_ylim ((max(-0.02, -0.02*bed_data.ai.max()), bed_data.ai.max()*1.1))
             
             return fig
+    
+    @output
+    @render.plot (alt = 'Scoring distribution')
+    def scoring_dists ():
+        bed_data = bed()
+        par_d = par()
+        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
+            fig, axs = plt.subplots (1, 2, figsize = (6,3), sharey = True)
+            tmp = bed_data.loc[bed_data.model != 'A(AB)B']
+            plot_cdf (tmp['dd'].values,
+                      ax = axs[0], par = ((par_d['m_i'],),(par_d['s_i'],), (sum(tmp.status == 'norm')/len(tmp),)))
+            axs[0].set_title ('Imbalanced')
+            axs[0].set_xlabel ('Distance to usual')
+            axs[0].set_ylabel ('cdf')
+            plot_cdf (bed_data.loc[bed_data.model == 'A(AB)B', 'k'].values,
+                      ax = axs[1], par = (par_d['m_b'],par_d['s_b'],par_d['a_b']))
+            axs[1].set_title ('Balanced')
+            axs[1].set_xlabel ('Sign clonality')
+                
+            return fig
+    
     
     @output
     @render.plot (alt = "Solution view")
@@ -321,6 +349,17 @@ def server(input, output, session):
         bed_data = bed()
         if (len(bed_data) != 0):
             return bed_data.loc[bed_data.chrom == input.chrom_view()].sort_values(by = 'start')
+
+    @output
+    @render.table
+    def CNVs ():
+        bed_data = bed()
+        if (len(bed_data) != 0):
+            if input.sort_CNV_by() == 'score':
+                tmp_bed = bed_data.loc[bed_data.status != 'norm'].sort_values(by = 'k_score', ascending = False)
+            else:
+                tmp_bed = bed_data.loc[bed_data.status != 'norm']
+            return tmp_bed
 
     @output
     @render.plot
@@ -402,9 +441,9 @@ def server(input, output, session):
         if (len(par_d.keys()) != 0) & (len(opt[0]) > 0):
             min_dist_at = opt[0][np.where(opt[1] == opt[1].min())[0][0]]
             text = ["Experimental feature!!",
-                    "Found m0: " + str(par()['m']),
+                    "Found m0: " + str(par['m0']),
                     "Optimized m0: " + str(min_dist_at),
-                    f"The relative difference: {np.abs(min_dist_at - par_d['m'])/par_d['m']}"]
+                    f"The relative difference: {np.abs(min_dist_at - par_d['m0'])/par_d['m0']}"]
             return '\n'.join(text)
         else:
             return
