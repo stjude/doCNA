@@ -255,24 +255,29 @@ class Genome:
         self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_imbalanced"]["score_FDR"]}.')
         
         k = all_data[balanced_index,0]
-        params = Distribution.fit_double_G (k, alpha = kalpha)
-        
-        self.genome_medians['clonality_balanced'] = params
-        self.genome_medians['clonality_balanced']['score_FDR'] = FDR (score_double_gauss (k[:,np.newaxis],
+        try:
+            params = Distribution.fit_double_G (k, alpha = kalpha, r = 0.2)
+            self.genome_medians['clonality_balanced'] = params
+            self.genome_medians['clonality_balanced']['score_FDR'] = FDR (score_double_gauss (k[:,np.newaxis],
                                                                                           params['m'][np.newaxis,:],
                                                                                           params['s'][np.newaxis,:]),
-                                                                      kalpha )
+                                                                          kalpha )
 
 
-        self.logger.info ('Score for balanced segments:')
-        self.logger.info (f'Double normal estimation of k: m  = {params["m"]}, s = {params["s"]}.')
-        self.logger.info (f'Estimation fits double normal as: p = {params["p"]}.')
-        self.logger.info ('Note on quality')
-        self.logger.info ('Distance of balanced distributions to k = 0:')
-        self.logger.info (f'Absolute: m = {params["m"]}')
-        self.logger.info (f'Relative: z = {params["m"]/params["s"]}')
-        self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_balanced"]["score_FDR"]}.')
- 
+            self.logger.info ('Score for balanced segments:')
+            self.logger.info (f'Double normal estimation of k: m  = {params["m"]}, s = {params["s"]}.')
+            self.logger.info (f'Estimation fits double normal as: p = {params["p"]}.')
+            self.logger.info ('Note on quality')
+            self.logger.info ('Distance of balanced distributions to k = 0:')
+            self.logger.info (f'Absolute: m = {params["m"]}')
+            self.logger.info (f'Relative: z = {params["m"]/params["s"]}')
+            self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_balanced"]["score_FDR"]}.')
+        except:
+            self.logger.warning ('Scoring of balanced regions failed and it makes no sense.')
+            self.genome_medians['clonality_balanced'] = {'m' : np.array([np.nan, np.nan]),
+                                                         's' : np.array([np.nan, np.nan]),
+                                                         'score_FDR' : np.inf}
+
         for seg in self.all_segments:
             x = np.log10((seg.end - seg.start)/10**6)
             y = np.log10(seg.parameters['k'])

@@ -99,7 +99,7 @@ def fit_single_G (values, alpha = 0.01, r = 0.5):
     
     Returns dictionary with parameters.
     """
-    thr = get_outliers_thrdist (np.sort(values))
+    thr = get_outliers_thrdist (np.sort(values), alpha, r)
     a = np.sort(values[(values >= thr[0])&(values <= thr[1])])
     popt, pcov = opt.curve_fit (sts.norm.cdf, a, np.linspace(0,1, len(a)), 
                                 p0 = [np.mean(a), np.std (a)])
@@ -120,8 +120,7 @@ def fit_double_G (values_all, alpha, r = 0.5):
     Returns dictionary with parameters.
     """
     
-    thr0 = get_outliers_thrdist (np.sort(values_all))
-    
+    thr0 = get_outliers_thrdist (np.sort(values_all), alpha, r)   
     values = values_all[(values_all >= thr0[0]) & (values_all <= thr0[1])]
     
     p0 = (0.5, np.percentile (values, 25), np.percentile(values,40)-np.percentile(values,10),
