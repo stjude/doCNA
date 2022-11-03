@@ -273,10 +273,15 @@ class Genome:
             self.logger.info (f'Relative: z = {params["m"]/params["s"]}')
             self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_balanced"]["score_FDR"]}.')
         except:
+            params = {'p' : np.nan,
+                      'm' : np.array([np.nan, np.nan]),
+                      's' : np.array([np.nan, np.nan]),
+                      'a' : np.array([np.nan, np.nan]),
+                      'thr' : np.array([np.nan, np.nan]),
+                      'score_FDR' : np.inf}
+
             self.logger.warning ('Scoring of balanced regions failed and it makes no sense.')
-            self.genome_medians['clonality_balanced'] = {'m' : np.array([np.nan, np.nan]),
-                                                         's' : np.array([np.nan, np.nan]),
-                                                         'score_FDR' : np.inf}
+            self.genome_medians['clonality_balanced'] = params
 
         for seg in self.all_segments:
             x = np.log10((seg.end - seg.start)/10**6)
