@@ -1,5 +1,4 @@
 import logging
-import sys
 import pickle as pkl
 from doCNA import Genome
 

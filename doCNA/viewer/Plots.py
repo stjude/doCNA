@@ -1,10 +1,10 @@
-import argparse as agp
 from collections import defaultdict, namedtuple
-
 import matplotlib.colors as mcl
 import matplotlib.pyplot as plt
+import scipy.stats as sts
 import pandas as pd
 import numpy as np
+import argparse as agp
 
 colorsCN = defaultdict (lambda: 'purple')
 colorsCN['AB+A'] = 'lime'
@@ -182,32 +182,42 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
     axs[1].set_ylabel ('copy number')
     axs[2].set_ylabel ('score') 
 
-def leopard_plot (bed_df, params, ax, highlight = '', color_norm = 'black', color_hit = 'darkred'):
+def leopard_plot (bed_df, params, ax, highlight = '', color_norm = 'black', color_hit = 'darkred', alpha = 1):
     
     a,b,bt = params
     
     x = np.log10 (bed_df['size'])
-    y = np.log10 (bed_df['k'])
-    ax.plot (x, y, marker = '.', c = color_norm, lw = 0, alpha = 0.5)
+    y = np.log10 (np.abs (bed_df['k']))
+    ax.plot (x, y, marker = 'o', c = color_norm, lw = 0, alpha = alpha)
 
     x = np.log10 (bed_df.loc[(bed_df.status != 'norm'), 'size'])
-    y = np.log10 (bed_df.loc[(bed_df.status != 'norm'), 'k'])
-    ax.plot (x, y, marker = '.', c = color_hit, lw = 0, alpha = 1)
+    y = np.log10 (np.abs(bed_df.loc[(bed_df.status != 'norm'), 'k']))
+    ax.plot (x, y, marker = 'o', c = color_hit, lw = 0, alpha = alpha)
     
 
     for chrom in highlight:
         tmp = bed_df.loc[bed_df['chrom'] == chrom].sort_values (by = 'start')
         x = np.log10 (tmp['size'])
-        y = np.log10 (tmp['k'])
+        y = np.log10 (np.abs(tmp['k']))
         ax.plot (x, y, marker = 's', c = 'magenta', lw = 1, alpha = 1, fillstyle = 'none')
 
 
     xt = np.linspace (-3, 2.5, 10)
     ax.plot (xt, -a*xt - b, c = color_norm)
-    ax.plot (xt, -a*xt - bt , c = color_hit)
+    ax.plot (xt, -a*xt - bt , c = color_hit, linestyle = ':')
 
     ax.set_xlabel ('size (MB) / log')
     ax.set_ylabel ('clonality / log')
+
+def plot_cdf (values, ax, par = ((0,),(1,),(1,)), n = 100):
+    ax.scatter (np.sort(values), np.linspace (0,1, len(values)))
+    l = 0.6*(max(values) - min(values))
+    x = np.linspace ((max(values) + min(values))/2 - l, (max(values) + min(values))/2 + l, n)
+    y = np.zeros (n)
+    print (par)
+    for m, s, a in zip (par[0], par[1], par[2]):
+        y += a*sts.norm.cdf (x, m, s)
+    ax.plot (x,y, 'r-')
 
 def chicken_feet_plot (bed_df, ax, highlight = '', k_score_column = 'k_score',
                        max_k_score = 10, model_thr = 5,
@@ -276,7 +286,7 @@ def earth_worm_plot (data_df, bed_df, params, chrom, axs, k_score_column = 'k_sc
     chromdata.loc[chromdata['symbol'] == 'E'].plot(x = 'position', y = 'cov', lw = 0, alpha = 0.3, color = 'darkgray', marker = '.',
                                                    ms = markersize, ax = axs[1], legend = False)
     
-    axs[1].plot ((0, chromdata.position.max()), (params['m'], params['m']), 'k:')
+    axs[1].plot ((0, chromdata.position.max()), (params['m0'], params['m0']), 'k:')
     axs[1].set_ylim (chromdata['cov'].quantile ([0.005, 0.999]))
     axs[0].set_ylabel ('BAF')
     axs[1].set_ylabel ('cn')
