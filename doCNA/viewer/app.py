@@ -40,14 +40,18 @@ app_ui = ui.page_fluid(
                                                           ui.row(ui.column(12,          
                                                                  #ui.output_plot ('model_legend'),
                                                                  ui.input_file ('bed_file', "Choose BED file to upload:",
-                                                                                multiple = False),
+                                                                                multiple = False, accept = '.bed'),
                                                                  ui.output_plot ('genome_plot'),)),
+                                                          ui.row(ui.column(12,          
+                                                                 ui.input_file ('log_file', "Choose LOG file to screen:",
+                                                                                multiple = False, accept = '.log'),
+                                                                 ui.output_text ('log_text'),)),
                                                           ui.row(ui.column(12,
                                                                            ui.input_checkbox_group ('chroms_selected',
                                                                                                     "Select chromosomes to highlight",
                                                                                                     chromdic, inline = True)),),   
                                                           ui.row (ui.input_file ('par_file', "Choose PAR file to upload:",
-                                                                                          multiple = False)),
+                                                                                          multiple = False, accept = '.par')),
                                                           ui.row(ui.column(6,
                                                                            ui.h5 ('Solution review:'),
                                                                            ui.output_plot ('solution_plot'),
@@ -92,14 +96,16 @@ app_ui = ui.page_fluid(
                                                                                           ui.h6("Total distance to solution at coverage:"),
                                                                                           ui.output_plot('opt_plot', "Relative distance plot"),
                                                                                           ui.h6("Pick coverage to plot models:"),
-                                                                                          ui.input_slider ('m0_cov', "Diploid coverage",
+                                                                                          ui.row(ui.input_slider ('m0_cov', "Diploid coverage",
                                                                                                                value = 0.5, min = 0, max = 1, width = '200%'),
+                                                                                                 ui.input_action_button('apply_m0',
+                                                                                                                        "Apply m0", width = '10%')),
                                                                                           ui.output_text_verbatim ('solutions')))),
                                                                                           
                                                    ui.nav("Chromosome view",
                                                           ui.row(ui.column(12,
                                                                            ui.input_file ('data_file', "Choose data file to upload:",
-                                                                                           multiple = False),
+                                                                                           multiple = False, accept = ('.dat', '.dat.gz')),
                                                                            ui.input_radio_buttons ('chrom_view', "Choose chromosome to inspect",                                                                                    
                                                                                                    chromdic, inline = True),)),
                                                           ui.row(ui.output_plot ('data_plot'),
@@ -119,7 +125,7 @@ def server(input, output, session):
     chrom_sizes = reactive.Value(pd.Series())
     m0 = reactive.Value(np.nan)
     m0_opt = reactive.Value(np.nan)
-    
+    log_file = reactive.Value ([])
     
     @output
     @render.text
@@ -132,6 +138,13 @@ def server(input, output, session):
         minims.sort (key = lambda x: x[1], reverse = False)
         
         return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) for m,d in minims])
+    
+    @output
+    @render.text
+    def log_text():
+        log = log_file()
+        warns = [log[i] for i in np.where([l.find('WARNING') != -1 for l in log])[0]]
+        return '\n'.join(warns)
     
     
     @output
@@ -153,6 +166,16 @@ def server(input, output, session):
     
     
     @reactive.Effect
+    @reactive.event (input.log_file)
+    def _():
+        file_input = input.log_file()
+        if not file_input:
+            return
+        with open(file_input[0]['datapath']) as f:
+            log = f.readlines()
+        log_file.set(log)    
+    
+    @reactive.Effect
     @reactive.event(input.bed_file)
     def _():
         file_input = input.bed_file()
@@ -168,7 +191,7 @@ def server(input, output, session):
         par.set({})
         bed_full.set(df)
         opt_solution.set ((np.array([]), np.array([])))
-        #models_dic().update (model_presets)
+        log_file.set([])
             
     @reactive.Effect
     @reactive.Calc

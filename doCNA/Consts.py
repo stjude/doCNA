@@ -4,6 +4,7 @@ SEX_CHROMS = ['chrX', 'chrY']
 #Scoring
 SIZE_THR = 1 #in Mb
 K_THR = 0.11
+MIN_LEN_K_BALANCED = 6
 MODEL_THR = 3
 #alpha used to determine weidening threshold, using normal approximation 
 FB_ALPHA = 0.1

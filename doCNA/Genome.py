@@ -256,7 +256,13 @@ class Genome:
         
         k = all_data[balanced_index,0]
         try:
-            params = Distribution.fit_double_G (k, alpha = kalpha, r = 0.2)
+            if len(k) < Consts.MIN_LEN_K_BALANCED:
+                raise ValueError 
+            
+            bounds = [(0,-0.2, 0.01, 0.0, 0.01),
+                      (1, 0.0, 0.2, 0.2, 0.2)]
+            
+            params = Distribution.fit_double_G (k, alpha = kalpha, r = 0.2, initial_bounds = bounds)
             self.genome_medians['clonality_balanced'] = params
             self.genome_medians['clonality_balanced']['score_FDR'] = FDR (score_double_gauss (k[:,np.newaxis],
                                                                                           params['m'][np.newaxis,:],

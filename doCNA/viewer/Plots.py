@@ -9,7 +9,7 @@ import argparse as agp
 colorsCN = defaultdict (lambda: 'purple')
 colorsCN['AB+A'] = 'lime'
 colorsCN['AB+AA'] = 'blue'
-colorsCN['AB+AAB'] = 'darkred'
+colorsCN['AB+AAB'] = 'cyan'
 colorsCN['A(AB)B'] = 'black'
 colorsCN['AB+AAAB'] = 'magenta'
 #colorsCN['AA+AAB'] = 'chocolate'
