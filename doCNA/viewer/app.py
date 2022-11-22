@@ -47,6 +47,7 @@ app_ui = ui.page_fluid(
                                                                                 multiple = False, accept = '.log'),
                                                                  ui.output_text ('log_text'),)),
                                                           ui.row(ui.column(12,
+                                                                           ui.h5 (''),
                                                                            ui.input_checkbox_group ('chroms_selected',
                                                                                                     "Select chromosomes to highlight",
                                                                                                     chromdic, inline = True)),),   
@@ -58,7 +59,7 @@ app_ui = ui.page_fluid(
                                                                            ),
                                                                  ui.column(6,
                                                                            ui.row(
-                                                                                  ui.h5 ('Scoring review'),
+                                                                                  ui.h5 ('Scoring review:'),
                                                                                   ui.output_plot ('CNV_plot'),),
                                                                            ui.row(
                                                                                   ui.output_plot('scoring_dists')),
@@ -144,7 +145,7 @@ def server(input, output, session):
     def log_text():
         log = log_file()
         warns = [log[i] for i in np.where([l.find('WARNING') != -1 for l in log])[0]]
-        return '\n'.join(warns)
+        return '\n\r'.join(warns)
     
     
     @output
@@ -215,7 +216,7 @@ def server(input, output, session):
             for line in f.readlines():
                 try:
                     key, value = line.split('\t')
-                    pard[key] = float(value)
+                    pard[key] = (float(value),)
                 except:
                     try:
                         value0, value1 = value.split(' ')
@@ -225,8 +226,8 @@ def server(input, output, session):
         par.set(pard)
         print (pard)
         opt_solution.set ((np.array([]), np.array([])))
-        m0.set(float(pard['m0']))
-        m0_opt.set(float(pard['m0']))
+        m0.set(float(pard['m0'][0]))
+        m0_opt.set(float(pard['m0'][0]))
         
         
     @reactive.Effect
@@ -267,7 +268,7 @@ def server(input, output, session):
             fig, ax = plt.subplots (1, 1, figsize = (6,3))
             #leopard_plot (bed_data, par_d, ax, highlight = input.chroms_selected())
             leopard_plot (bed_data.loc[bed_data['model'] != 'A(AB)B'], 
-                          (par_d['A_i'], par_d['C_i'], par_d['C_i']-par_d['up_i']),
+                          (par_d['A_i'][0], par_d['C_i'][0], par_d['C_i'][0]-par_d['up_i'][0]),
                           ax, highlight = input.chroms_selected(),
                           color_norm = 'black', color_hit = 'darkred')
             leopard_plot (bed_data.loc[bed_data['model'] == 'A(AB)B'], 
@@ -309,15 +310,18 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, axs = plt.subplots (1, 2, figsize = (6,3), sharey = True)
             tmp = bed_data.loc[bed_data.model != 'A(AB)B']
-            plot_cdf (tmp['dd'].values,
-                      ax = axs[0], par = ((par_d['m_i'],),(par_d['s_i'],), (sum(tmp.status == 'norm')/len(tmp),)))
-            axs[0].set_title ('Imbalanced')
-            axs[0].set_xlabel ('Distance to usual')
-            axs[0].set_ylabel ('cdf')
-            plot_cdf (bed_data.loc[bed_data.model == 'A(AB)B', 'k'].values,
-                      ax = axs[1], par = (par_d['m_b'],par_d['s_b'],par_d['a_b']))
-            axs[1].set_title ('Balanced')
-            axs[1].set_xlabel ('Sign clonality')
+            if len(tmp) > 0:
+                plot_cdf (tmp['dd'].values,
+                          ax = axs[0], par = ((par_d['m_i'],),(par_d['s_i'],), (sum(tmp.status == 'norm')/len(tmp),)))
+                axs[0].set_title ('Imbalanced')
+                axs[0].set_xlabel ('Distance to usual')
+                axs[0].set_ylabel ('cdf')
+            tmp = bed_data.loc[bed_data.model == 'A(AB)B', 'k']
+            if len(tmp) > 0:
+                plot_cdf (tmp.values,
+                          ax = axs[1], par = (par_d['m_b'],par_d['s_b'],par_d['a_b']))
+                axs[1].set_title ('Balanced')
+                axs[1].set_xlabel ('Sign clonality')
                 
             return fig
     
@@ -401,7 +405,7 @@ def server(input, output, session):
         bed_data = bed()
         data_df = data()
         if (len(bed_data) != 0) & (len(data_df) != 0):
-            bed_CNV = bed_data.loc[(bed_data.chrom == input.chrom_view())&(bed_data['status'] == 'CNV')]
+            bed_CNV = bed_data.loc[(bed_data.chrom == input.chrom_view())&(bed_data['status'] == 'CNVi')]
             data_chrom = data_df.loc[data_df.chrom == input.chrom_view()]
             fig, ax = plt.subplots (figsize = (6,8))
             verification_plot_CNV (data_chrom, bed_CNV, ax)

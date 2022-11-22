@@ -107,13 +107,13 @@ def fit_single_G (values, alpha = 0.01, r = 0.5):
     return {'p' : ksp.pvalue, 
             'm': popt[0],
             's': popt[1],
-            '1' : {'m': np.array(popt[0]),
-                   's': np.array(popt[1])},
+            '1' : {'m': np.array([popt[0]]),
+                   's': np.array([popt[1]])},
             '2' : {'m': np.array([popt[0], popt[0]]),
                    's': np.array([popt[1], popt[1]])},
             'thr' : thr, 'a' : np.ones(1)}
 
-def fit_double_G (values_all, alpha, r = 0.5, initial_bounds = None):
+def fit_double_G (values_all, alpha, r = 0.5, initial_bounds = None, initial_p0 = None):
     """
     Function to fit two Gauss' to _values_
     
@@ -123,8 +123,11 @@ def fit_double_G (values_all, alpha, r = 0.5, initial_bounds = None):
     thr0 = get_outliers_thrdist (np.sort(values_all), alpha, r)   
     values = values_all[(values_all >= thr0[0]) & (values_all <= thr0[1])]
     
-    p0 = (0.5, np.percentile (values, 25), np.percentile(values,40)-np.percentile(values,10),
-          np.percentile (values, 75), np.percentile(values,90)-np.percentile(values,60))
+    if initial_p0 is None:
+        p0 = (0.5, np.percentile (values, 25), np.percentile(values,40)-np.percentile(values,10),
+              np.percentile (values, 75), np.percentile(values,90)-np.percentile(values,60))
+    else:
+        p0 = initial_p0
         
     
     #ValueError: Each lower bound must be strictly less than each upper bound

@@ -79,7 +79,7 @@ def analyze(args):
     keys = sample.genome.chromosomes.keys()
     data = pd.concat ([sample.genome.chromosomes[k].data for k in keys])
 
-    data.to_csv (args.sample_name + '.dat', index = None, sep = '\t', 
+    data.to_csv (args.sample_name + '.dat.gz', index = None, sep = '\t', 
                  compression = 'gzip')
 
     print ('All done')

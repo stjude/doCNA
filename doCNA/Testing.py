@@ -43,7 +43,6 @@ class Testing:
             results = []
             index = []
             for chrom in self.chromosomes.keys():
-                
                 res = self.test (self.chromosomes[chrom].data, args, exclude_symbol = exclude_symbol)
                 if res is not None:
                     results.append (res)
@@ -70,8 +69,13 @@ class Testing:
             
             self.logger.debug (f'Parameter {column} being analyzed with alpha = {alpha} and r = {r}')
             res = self.results.loc[[c not in outliers for c in self.results.index.tolist()] & (self.results.notna().all(axis = 1)), column].values
-        
-            if len (np.unique(res)) < 5:
+            if len(res) == 0:
+                self.logger.critical (f'No parameters to work on')
+                exit(1)
+            if all(np.isnan(np.unique(res))):
+                self.logger.critical (f'Parameter {column} undetermined!')
+                exit(1) 
+            elif len (np.unique(res)) < 5:
                 param_range = (res.min(), res.max())
                 self.logger.warning(f'Parameter {column} range estimation based on normal approximation not possible. Min max used.')
             else:

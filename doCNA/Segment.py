@@ -50,11 +50,11 @@ class Segment:
                                              self.genome_medians['m'])
             method = 'sensitive'
             if self.parameters['ai'] > Consts.MAX_AI_THRESHOLD_FOR_SENSITIVE:
-                self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',])
+                self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',], b = self.genome_medians['fb'])
                 method = 'full'
             
         else:
-            self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',])
+            self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',], b = self.genome_medians['fb'])
             method = 'full'
             
         if self.parameters['success']:
@@ -215,7 +215,7 @@ def get_full (data, b = 1.01):
     vafs = data['vaf'].values    
     m, dm, l, dl = Testing.COV_test (data)
 
-    def vaf_cdf (v, dv, a, lerr, f, vaf, b):
+    def vaf_cdf (v, dv, a, lerr, f, vaf):
         return vaf_cdf_c (v, dv, a, lerr, f, vaf, b, m)
     
     v0 = 0.5
@@ -225,18 +225,20 @@ def get_full (data, b = 1.01):
         ones0 = c[v >= (m-1)/m].sum()        
         f0 = c[v < v0].sum()/(c.sum() - ones0) 
         dv0 = v0 - np.median (v[v < v0])
-        p0 = [dv0, ones0/c.sum(), 2, 0.5, 0.5, b]        
+        p0 = [dv0, ones0/c.sum(), 2, 0.5, 0.5]        
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
-                                    bounds = ((0,   0,   1, 0, 0.45, 1),
-                                              (0.5, 0.95, 5, 1, 0.55, 10)))
-        dv, a, lerr, f, vaf, b = popt      
+                                    bounds = ((0,   0,   1, 0, 0.45),
+                                              (0.5, 0.95, 5, 1, 0.55)))
+        dv, a, lerr, f, vaf = popt      
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
                       'fraction_1' : ones0/c.sum(), 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'status' : 'valid'}
     except RuntimeError:
+        #print ('Runtime error')
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,
                        'fraction_1' : ones0/c.sum(), 'status' : 'Fit failed'}
     except ValueError:
+        #print ('Value error')
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,  
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters failed'}    
     if ones0/c.sum() > 0.9:
@@ -246,7 +248,7 @@ def get_full (data, b = 1.01):
     return parameters
 
 def vaf_cnai (v, dv, a, vaf,b, cov):
-    s = np.sqrt((vaf - dv)*(vaf + dv)/(b*cov))
+    s = np.sqrt((vaf - dv)*(vaf + dv)/(cov))*b
     return a*sts.norm.cdf (v, vaf - dv, s) + (1-a)*sts.norm.cdf (v, vaf + dv, s)
 
 def vaf_HO (v, lerr):

@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import argparse as agp
 
-colorsCN = defaultdict (lambda: 'purple')
+colorsCN = {}#defaultdict (lambda: 'purple')
 colorsCN['AB+A'] = 'lime'
 colorsCN['AB+AA'] = 'blue'
 colorsCN['AB+AAB'] = 'cyan'
@@ -142,7 +142,7 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
                     color = colorsCN[b['model']]
                 else:
                     color = 'yellow'
-                k = b['k']
+                k = np.abs(b['k'])
             except:
                 color = 'lightskyblue'
                 a = 0.1
@@ -172,7 +172,7 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
     axs[1].plot ((0, start), (2, 2), 'k--', lw = 1)        
     
     ranges = bed_df.loc[~(bed_df['k'].isnull()), ['k','m']].agg ([min, max])
-    axs[0].set_ylim ((-0.009, ranges.loc['max','k']*1.1))
+    axs[0].set_ylim ((-0.009,  bed_df.loc[~(bed_df['k'].isnull()), 'k'].abs().max() *1.1))
     axs[0].set_xlim ((-3e7, start + 3e7))
     
     axs[1].set_ylim (bed_df.cn.agg([min,max]).values*np.array((0.9,1.1)))
@@ -320,7 +320,7 @@ def check_solution_plot_opt (bed_df, params, ax, cent_thr = 0.3, size_thr = 1,
                              highlight = []):
     bed = bed_df.loc[(bed_df['cent'] < cent_thr)&(bed_df['size'] > size_thr)]
     
-    for _, b in bed.iterrows():
+    for _, b in bed.loc[bed['model'].notna(),:].iterrows():
     #    if (b['ai'] > 0.07) & (b['ai'] < 0.01):
     #        color = 'blue'
     #    else:
