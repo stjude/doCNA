@@ -107,8 +107,8 @@ def fit_single_G (values, alpha = 0.01, r = 0.5):
     return {'p' : ksp.pvalue, 
             'm': popt[0],
             's': popt[1],
-            '1' : {'m': np.array([popt[0]]),
-                   's': np.array([popt[1]])},
+            '1' : {'m': np.array(popt[0]),
+                   's': np.array(popt[1])},
             '2' : {'m': np.array([popt[0], popt[0]]),
                    's': np.array([popt[1], popt[1]])},
             'thr' : thr, 'a' : np.ones(1)}
