@@ -39,10 +39,6 @@ app_ui = ui.page_fluid(
                                                                  ui.input_file ('bed_file', "Choose BED file to upload:",
                                                                                 multiple = False, accept = '.bed'),
                                                                  ui.output_plot ('genome_plot'),)),
-                                                          ui.row(ui.column(12,          
-                                                                 ui.input_file ('log_file', "Choose LOG file to screen:",
-                                                                                multiple = False, accept = '.log'),
-                                                                 ui.output_text ('log_text'),)),
                                                           ui.row(ui.column(12,
                                                                            ui.h5 (''),
                                                                            ui.input_checkbox_group ('chroms_selected',
@@ -62,10 +58,25 @@ app_ui = ui.page_fluid(
                                                                                   ui.output_plot('scoring_dists')),
                                                                            )),
                                                          ),
+                                                   
+                                                   ui.nav("LOG", 
+                                                          ui.row(ui.column(12,
+                                                                 ui.input_file ('log_file', "Choose LOG file to screen:",
+                                                                                multiple = False, accept = '.log'),
+                                                                 #ui.output_text ('log_text'),
+                                                                 
+                                                                 #ui.tags.textarea(id = 'log', name = 'log_text', rows = '30', cols = '200',   )
+                                                                 ui.output_ui("dyn_log_ui")))),
+ 
                                                    ui.nav("CNVs",
-                                                         ui.row(ui.input_radio_buttons ('sort_CNV_by',
-                                                                                         "Sort list by:",
-                                                                                         {'position':'position', 'score':'score'}, inline = True)),
+                                                         ui.row(ui.column (2,
+                                                                           ui.input_radio_buttons ('sort_CNV_by',
+                                                                                                   "Sort list by:",
+                                                                                                   {'position':'position', 'score':'score'}, inline = True)),
+                                                                ui.column (2, 
+                                                                           ui.input_radio_buttons ('corrected',
+                                                                                                   'Show FDR?:',
+                                                                                                   { 'status':'FDR adj', 'status_d':'Score'}, inline = True))),
                                                          ui.row(ui.output_table (id = 'CNVs'),)),
                                                    ui.nav("Solution test",
                                                           ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Optimize settings:"),
@@ -95,10 +106,8 @@ app_ui = ui.page_fluid(
                                                                                           ui.output_plot('opt_plot', "Relative distance plot"),
                                                                                           ui.h6("Pick coverage to plot models:"),
                                                                                           ui.row(ui.input_slider ('m0_cov', "Diploid coverage",
-                                                                                                               value = 0.5, min = 0, max = 1, width = '200%'),
-                                                                                                 ui.input_action_button('apply_m0',
-                                                                                                                        "Apply m0", width = '10%')),
-                                                                                          ui.output_text_verbatim ('solutions')))),
+                                                                                                               value = 0.5, min = 0, max = 1, width = '200%')),
+                                                                                                 ui.output_text_verbatim ('solutions')))),
                                                                                           
                                                    ui.nav("Chromosome view",
                                                           ui.row(ui.column(12,
@@ -108,7 +117,9 @@ app_ui = ui.page_fluid(
                                                                                                    chromdic, inline = True),)),
                                                           ui.row(ui.output_plot ('data_plot'),
                                                                  ui.output_plot ('compare_plot')),
-                                                          ui.row(ui.output_table (id = 'chrom_segments'),))
+                                                          ui.row(ui.output_table (id = 'chrom_segments'))),
+                                                    ui.nav("Report",
+                                                           )
                                                    )
                                    )
           )
@@ -137,13 +148,12 @@ def server(input, output, session):
         
         return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) for m,d in minims])
     
+   
     @output
-    @render.text
-    def log_text():
-        log = log_file()
-        warns = [log[i] for i in np.where([l.find('WARNING') != -1 for l in log])[0]]
-        return '\n\r'.join(warns)
-    
+    @render.ui
+    def dyn_log_ui():
+        return ui.TagList (ui.tags.textarea (log_file(), cols = "250", rows = "50"))
+
     
     @output
     @render.text
@@ -172,6 +182,8 @@ def server(input, output, session):
         with open(file_input[0]['datapath']) as f:
             log = f.readlines()
         log_file.set(log)    
+        
+
     
     @reactive.Effect
     @reactive.event(input.bed_file)
@@ -380,9 +392,9 @@ def server(input, output, session):
         bed_data = bed()
         if (len(bed_data) != 0):
             if input.sort_CNV_by() == 'score':
-                tmp_bed = bed_data.loc[bed_data.status != 'norm'].sort_values(by = 'k_score', ascending = False)
+                tmp_bed = bed_data.loc[bed_data[input.corrected()] != 'norm'].sort_values(by = 'k_score', ascending = False)
             else:
-                tmp_bed = bed_data.loc[bed_data.status != 'norm']
+                tmp_bed = bed_data.loc[bed_data[input.corrected()] != 'norm']
             return tmp_bed
 
     @output

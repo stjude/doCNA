@@ -172,12 +172,12 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
     axs[1].plot ((0, start), (2, 2), 'k--', lw = 1)        
     
     ranges = bed_df.loc[~(bed_df['k'].isnull()), ['k','m']].agg ([min, max])
-    axs[0].set_ylim ((-0.009,  bed_df.loc[~(bed_df['k'].isnull()), 'k'].abs().max() *1.1))
+    maxk = max (bed_df.loc[~(bed_df['k'].isnull()), 'k'].max(), -bed_df.loc[~(bed_df['k'].isnull()), 'k'].min())
+    axs[0].set_ylim ((-0.009,  maxk *1.1))
     axs[0].set_xlim ((-3e7, start + 3e7))
     
     axs[1].set_ylim (bed_df.cn.agg([min,max]).values*np.array((0.9,1.1)))
-    axs[0].set_ylim ((-0.009, bed_df.k.max()*1.1))  
-    
+        
     axs[0].set_ylabel ('clonality')
     axs[1].set_ylabel ('copy number')
     axs[2].set_ylabel ('score') 
