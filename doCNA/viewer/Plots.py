@@ -336,22 +336,41 @@ def check_solution_plot_opt (bed_df, params, ax, cent_thr = 0.3, size_thr = 1,
     ax.set_ylabel ('Allelic imbalance')
     
     
-def verification_plot_CNV (data_chrom, bed_CNV, ax):
-    filt = np.repeat (False, len(data_chrom))
-    for _, r in bed_CNV.iterrows():
-        filt = filt | ((data_chrom.position > r['start'])&(data_chrom.position < r['end']))
-        
-    tmp = data_chrom.loc[filt&(data_chrom['vaf'] < 1)&(data_chrom['vaf'] > 0)]
-    vCNV = np.sort(tmp['vaf'].values)
+def verification_plot_CNV (d_ch, ch_bed, ax, par):
     
-    tmp = data_chrom.loc[~filt&(data_chrom['vaf'] < 1)&(data_chrom['vaf'] > 0)]
-    vrest = np.sort(tmp['vaf'].values)
+    for stat, df in ch_bed.groupby (by = 'status'):
+        starts = df.start.values
+        ends = df.end.values
+        pos_filt = ((d_ch.position.values[:, np.newaxis] > starts[np.newaxis,:]) &(d_ch.position.values[:, np.newaxis] < ends[np.newaxis,:])).any (axis = 1) 
+        #print (pos_filt.sum())
+        tmp = d_ch.loc[(d_ch['vaf'] < 1)&(d_ch['vaf'] > 0)&(pos_filt)]
+        
+        v = np.sort (tmp['vaf'].values)
+        ax.plot(v, np.linspace (0,1,len(v)), '.', label = stat)
+    
+    try:
+        x = np.linspace (0,1)
+        ax.plot (x, sts.norm.cdf (x, 0.497, np.sqrt(1/par['m0']*par['fb'])), label = 'median normal')
 
-    v,c = np.unique (vCNV, return_counts = True)
-    ax.plot (v, np.cumsum(c)/np.sum(c), '.', c = 'red', ms = 0.5, label = 'CNV region')
+    except:
+        pass
+    
+    
+    #filt = np.repeat (False, len(data_chrom))
+    #for _, r in bed_CNV.iterrows():
+    #    filt = filt | ((data_chrom.position > r['start'])&(data_chrom.position < r['end']))
+        
+    #tmp = data_chrom.loc[filt&(data_chrom['vaf'] < 1)&(data_chrom['vaf'] > 0)]
+    #vCNV = np.sort(tmp['vaf'].values)
+   # 
+    #tmp = data_chrom.loc[~filt&(data_chrom['vaf'] < 1)&(data_chrom['vaf'] > 0)]
+    #vrest = np.sort(tmp['vaf'].values)
 
-    v,c = np.unique (vrest, return_counts = True)
-    ax.plot (v, np.cumsum(c)/np.sum(c), '.', c = 'blue', ms = 0.5, label = 'control region')
+    #v,c = np.unique (vCNV, return_counts = True)
+    #ax.plot (v, np.cumsum(c)/np.sum(c), '.', c = 'red', ms = 0.5, label = 'CNV region')
+
+    #v,c = np.unique (vrest, return_counts = True)
+    #ax.plot (v, np.cumsum(c)/np.sum(c), '.', c = 'blue', ms = 0.5, label = 'control region')
 
     ax.legend()
     ax.set_xlabel ('VAF')

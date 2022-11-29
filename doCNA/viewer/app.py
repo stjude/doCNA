@@ -1,5 +1,5 @@
 from shiny import *
-from .Plots import *
+from Plots import *
 
 # Import modules for plot rendering
 import numpy as np
@@ -24,7 +24,7 @@ app_ui = ui.page_fluid(
                                                         value = 5, min = 0, max = 10),
                                        ui.h4 ("Display settings:"),
                                        ui.input_slider ('model_thr', "Model score threshold",
-                                                        value = 5, min = 0, max = 10),
+                                                        value = 3, min = 0, max = 10),
                                        ui.input_slider ('k_max', "Max clonality score:",
                                                         value = 2, min = 0, max = 10),
                                        
@@ -147,13 +147,13 @@ def server(input, output, session):
         minims.sort (key = lambda x: x[1], reverse = False)
         
         return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) for m,d in minims])
-    
+  
    
     @output
     @render.ui
     def dyn_log_ui():
-        return ui.TagList (ui.tags.textarea (log_file(), cols = "250", rows = "50"))
-
+        return ui.TagList (ui.tags.textarea ([l.strip() for l in log_file()], 
+                                             cols = "250", rows = "50"))
     
     @output
     @render.text
@@ -233,7 +233,7 @@ def server(input, output, session):
                     except:
                         print ('Line: ' + line + 'not parsed.')
         par.set(pard)
-        print (pard)
+        #print (pard)
         opt_solution.set ((np.array([]), np.array([])))
         m0.set(float(pard['m0'][0]))
         m0_opt.set(float(pard['m0'][0]))
@@ -414,10 +414,10 @@ def server(input, output, session):
         bed_data = bed()
         data_df = data()
         if (len(bed_data) != 0) & (len(data_df) != 0):
-            bed_CNV = bed_data.loc[(bed_data.chrom == input.chrom_view())&(bed_data['status'] == 'CNVi')]
+            CNV_bed = bed_data.loc[bed_data.chrom == input.chrom_view()]
             data_chrom = data_df.loc[data_df.chrom == input.chrom_view()]
             fig, ax = plt.subplots (figsize = (6,8))
-            verification_plot_CNV (data_chrom, bed_CNV, ax)
+            verification_plot_CNV (data_chrom, CNV_bed, ax, par())
             return fig
         
         

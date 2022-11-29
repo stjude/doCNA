@@ -20,6 +20,7 @@ class Report:
         elif self._report_type == 'params':
             shift_i = genome.genome_medians['clonality_imbalanced']['up']
             report_list = ['m0\t'+ str(genome.genome_medians['m']),
+                           'fb\t'+ str(genome.genome_medians ['fb']),
                            'a_model\t' + str(genome.genome_medians['model_d']['a']),
                            'Imbalanced:']
             for key in genome.genome_medians['clonality_imbalanced'].keys():
