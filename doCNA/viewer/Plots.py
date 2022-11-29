@@ -209,7 +209,7 @@ def leopard_plot (bed_df, params, ax, highlight = '', color_norm = 'black', colo
     ax.set_xlabel ('size (MB) / log')
     ax.set_ylabel ('clonality / log')
 
-def plot_cdf (values, ax, par = ((0,),(1,),(1,)), n = 100):
+def plot_cdf (values, ax, par = ((0,),(1,),(1,)), n = 100, a0 = 0):
     ax.scatter (np.sort(values), np.linspace (0,1, len(values)))
     l = 0.6*(max(values) - min(values))
     x = np.linspace ((max(values) + min(values))/2 - l, (max(values) + min(values))/2 + l, n)
@@ -217,7 +217,7 @@ def plot_cdf (values, ax, par = ((0,),(1,),(1,)), n = 100):
     print (par)
     for m, s, a in zip (par[0], par[1], par[2]):
         y += a*sts.norm.cdf (x, m, s)
-    ax.plot (x,y, 'r-')
+    ax.plot (x, a0 + y, 'r-')
 
 def chicken_feet_plot (bed_df, ax, highlight = '', k_score_column = 'k_score',
                        max_k_score = 10, model_thr = 5,
