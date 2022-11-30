@@ -346,11 +346,11 @@ def verification_plot_CNV (d_ch, ch_bed, ax, par):
         tmp = d_ch.loc[(d_ch['vaf'] < 1)&(d_ch['vaf'] > 0)&(pos_filt)]
         
         v = np.sort (tmp['vaf'].values)
-        ax.plot(v, np.linspace (0,1,len(v)), '.', label = stat)
+        ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 1, label = stat)
     
     try:
         x = np.linspace (0,1)
-        ax.plot (x, sts.norm.cdf (x, 0.497, np.sqrt(1/par['m0']*par['fb'])), label = 'median normal')
+        ax.plot (x, sts.norm.cdf (x, 0.497, np.sqrt(1/par['m0']*par['fb'])), '.', markersize = 1, label = 'median normal')
 
     except:
         pass
