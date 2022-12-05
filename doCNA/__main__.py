@@ -45,6 +45,9 @@ def main():
 
     ### Viewer subparser ###
     parser_viewer = subparsers.add_parser ("viewer", description="launches the viewer")
+    parser_viewer.add_argument ('--remote', action="store_true",
+                                help="use a if running from a remote machine, for example a compute cluster")
+    parser_viewer.add_argument ('-p', '--port', type=str, help="specific port to use")
     parser_viewer.set_defaults (func=viewer)
 
     ### Get Config subparser ###
@@ -89,13 +92,19 @@ def viewer(args):
     import socket
     s = socket.socket()
     hostname = socket.gethostname()
-    private_ip = socket.gethostbyname(hostname)
+    host_to_use = socket.gethostbyname(hostname)
     s.bind(("", 0))
     open_port = str(s.getsockname()[1])
     s.close()
-    cmd = ["shiny", "run", "--port", open_port, "--host", private_ip, "doCNA.viewer.app"]
+    if args.port:
+        open_port = args.port
+    if args.remote:
+        cmd = ["shiny", "run", "--port", open_port, "--host", host_to_use, "doCNA.viewer.app"]
+    else:
+        host_to_use = "localhost"
+        cmd = ["shiny", "run", "--port", open_port, "--host", host_to_use, "doCNA.viewer.app"]
     print("**********")
-    print(f"Access dashboard in browser via: http://{private_ip}:{open_port}")
+    print(f"Access dashboard in browser via: http://{host_to_use}:{open_port}")
     print("**********")
 
     proc = subprocess.run(cmd, stdout=sys.stdout, stderr=sys.stderr)    
