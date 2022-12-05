@@ -98,11 +98,9 @@ def viewer(args):
     s.close()
     if args.port:
         open_port = args.port
-    if args.remote:
-        cmd = ["shiny", "run", "--port", open_port, "--host", host_to_use, "doCNA.viewer.app"]
-    else:
+    if not args.remote:
         host_to_use = "localhost"
-        cmd = ["shiny", "run", "--port", open_port, "--host", host_to_use, "doCNA.viewer.app"]
+    cmd = ["shiny", "run", "--port", open_port, "--host", host_to_use, "doCNA.viewer.app"]
     print("**********")
     print(f"Access dashboard in browser via: http://{host_to_use}:{open_port}")
     print("**********")
