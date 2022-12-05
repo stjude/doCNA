@@ -12,6 +12,39 @@ chromdic = {}
 for c in chromlist:
     chromdic[c] = c
 
+def merge_records (records, chrom):
+    print (records)
+    r = records[0]
+    mr = ()
+    if len (records) == 1:
+        mr = (chrom, r['start'], r['end'], r['m'], r['cn'],
+                r['model'] if r['status'] != 'norm' else 'AB',
+                r['k'] if r['status'] != 'norm' else 0, r['cyto'])
+    else:
+        status = r['status']
+        size = np.array ([r['end']-r['start'] for r in records])
+        m = np.array([r['m'] for r in records])
+        cn = np.array([r['cn'] for r in records])
+        cyto = '-'.join([records[0]['cyto'].split('-')[0], records[-1]['cyto'].split('-')[-1]])
+        if status == 'norm':
+            model = 'AB'
+        else:
+            model = r['model']
+            
+        mr =  (chrom, records[0]['start'], records[-1]['end'],
+                    sum(m*size)/sum(size), sum(cn*size)/sum(size), model,
+                    0, cyto)
+    print ('mr =', mr)
+    return mr
+
+def symilar (seg1, seg2):
+    
+    
+#(next_record['filt'] == False)|((current_record['status'] == next_record['status'])&\
+                        #   (current_record['model'] == next_record['model'])&\
+                        #    np.abs(((current_record['k']-next_record['k'])/current_record['k']) < 0.1)):#merge
+
+
 app_ui = ui.page_fluid(
     ui.h2 ({"style" : "text-align: center;"}, "doCNA results viewer."),
    
@@ -211,7 +244,9 @@ def server(input, output, session):
         tmp = bed_full()
         if len(tmp) > 0:
             chrom_sizes.set(tmp.groupby(by = 'chrom').agg({'end' : 'max'})['end'])
+            #print (len(tmp))
             tmp['filt'] = (tmp['cent'] <= input.cent_thr()) & (tmp['size'] >= input.size_thr())
+            #print (len(tmp))
             bed_full.set(tmp)
             bed.set (tmp.loc[tmp.filt])
     
@@ -222,32 +257,47 @@ def server(input, output, session):
         bf = bed_full()    
         b = bed()
         if (len(bf) != 0) & (len(b) != 0):
-            records = []
-            for chrom, segments in bed_full.groupby (by = 'chrom'):
+            print (len(bf))
+            merged_segments = []
+            for chrom, segments in bf.groupby (by = 'chrom'):
                 data = segments.sort_values (by = 'start')
-                current = data.iloc[0,]
-                if len (data) > 1:
-                    i = 1 
-                    while i < len(data):
-                        next = data.iloc[i,]
-                        if (current['status'] == next)
-
-
-                        else: #add to records
-
-
-                    
-                else:
-                    records = [(chrom, current['start'], current['end'], current['m'], current['cn'],
-                               current['model'] if current['status'] != 'norm' else 'AB',
-                               current['k'] if current['status'] != 'norm' else 0,
-                               current['cyto'])]
-
-            bed_report.set(pd.DataFrame.from_records (records,
+                print (data)
+                seg_iter = data.iterrows()
+                
+                current_record = next(seg_iter)[1]
+                print (current_record)
+                to_merge = [current_record]
+                last_action = 'no yet' 
+                while True:
+                    try:
+                        #print (current_record)
+                        next_record = next(seg_iter)[1]
+                        print (next_record)
+                        #decide 
+                        if symilar (current_record, next_record):
+                            print ('merging')
+                            to_merge.append(next_record)
+                            last_action = 'merge'
+                        else: 
+                            print ('moving')
+                            merged_segments.append(merge_records(to_merge, chrom))
+                            to_merge = [next_record]
+                            current_record = next_record
+                            last_action = 'no merge'
+                    except StopIteration:
+                       break
+                     
+                if last_action == 'no merge':
+                    merged_segments.append(merge_records([current_record], chrom))
+                
+                #print (merged_segments)
+                
+            bed_report.set(pd.DataFrame.from_records (merged_segments,
                                                       columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto']))
-    
-
-
+            print (bed_report())
+            
+            
+        
     @reactive.Effect
     @reactive.event(input.par_file)
     def _():
@@ -433,6 +483,13 @@ def server(input, output, session):
         bed_data = bed()
         if (len(bed_data) != 0):
             return bed_data.loc[bed_data.chrom == input.chrom_view()].sort_values(by = 'start')
+
+    @output
+    @render.table
+    def report():
+        report = bed_report()
+        if len(report) > 0:
+            return report
 
     @output
     @render.table
