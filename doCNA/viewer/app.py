@@ -1,13 +1,11 @@
 from shiny import *
-from .Plots import *
+from Plots import *
 
 # Import modules for plot rendering
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.signal as sig
-
-__version__ = '0.1.5'
 
 chromlist = ['chr' + str (i) for i in range (1,23)]
 chromdic = {}
@@ -119,7 +117,9 @@ app_ui = ui.page_fluid(
                                                                  ui.output_plot ('compare_plot')),
                                                           ui.row(ui.output_table (id = 'chrom_segments'))),
                                                     ui.nav("Report",
-                                                           )
+                                                           ui.row(ui.column(12,
+                                                                            ui.output_plot('report_plot'),
+                                                                            ui.output_table('report'))))
                                                    )
                                    )
           )
@@ -135,7 +135,8 @@ def server(input, output, session):
     m0 = reactive.Value(np.nan)
     m0_opt = reactive.Value(np.nan)
     log_file = reactive.Value ([])
-    
+    bed_report = reactive.Value(pd.DataFrame())
+
     @output
     @render.text
     def solutions ():
@@ -202,6 +203,7 @@ def server(input, output, session):
         bed_full.set(df)
         opt_solution.set ((np.array([]), np.array([])))
         log_file.set([])
+        bed_report.set(pd.DataFrame())
             
     @reactive.Effect
     @reactive.Calc
@@ -209,10 +211,43 @@ def server(input, output, session):
         tmp = bed_full()
         if len(tmp) > 0:
             chrom_sizes.set(tmp.groupby(by = 'chrom').agg({'end' : 'max'})['end'])
-            bed.set (tmp.loc[(tmp['cent'] <= input.cent_thr()) & (tmp['size'] >= input.size_thr())])
-            print (tmp.loc[(tmp['cent'] <= input.cent_thr()) & (tmp['size'] >= input.size_thr())].head()) 
+            tmp['filt'] = (tmp['cent'] <= input.cent_thr()) & (tmp['size'] >= input.size_thr())
+            bed_full.set(tmp)
+            bed.set (tmp.loc[tmp.filt])
     
-        
+
+    @reactive.Effect
+    @reactive.Calc
+    def _():
+        bf = bed_full()    
+        b = bed()
+        if (len(bf) != 0) & (len(b) != 0):
+            records = []
+            for chrom, segments in bed_full.groupby (by = 'chrom'):
+                data = segments.sort_values (by = 'start')
+                current = data.iloc[0,]
+                if len (data) > 1:
+                    i = 1 
+                    while i < len(data):
+                        next = data.iloc[i,]
+                        if (current['status'] == next)
+
+
+                        else: #add to records
+
+
+                    
+                else:
+                    records = [(chrom, current['start'], current['end'], current['m'], current['cn'],
+                               current['model'] if current['status'] != 'norm' else 'AB',
+                               current['k'] if current['status'] != 'norm' else 0,
+                               current['cyto'])]
+
+            bed_report.set(pd.DataFrame.from_records (records,
+                                                      columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto']))
+    
+
+
     @reactive.Effect
     @reactive.event(input.par_file)
     def _():
