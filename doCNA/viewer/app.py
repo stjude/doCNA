@@ -14,37 +14,34 @@ for c in chromlist:
 
 def merge_records (records, chrom):
     print (records)
-    r = records[0]
+    i = 0
+    while not records[i].filt:
+        i +=1 
+    r = records[i]
     mr = ()
     if len (records) == 1:
-        mr = (chrom, r['start'], r['end'], r['m'], r['cn'],
-                r['model'] if r['status'] != 'norm' else 'AB',
-                r['k'] if r['status'] != 'norm' else 0, r['cyto'])
+        mr = (chrom, r.start, r.end, r.m, r.cn,
+                r.model if r.status != 'norm' else 'A(AB)B',
+                r.k if r.status != 'norm' else 0, r.cyto)
     else:
-        status = r['status']
-        size = np.array ([r['end']-r['start'] for r in records])
-        m = np.array([r['m'] for r in records])
-        cn = np.array([r['cn'] for r in records])
-        cyto = '-'.join([records[0]['cyto'].split('-')[0], records[-1]['cyto'].split('-')[-1]])
+        status = r.status
+        size = np.array ([r.end-r.start for r in records])
+        m = np.array([r.m for r in records])
+        cn = np.array([r.cn for r in records])
+        k = np.array([r.k for r in records])
+        cyto = '-'.join([records[0].cyto.split('-')[0], records[-1].cyto.split('-')[-1]])
         if status == 'norm':
-            model = 'AB'
+            model = 'A(AB)B'
         else:
-            model = r['model']
+            model = r.model
             
-        mr =  (chrom, records[0]['start'], records[-1]['end'],
+        mr =  (chrom, records[0].start, records[-1].end,
                     sum(m*size)/sum(size), sum(cn*size)/sum(size), model,
-                    0, cyto)
+                    sum(k*size)/sum(size), cyto)
     print ('mr =', mr)
     return mr
 
-def symilar (seg1, seg2):
-    
-    
-#(next_record['filt'] == False)|((current_record['status'] == next_record['status'])&\
-                        #   (current_record['model'] == next_record['model'])&\
-                        #    np.abs(((current_record['k']-next_record['k'])/current_record['k']) < 0.1)):#merge
-
-
+  
 app_ui = ui.page_fluid(
     ui.h2 ({"style" : "text-align: center;"}, "doCNA results viewer."),
    
@@ -251,6 +248,12 @@ def server(input, output, session):
             bed.set (tmp.loc[tmp.filt])
     
 
+    
+    #(next_record['filt'] == False)|((current_record['status'] == next_record['status'])&\
+                        #   (current_record['model'] == next_record['model'])&\
+                        #    np.abs(((current_record['k']-next_record['k'])/current_record['k']) < 0.1)):#merge
+    
+    
     @reactive.Effect
     @reactive.Calc
     def _():
@@ -260,41 +263,60 @@ def server(input, output, session):
             print (len(bf))
             merged_segments = []
             for chrom, segments in bf.groupby (by = 'chrom'):
-                data = segments.sort_values (by = 'start')
+                data = segments.sort_values (by = 'start', ignore_index = True)
                 print (data)
-                seg_iter = data.iterrows()
+                seg_iter = data.itertuples()
                 
-                current_record = next(seg_iter)[1]
-                print (current_record)
-                to_merge = [current_record]
-                last_action = 'no yet' 
+                to_merge = [next(seg_iter)]
+                print (to_merge)
+                while not to_merge[-1].filt:
+                    print ('jump', to_merge[-1])
+                    to_merge.append (next(seg_iter))
+                    
+                current_record = to_merge[-1]
+                
+                last_action = 'merge' 
                 while True:
                     try:
                         #print (current_record)
-                        next_record = next(seg_iter)[1]
-                        print (next_record)
-                        #decide 
-                        if symilar (current_record, next_record):
-                            print ('merging')
-                            to_merge.append(next_record)
-                            last_action = 'merge'
+                        next_record = next(seg_iter)
+                        while not next_record.filt:
+                            print ('jump', next_record)
+                            to_merge.append (next_record)
+                            next_record = next(seg_iter)
+                        #print (next_record)
+                        if (current_record.status == next_record.status):
+                            if (current_record.status == 'norm'):
+                           #(current_record['model'] == next_record['model'])&\
+                            #np.abs(((current_record['k']-next_record['k'])/current_record['k']) < 0.1)):
+                            #print ('merging')
+                                to_merge.append(next_record)
+                                last_action = 'merge'
+                            elif ((current_record.model == next_record.model)&\
+                                 np.abs(((current_record.k-next_record.k)/current_record.k) < 0.1)):
+                                to_merge.append(next_record)
+                                last_action = 'merge'
+                        
                         else: 
-                            print ('moving')
+                            #print ('moving')
                             merged_segments.append(merge_records(to_merge, chrom))
                             to_merge = [next_record]
                             current_record = next_record
                             last_action = 'no merge'
                     except StopIteration:
-                       break
+                        break
+                
+                print (last_action, len(to_merge))
+                
                      
-                if last_action == 'no merge':
-                    merged_segments.append(merge_records([current_record], chrom))
+                if last_action == 'merge':
+                    merged_segments.append(merge_records(to_merge, chrom))
                 
                 #print (merged_segments)
                 
             bed_report.set(pd.DataFrame.from_records (merged_segments,
                                                       columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto']))
-            print (bed_report())
+    #        print (bed_report())
             
             
         
@@ -345,12 +367,29 @@ def server(input, output, session):
                           model_thr = input.model_thr())
             
             for model in colorsCN.keys():
-                axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
+                axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model.split('+')[-1])
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
             axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets)+2,
-                           loc = 'upper center')
+                           loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
+    
+    
+    @output
+    @render.plot (alt = "Genomewide view")
+    def report_plot ():
+        bed_data = bed_report ()
+        if len (bed_data):
+            fig, axs = plt.subplots (2, 1, figsize = (16,6), sharex = True)
+            reporting_plot (bed_data, axs, chrom_sizes())
+            for model in colorsCN.keys():
+                axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model.split('+')[-1])
+            axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
+            axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
+            axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets)+2,
+                           loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
+            return fig
+            
     
     @output
     @render.plot (alt = "Scoring view")

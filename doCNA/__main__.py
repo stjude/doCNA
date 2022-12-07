@@ -29,7 +29,7 @@ def main():
                                  help = 'Number of processes. Default: 1')
     parser_analyze.add_argument ('-i', '--input_file', required = True,
                                  type = str, default = '',
-                                 help = 'Input file name.')
+                                 help = "Name of the input file with alleles' counts")
     parser_analyze.add_argument ('-c', '--config', required = False, default = 'config.ini',
                                  help = 'INI file with parameters')
     parser_analyze.add_argument ('-l', '--level', default = 'INFO', 

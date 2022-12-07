@@ -11,7 +11,7 @@ colorsCN['AB+A'] = 'lime'
 colorsCN['AB+AA'] = 'blue'
 colorsCN['AB+AAB'] = 'cyan'
 colorsCN['A(AB)B'] = 'black'
-colorsCN['AB'] = 'black'
+#colorsCN['AB'] = 'black'
 colorsCN['AB+AAAB'] = 'magenta'
 #colorsCN['AA+AAB'] = 'chocolate'
 #colorsCN['AAB+AABB'] = 'violet'
@@ -174,14 +174,59 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
     
     ranges = bed_df.loc[~(bed_df['k'].isnull()), ['k','m']].agg ([min, max])
     maxk = max (bed_df.loc[~(bed_df['k'].isnull()), 'k'].max(), -bed_df.loc[~(bed_df['k'].isnull()), 'k'].min())
+    
+    #axs[0].set_ylim ((-0.009, 1.01))
     axs[0].set_ylim ((-0.009,  maxk *1.1))
     axs[0].set_xlim ((-3e7, start + 3e7))
-    
     axs[1].set_ylim (bed_df.cn.agg([min,max]).values*np.array((0.9,1.1)))
         
     axs[0].set_ylabel ('clonality')
     axs[1].set_ylabel ('copy number')
     axs[2].set_ylabel ('score') 
+
+def reporting_plot (bed_df, axs, chrom_sizes):
+    chrs = chrom_sizes.index.values.tolist()
+    chrs.sort (key = lambda x: int(x[3:]))
+    
+    start = 0
+    axs[1].plot ((start, start), (0, 4), 'k:', lw = 0.5)
+    axs[0].plot ((start, start), (0, 0.95), 'k:', lw = 0.5)
+    mids = []
+    
+    for chrom in chrs:
+        for _, b in bed_df.loc[bed_df['chrom'] == chrom].iterrows():
+            a = 1
+            color = colorsCN[b['model']]
+            k = b['k']
+            axs[0].fill_between ((start + b['start'], start + b['end']), (k, k), color = color, alpha = a)
+            axs[1].fill_between (x = (start + b['start'], start + b['end']), y1 = (b['cn'], b['cn']), y2 = (2, 2), color = color, alpha = a)
+            #if b['model'] != 'cnB':
+            
+                
+                
+        end = chrom_sizes[chrom]#bed_df.loc[bed_df['chrom'] == chrom, 'end'].max()
+        mids.append (start + end / 2)
+        start += end
+        
+        axs[1].plot ((start, start), (0.0, 4), 'k:', lw = 0.5)
+        axs[0].plot ((start, start), (0.0, 0.95), 'k:', lw = 0.5)        
+    
+    axs[-1].set_xticks (mids)
+    axs[-1].set_xticklabels (chrs, rotation = 60)
+        
+    axs[1].plot ((0, start), (2, 2), 'k--', lw = 1)        
+    
+    ranges = bed_df.loc[~(bed_df['k'].isnull()), ['k','m']].agg ([min, max])
+    maxk = max (bed_df.loc[~(bed_df['k'].isnull()), 'k'].max(), -bed_df.loc[~(bed_df['k'].isnull()), 'k'].min())
+    
+    #axs[0].set_ylim ((-0.009, 1.01))
+    axs[0].set_ylim ((-0.009,  maxk *1.1))
+    axs[0].set_xlim ((-3e7, start + 3e7))
+    axs[1].set_ylim (bed_df.cn.agg([min,max]).values*np.array((0.9,1.1)))
+        
+    axs[0].set_ylabel ('clonality')
+    axs[1].set_ylabel ('copy number')
+    
 
 def leopard_plot (bed_df, params, ax, highlight = '', color_norm = 'black', color_hit = 'darkred', alpha = 1):
     
