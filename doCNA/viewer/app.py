@@ -12,8 +12,11 @@ chromdic = {}
 for c in chromlist:
     chromdic[c] = c
 
-def merge_records (records, chrom):
-    print (records)
+def merge_records (all_records, chrom):
+    
+    filt_indexes = np.where([r.filt for r in all_records])[0]
+    records = [all_records[i] for i in filt_indexes]
+    
     i = 0
     while not records[i].filt:
         i +=1 
@@ -21,7 +24,7 @@ def merge_records (records, chrom):
     mr = ()
     if len (records) == 1:
         mr = (chrom, r.start, r.end, r.m, r.cn,
-                r.model if r.status != 'norm' else 'A(AB)B',
+                r.model if r.status != 'norm' else 'AB',
                 r.k if r.status != 'norm' else 0, r.cyto)
     else:
         status = r.status
@@ -31,14 +34,14 @@ def merge_records (records, chrom):
         k = np.array([r.k for r in records])
         cyto = '-'.join([records[0].cyto.split('-')[0], records[-1].cyto.split('-')[-1]])
         if status == 'norm':
-            model = 'A(AB)B'
+            model = 'AB'
         else:
             model = r.model
             
         mr =  (chrom, records[0].start, records[-1].end,
                     sum(m*size)/sum(size), sum(cn*size)/sum(size), model,
                     sum(k*size)/sum(size), cyto)
-    print ('mr =', mr)
+    
     return mr
 
   
@@ -220,14 +223,14 @@ def server(input, output, session):
     @reactive.event(input.bed_file)
     def _():
         file_input = input.bed_file()
-        #print (file_input)
+        
         if not file_input:
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
                    names = ['chrom', 'start', 'end', 'ai', 'm', 'cn','model', 'd', 'model_score',
                             'k', 'k_score','dd', 'cyto', 'cent', 'status_d', 'status'])
         df['size'] = (df['end'] - df['start'])/1e6
-        #print (df.head())
+        
         data.set(pd.DataFrame())
         par.set({})
         bed_full.set(df)
@@ -241,18 +244,11 @@ def server(input, output, session):
         tmp = bed_full()
         if len(tmp) > 0:
             chrom_sizes.set(tmp.groupby(by = 'chrom').agg({'end' : 'max'})['end'])
-            #print (len(tmp))
+            
             tmp['filt'] = (tmp['cent'] <= input.cent_thr()) & (tmp['size'] >= input.size_thr())
-            #print (len(tmp))
+            
             bed_full.set(tmp)
             bed.set (tmp.loc[tmp.filt])
-    
-
-    
-    #(next_record['filt'] == False)|((current_record['status'] == next_record['status'])&\
-                        #   (current_record['model'] == next_record['model'])&\
-                        #    np.abs(((current_record['k']-next_record['k'])/current_record['k']) < 0.1)):#merge
-    
     
     @reactive.Effect
     @reactive.Calc
@@ -260,17 +256,19 @@ def server(input, output, session):
         bf = bed_full()    
         b = bed()
         if (len(bf) != 0) & (len(b) != 0):
-            print (len(bf))
+            chrs = chrom_sizes().index.values.tolist()
+            chrs.sort (key = lambda x: int(x[3:]))
             merged_segments = []
-            for chrom, segments in bf.groupby (by = 'chrom'):
+            for chrom in chrs: #
+                segments = bf.loc[bf.chrom == chrom] #, segments in bf.groupby (by = 'chrom'):
                 data = segments.sort_values (by = 'start', ignore_index = True)
-                print (data)
+                
                 seg_iter = data.itertuples()
                 
                 to_merge = [next(seg_iter)]
-                print (to_merge)
+                
                 while not to_merge[-1].filt:
-                    print ('jump', to_merge[-1])
+                    
                     to_merge.append (next(seg_iter))
                     
                 current_record = to_merge[-1]
@@ -278,18 +276,16 @@ def server(input, output, session):
                 last_action = 'merge' 
                 while True:
                     try:
-                        #print (current_record)
+                        
                         next_record = next(seg_iter)
                         while not next_record.filt:
-                            print ('jump', next_record)
+                            
                             to_merge.append (next_record)
                             next_record = next(seg_iter)
-                        #print (next_record)
+                        
                         if (current_record.status == next_record.status):
                             if (current_record.status == 'norm'):
-                           #(current_record['model'] == next_record['model'])&\
-                            #np.abs(((current_record['k']-next_record['k'])/current_record['k']) < 0.1)):
-                            #print ('merging')
+                           
                                 to_merge.append(next_record)
                                 last_action = 'merge'
                             elif ((current_record.model == next_record.model)&\
@@ -298,7 +294,7 @@ def server(input, output, session):
                                 last_action = 'merge'
                         
                         else: 
-                            #print ('moving')
+                            
                             merged_segments.append(merge_records(to_merge, chrom))
                             to_merge = [next_record]
                             current_record = next_record
@@ -306,17 +302,16 @@ def server(input, output, session):
                     except StopIteration:
                         break
                 
-                print (last_action, len(to_merge))
+               
                 
                      
                 if last_action == 'merge':
                     merged_segments.append(merge_records(to_merge, chrom))
                 
-                #print (merged_segments)
                 
             bed_report.set(pd.DataFrame.from_records (merged_segments,
                                                       columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto']))
-    #        print (bed_report())
+    
             
             
         
@@ -324,7 +319,7 @@ def server(input, output, session):
     @reactive.event(input.par_file)
     def _():
         file_input = input.par_file()
-        #print (file_input)
+        
         if not file_input:
             return
         pard = {}
@@ -340,7 +335,7 @@ def server(input, output, session):
                     except:
                         print ('Line: ' + line + 'not parsed.')
         par.set(pard)
-        #print (pard)
+        
         opt_solution.set ((np.array([]), np.array([])))
         m0.set(float(pard['m0'][0]))
         m0_opt.set(float(pard['m0'][0]))
@@ -350,7 +345,7 @@ def server(input, output, session):
     @reactive.event(input.data_file)
     def _():
         file_input = input.data_file()
-        #print (file_input)
+        
         if not file_input:
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t')    
@@ -380,7 +375,7 @@ def server(input, output, session):
     def report_plot ():
         bed_data = bed_report ()
         if len (bed_data):
-            fig, axs = plt.subplots (2, 1, figsize = (16,6), sharex = True)
+            fig, axs = plt.subplots (2, 1, figsize = (16,4), sharex = True)
             reporting_plot (bed_data, axs, chrom_sizes())
             for model in colorsCN.keys():
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model.split('+')[-1])
@@ -396,10 +391,10 @@ def server(input, output, session):
     def CNV_plot ():
         bed_data = bed()
         par_d = par()
-        #print (par_d)
+        
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, ax = plt.subplots (1, 1, figsize = (6,3))
-            #leopard_plot (bed_data, par_d, ax, highlight = input.chroms_selected())
+            
             leopard_plot (bed_data.loc[bed_data['model'] != 'A(AB)B'], 
                           (par_d['A_i'][0], par_d['C_i'][0], par_d['C_i'][0]-par_d['up_i'][0]),
                           ax, highlight = input.chroms_selected(),
@@ -411,7 +406,7 @@ def server(input, output, session):
             ax.set_xlim ((np.log10(0.95*input.size_thr()), 
                           np.log10(1.05*bed_data['size'].max())))
             k_pos = bed_data.loc[bed_data['k'] > 0, 'k'].values
-            ax.set_ylim ((np.log10(k_pos.min()), 0.1))  # type: ignore
+            ax.set_ylim ((np.log10(k_pos.min()), 0.1))  
             return fig
     
     
@@ -426,7 +421,7 @@ def server(input, output, session):
                                           highlight = input.chroms_selected())
             k = np.linspace (0,1,100)
             m0 = par_d['m0']
-            for model in colorsCN.keys():
+            for model in model_presets.keys(): #colorsCN.keys():
                 ax.plot (model_presets[model].m(k, m0), model_presets[model].ai(k, m0),  
                          lw = 2, linestyle = '-', color = colorsCN[model], alpha  = 0.6)
             
@@ -495,7 +490,7 @@ def server(input, output, session):
     @output
     @render.plot (alt = 'Total distance to the model')
     def opt_plot ():
-        #print (opt_solution())
+        
         if len(opt_solution()[0]):
             opt = opt_solution()
             fig, ax = plt.subplots(1,1, figsize = (6,6))
