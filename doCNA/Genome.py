@@ -13,6 +13,7 @@ from doCNA import Consts
 from doCNA import Report
 from doCNA import Run
 
+
 class Genome:
     """Class to run genome wide tests of HE and create chromosomes."""
     def __init__(self, sample_name, logger, config, CB_file, no_processes = 1):
