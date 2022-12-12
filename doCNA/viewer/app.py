@@ -108,6 +108,7 @@ app_ui = ui.page_fluid(
                                                                            ui.input_radio_buttons ('corrected',
                                                                                                    'Show FDR?:',
                                                                                                    { 'status':'FDR adj', 'status_d':'Score'}, inline = True))),
+                                                         ui.row(ui.output_text ("number_CNVs"), ""),
                                                          ui.row(ui.output_table (id = 'CNVs'),)),
                                                    ui.nav("Solution test",
                                                           ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Optimize settings:"),
@@ -146,12 +147,18 @@ app_ui = ui.page_fluid(
                                                                                            multiple = False, accept = ('.dat', '.dat.gz')),
                                                                            ui.input_radio_buttons ('chrom_view', "Choose chromosome to inspect",                                                                                    
                                                                                                    chromdic, inline = True),)),
+                                                          ui.row(ui.input_radio_buttons('f_to_plot', "Which function plot to compare:", 
+                                                                                         {'PDF' : 'Probability density function',
+                                                                                          'CDF' : 'Cumulative density function /for the pros/'}, 
+                                                                                         selected = 'CDF', inline = True)),                                                          
                                                           ui.row(ui.output_plot ('data_plot'),
                                                                  ui.output_plot ('compare_plot')),
                                                           ui.row(ui.output_table (id = 'chrom_segments'))),
                                                     ui.nav("Report",
                                                            ui.row(ui.column(12,
                                                                             ui.output_plot('report_plot'),
+                                                                            ui.row (ui.h6 ("Report diploid regions?"),
+                                                                                    ui.input_checkbox ('rep_AB', "Yes", value = False)),
                                                                             ui.output_table('report'))))
                                                    )
                                    )
@@ -523,18 +530,32 @@ def server(input, output, session):
     def report():
         report = bed_report()
         if len(report) > 0:
-            return report
+            if not input.rep_AB():
+                return report.loc[report.model != 'AB']
+            else:
+                return report
 
     @output
     @render.table
     def CNVs ():
         bed_data = bed()
         if (len(bed_data) != 0):
+            
             if input.sort_CNV_by() == 'score':
                 tmp_bed = bed_data.loc[bed_data[input.corrected()] != 'norm'].sort_values(by = 'k_score', ascending = False)
             else:
                 tmp_bed = bed_data.loc[bed_data[input.corrected()] != 'norm']
             return tmp_bed
+
+    @output
+    @render.text
+    def number_CNVs():
+        bed_data = bed()
+        if len(bed_data) > 0: 
+            message = "Number of CNVs found: " + str(len(bed_data.loc[bed_data[input.corrected()] != 'norm']))
+        else:
+            message = ''
+        return  message
 
     @output
     @render.plot
@@ -556,7 +577,7 @@ def server(input, output, session):
             CNV_bed = bed_data.loc[bed_data.chrom == input.chrom_view()]
             data_chrom = data_df.loc[data_df.chrom == input.chrom_view()]
             fig, ax = plt.subplots (figsize = (6,8))
-            verification_plot_CNV (data_chrom, CNV_bed, ax, par())
+            verification_plot_CNV (data_chrom, CNV_bed, ax, par(), input.f_to_plot())
             return fig
         
         

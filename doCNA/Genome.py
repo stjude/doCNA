@@ -213,6 +213,27 @@ class Genome:
             seg.parameters['model_score'] = -np.log10 (np.exp (-popt[0]*seg.parameters['d']))
         self.genome_medians['model_d'] = {'a' : popt[0]}
         
+    def score_clonality_new (self, size_thr = 5e6, model_thr = 3, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
+        #prepare data
+        balanced = [seg.parameters['model'] == 'A(AB)B' for seg in self.all_segments]
+        big = [(seg.end - seg.start)/1e6 > size_thr for seg in self.all_segments]
+        notHO = [seg.parameters['k'] < k_thr for seg in self.all_segments]
+        fit_model = [seg.parameters['model_score'] < model_thr for seg in self.all_segments]
+        
+        all_data = np.array([(seg.parameters['k'], (seg.end - seg.start)/1e6) for seg in self.all_segments])
+                
+        balanced_index = np.where ([ba&bi&fi for ba,bi,fi in zip(balanced, big, fit_model)])[0]
+        imbalanced_index = np.where ([(~ba)&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
+        #score imbalanced
+        
+        
+        
+        #score balanced
+        #scoring balanced based on imbalanced if not enough points
+        
+        
+    
+    
     def score_clonality (self, size_thr = 5e6, model_thr = 3, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
         balanced = [seg.parameters['model'] == 'A(AB)B' for seg in self.all_segments]
         big = [(seg.end - seg.start)/1e6 > size_thr for seg in self.all_segments]
