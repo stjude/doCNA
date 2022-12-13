@@ -73,44 +73,6 @@ class Report:
             report = ''
         return report
 
-
-
-    def segment_report_old (self, segment):
-
-        """ Generates a report for Segment objects """
-        namestr = segment.name.replace(':', '\t').replace ('-', '\t')
-        if self._report_type == 'bed':
-            
-            a = segment.genome_medians['ai']['a']
-            try:
-                ai_score = -np.log10 (np.exp (-a*segment.parameters['ai']/np.sqrt(segment.parameters['n'])))
-            except RuntimeWarning:
-                ai_score = np.inf                
-            
-            if segment.parameters['model'] == 'cnB':
-                m = segment.genome_medians['clonality_cnB']['m']
-                s = segment.genome_medians['clonality_cnB']['s']
-                try:
-                    k_score = -np.log10(sts.norm.sf(segment.parameters['k']/np.sqrt(segment.parameters['n']), m, s))
-                except RuntimeWarning:
-                    k_score = np.inf
-                model_score = ai_score
-                
-            else:
-                k_score = ai_score
-                a = segment.genome_medians['model_d']['a']
-                model_score = -np.log10(np.exp (-a*segment.parameters['d']))
-                
-            report = '\t'.join([str(p) for p in [segment.parameters['m'], 
-                                                 2*segment.parameters['m']/segment.genome_medians['COV']['m'],
-                                                 segment.parameters['model'], model_score, 
-                                                 segment.parameters['k'], k_score, segment.cytobands, 
-                                                 segment.centromere_fraction, segment.parameters['d'], 
-                                                 segment.parameters['ai'], ai_score]])
-        else:
-            report = ''
-        return '\t'.join([namestr, report])
-
     def run_report(self, run):
         """ Generates a report for Run objects """
         fields = ['chi2', 'chi2_noO', 'positions', 'p_norm', 'merged_segments']

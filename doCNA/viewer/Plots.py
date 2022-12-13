@@ -6,119 +6,21 @@ import pandas as pd
 import numpy as np
 import argparse as agp
 
-colorsCN = {}#defaultdict (lambda: 'purple')
-colorsCN['AB+A'] = 'lime'
-colorsCN['AB+AA'] = 'blue'
-colorsCN['AB+AAB'] = 'cyan'
-colorsCN['A(AB)B'] = 'black'
-colorsCN['AB'] = 'lightgray'
-colorsCN['AB+AAAB'] = 'magenta'
-#colorsCN['AA+AAB'] = 'chocolate'
-#colorsCN['AAB+AABB'] = 'violet'
-colorsCN['AB+AAA'] = 'brown'
-colorsCN['AB+AAAA'] = 'darkolivegreen'
-#copy-paste from Segment.py
-def calculate_distance_old (preset, m, ai, m0):
-    try:
-        d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
-    except:
-        d = np.inf 
-    return d
-    
-def calculate_distance (preset, m, ai, m0):
-    k = preset.k(m,ai,m0)
-    if np.isnan(k):
-        d = np.inf
-    elif (k > 1) | (k < 0):
-        ks = np.linspace (0,1,1000)
-        ms = preset.m(k,m0)/m0
-        d = np.min(np.sqrt((ks-k)**2+(ms-m/m0)**2))
-    else:
-        d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
-    
-    return d
-    
-Preset = namedtuple ('Preset', ['A', 'B', 'C', 'D', 'k', 'm', 'ai'])
-model_presets = {'AB+A' : Preset(A = lambda m,dv,m0: -m0/2,
-                                 B = lambda m,dv,m0: -1,
-                                 C = lambda m,dv,m0: m0,
-                                 D = lambda m,dv,m0: m0*(2*dv/(0.5+dv))/2+m,
-                                 k = lambda m,dv,m0: 2*dv/(0.5+dv),
-                                 m = lambda k,m0: (2-k)*m0/2,
-                                 ai = lambda k,m0: k/(2*(2-k))),
-                 
-                 'AB+AA' : Preset(A = lambda m,dv,m0: 0,
-                                  B = lambda m,dv,m0: -1,
-                                  C = lambda m,dv,m0: m0,
-                                  D = lambda m,dv,m0: m,
-                                  k = lambda m,dv,m0: 2*dv,
-                                  m = lambda k,m0: np.repeat(m0, len(k)),
-                                  ai = lambda k,m0: k/2),
-                 
-                 'AB+AAB' : Preset(A = lambda m,dv,m0: m0/2,
-                                   B = lambda m,dv,m0: -1,
-                                   C = lambda m,dv,m0: m0,
-                                   D = lambda m,dv,m0: -m0*(2*dv/(0.5-dv))/2+m,
-                                   k = lambda m,dv,m0: 2*dv/(0.5-dv) if dv != 0.5 else np.nan,
-                                   m = lambda k,m0: (2+k)*m0/2,
-                                   ai = lambda k,m0: k/(2*(2+k))),
+#from doCNA import Models
+import Models
 
-                 'A(AB)B' : Preset(A = lambda m,dv,m0: 0,
-                                   B = lambda m,dv,m0: 1/2,
-                                   C = lambda m,dv,m0: dv,
-                                   D = lambda m,dv,m0: 0,
-                                   k = lambda m,dv,m0: np.abs(m/m0 - 1),
-                                   m = lambda k,m0: (1+k)*m0,
-                                   ai = lambda k,m0: np.repeat(0, len(k))),#}
-#end of copy-paste
-#model_presets_4 = {
-                 'AB+AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
-                                       B = lambda m,dv,m0 : -1,
-                                       C = lambda m,dv,m0 : m0,
-                                       D = lambda m,dv,m0 : m - 2*m0*dv/(1-2*dv),
-                                       k = lambda m,dv,m0 : 2*dv/(1-2*dv) if dv != 0.5 else np.nan,
-                                       m = lambda k,m0 : (1+k)*m0,
-                                       ai = lambda k,m0 : k/(2+2*k)),
-                   
-                   #'AAB+AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
-                   #                     B = lambda m,dv,m0 : -1,
-                   #                     C = lambda m,dv,m0 : 3*m0/2,
-                   #                     D = lambda m,dv,m0 : m- m0/((6*dv-1)/(2-4*dv)),
-                   #                     k = lambda m,dv,m0 : (6*dv-1)/(1-2*dv),
-                   #                     m = lambda k,m0 : (3+k)*m0/2,
-                   #                     ai = lambda k,m0 : (1+k)/(6+2*k)),
-                   
-                   #'AA+AAB' : Preset (A = lambda m,dv,m0 : m0/2,
-                   #                   B = lambda m,dv,m0 : -1,
-                   #                   C = lambda m,dv,m0 : m0,
-                   #                   D = lambda m,dv,m0 : m- m0*(1-2*dv)/(2*dv+1),
-                   #                   k = lambda m,dv,m0 : 2*(1-2*dv)/(2*dv+1),
-                   #                   m = lambda k,m0 : (2+k)*m0/2,
-                   #                   ai = lambda k,m0 : (2-k)/(4+2*k)),
-                   
-                    #'AAB+AABB' : Preset (A = lambda m,dv,m0 : m0/2,
-                    #                    B = lambda m,dv,m0 : -1,
-                    #                    C = lambda m,dv,m0 : 3*m0/2,
-                    #                    D = lambda m,dv,m0 : m- m0*(1-6*dv)/(4*dv+1),
-                    #                    k = lambda m,dv,m0 : (1-6*dv)/(2*dv+1),
-                    #                    m = lambda k,m0 : (3+k)*m0/2,
-                    #                    ai = lambda k,m0 : (1-k)/(6+2*k)),
-                    
-                    'AB+AAA' : Preset (A = lambda m,dv,m0 : m0/2,
-                                       B = lambda m,dv,m0 : -1,
-                                       C = lambda m,dv,m0 : m0,
-                                       D = lambda m,dv,m0 : m - 2*dv*m0/(3-2*dv),
-                                       k = lambda m,dv,m0 : 4*dv/(3-2*dv),
-                                       m = lambda k,m0 : (2+k)*m0/2,
-                                       ai = lambda k,m0 : 3*k/(4+2*k)),
-                    
-                    'AB+AAAA' : Preset (A = lambda m,dv,m0 : m0/2,
-                                        B = lambda m,dv,m0 : -1,
-                                        C = lambda m,dv,m0 : m0,
-                                        D = lambda m,dv,m0 : m - dv*m0/(1-dv),
-                                        k = lambda m,dv,m0 : dv/(1-dv)  if dv != 1.0 else np.nan,
-                                        m = lambda k,m0 : (1+k)*m0,
-                                        ai = lambda k,m0 : k/(1+k))}
+colorsCN = {}
+colorsCN['A'] = 'lime'
+colorsCN['AA'] = 'blue'
+colorsCN['AAB'] = 'cyan'
+colorsCN['(AB)n'] = 'black'
+colorsCN['AB'] = 'lightgray'
+colorsCN['AAAB'] = 'magenta'
+colorsCN['AAA'] = 'brown'
+colorsCN['AAAA'] = 'darkolivegreen'
+
+    
+    
 
 def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
     chrs = chrom_sizes.index.values.tolist()
@@ -147,6 +49,7 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
             except:
                 color = 'lightskyblue'
                 a = 0.1
+                k = 1.1
             
             if np.isnan (b['k'])|np.isnan(a):
                 a = 1
@@ -382,8 +285,8 @@ def check_solution_plot_opt (bed_df, params, ax, cent_thr = 0.3, size_thr = 1,
     ax.set_ylabel ('Allelic imbalance')
     
     
-def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF'):
-    
+def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 50):
+    assert type in ["CDF", "PDF"], "Unknown plot type!"
     for stat, df in ch_bed.groupby (by = 'status'):
         starts = df.start.values
         ends = df.end.values
@@ -392,32 +295,23 @@ def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF'):
         tmp = d_ch.loc[(d_ch['vaf'] < 1)&(d_ch['vaf'] > 0)&(pos_filt)]
         
         v = np.sort (tmp['vaf'].values)
-        ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 1, label = stat)
+        if type == "CDF":
+            ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 1, label = stat)
+        else:
+            ax.hist (v, bins = np.linspace (0,1, no_bins), lw = 2, 
+                     histtype = "step", density = True, label = stat)
     
     try:
-        x = np.linspace (0,1)
-        ax.plot (x, sts.norm.cdf (x, 0.497, np.sqrt(1/par['m0']*par['fb'])), '.', markersize = 1, label = 'median normal')
-
+        if type == "CDF":
+            x = np.linspace (0,1, 100)
+            ax.plot (x, sts.norm.cdf (x, 0.497, np.sqrt(1/par['m0']*par['fb'])), '.',
+                     markersize = 1, label = 'median normal')
+        else:
+            ax.plot (x, sts.norm.pdf (x, 0.497, np.sqrt(1/par['m0']*par['fb'])), '.',
+                     markersize = 1, label = 'median normal')
     except:
         pass
     
-    
-    #filt = np.repeat (False, len(data_chrom))
-    #for _, r in bed_CNV.iterrows():
-    #    filt = filt | ((data_chrom.position > r['start'])&(data_chrom.position < r['end']))
-        
-    #tmp = data_chrom.loc[filt&(data_chrom['vaf'] < 1)&(data_chrom['vaf'] > 0)]
-    #vCNV = np.sort(tmp['vaf'].values)
-   # 
-    #tmp = data_chrom.loc[~filt&(data_chrom['vaf'] < 1)&(data_chrom['vaf'] > 0)]
-    #vrest = np.sort(tmp['vaf'].values)
-
-    #v,c = np.unique (vCNV, return_counts = True)
-    #ax.plot (v, np.cumsum(c)/np.sum(c), '.', c = 'red', ms = 0.5, label = 'CNV region')
-
-    #v,c = np.unique (vrest, return_counts = True)
-    #ax.plot (v, np.cumsum(c)/np.sum(c), '.', c = 'blue', ms = 0.5, label = 'control region')
-
     ax.legend()
-    ax.set_xlabel ('VAF')
-    ax.set_ylabel ('CDF')
+    ax.set_xlabel ('BAF')
+    ax.set_ylabel (type)

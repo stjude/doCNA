@@ -1,7 +1,13 @@
 from shiny import *
-from Plots import *
+from Plots import * #need a dot
+import Models
+#from doCNA import Models
 
-# Import modules for plot rendering
+model_presets = {}
+model_presets.update (Models.model_presets_2)
+model_presets.update (Models.model_presets_4)
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -251,9 +257,8 @@ def server(input, output, session):
         tmp = bed_full()
         if len(tmp) > 0:
             chrom_sizes.set(tmp.groupby(by = 'chrom').agg({'end' : 'max'})['end'])
-            
             tmp['filt'] = (tmp['cent'] <= input.cent_thr()) & (tmp['size'] >= input.size_thr())
-            
+            #fix models in old runs
             bed_full.set(tmp)
             bed.set (tmp.loc[tmp.filt])
     
@@ -428,7 +433,7 @@ def server(input, output, session):
                                           highlight = input.chroms_selected())
             k = np.linspace (0,1,100)
             m0 = par_d['m0']
-            for model in model_presets.keys(): #colorsCN.keys():
+            for model in model_presets.keys():
                 ax.plot (model_presets[model].m(k, m0), model_presets[model].ai(k, m0),  
                          lw = 2, linestyle = '-', color = colorsCN[model], alpha  = 0.6)
             
@@ -601,7 +606,7 @@ def server(input, output, session):
                     dt = 0
                     st = 0
                     for _, b in tmp.iterrows():
-                        dt += min([calculate_distance(model, b['m'], b['ai'], m) for model in model_presets.values()])*b['size']  
+                        dt += min([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets.values()])*b['size']  
                         st += b['size']
                     dts.append(dt)
                     sts.append(st)
