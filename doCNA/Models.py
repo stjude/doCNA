@@ -75,11 +75,11 @@ def calculate_distance (preset, m, ai, m0):
     k = preset.k(m,ai,m0)
     if np.isnan(k):
         d = np.inf
-    elif (k > 1) | (k < 0):
+    elif ((k > 1) | (k < 0)):
         ks = np.linspace (0,1,1000)
-        ms = preset.m(k,m0)/m0
+        ms = preset.m(ks,m0)/m0
         d = np.min(np.sqrt((ks-k)**2+(ms-m/m0)**2))
     else:
-        d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
+        d = np.abs (preset.C (m/m0,k,1) - preset.D (m/m0,k,1))/np.sqrt (preset.A(m/m0,k,1)**2 + preset.B(m/m0,k,1)**2)
     
     return d

@@ -12,6 +12,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.signal as sig
+from collections import defaultdict
+
+#only useful to read in previous version models. TBR in release
+fix_model = {}
+fix_model ['AB+A'] = 'A'
+fix_model ['AB+AA'] = 'AA'
+fix_model ['AB+AAB'] = 'AAB'
+fix_model ['A(AB)B'] = '(AB)n'
+fix_model ['AB+AAAB'] = 'AAAB'
+fix_model ['AB+AAA'] = 'AAA'
+fix_model ['AB+AAAA'] = 'AAAA'
+fix_model ['A'] = 'A'
+fix_model ['AA'] = 'AA'
+fix_model ['AAB'] = 'AAB'
+fix_model ['(AB)n'] = '(AB)n'
+fix_model ['AAAB'] = 'AAAB'
+fix_model ['AAA'] = 'AAA'
+fix_model ['AAAA'] = 'AAAA'
+fix_model [np.nan] = np.nan
+
 
 chromlist = ['chr' + str (i) for i in range (1,23)]
 chromdic = {}
@@ -69,10 +89,7 @@ app_ui = ui.page_fluid(
                       ui.panel_main(
                                     ui.navset_tab (
                                                    ui.nav("Genome-wide view",
-                                                          #ui.row (ui.column(12, ui.output_plot ('model_legend'), )),
-                                                                  #ui.tags.img(src = 'www/models_legend.png', alt = 'models legend', height = '10%', width = '100%'),),
                                                           ui.row(ui.column(12,          
-                                                                 #ui.output_plot ('model_legend'),
                                                                  ui.input_file ('bed_file', "Choose BED file to upload:",
                                                                                 multiple = False, accept = '.bed'),
                                                                  ui.output_plot ('genome_plot'),)),
@@ -128,13 +145,6 @@ app_ui = ui.page_fluid(
                                                                                                    ),    
                                                                                              ui.h6("Coverage range:"),
                                                                                              ui.output_text_verbatim ("coverage_range"),
-                                                                                             #ui.input_checkbox_group ('cn4_models',
-                                                                                             #       "Include cn4 models?",
-                                                                                             #       {'yes' : 'Please do!'}),
-                                                                                             ui.input_slider ('min_ai', "Min allelic imbalance:",
-                                                                                                              value = 0.01, min = 0, max = 1),
-                                                                                             ui.input_slider ('max_ai', "Max allelic imbalance:",
-                                                                                                               value = 0.01, min = 0, max = 1),
                                                                                              ui.input_action_button ('opt',
                                                                                                                     "Optimize solution"),
                                                                                              width = 2),
@@ -242,6 +252,10 @@ def server(input, output, session):
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
                    names = ['chrom', 'start', 'end', 'ai', 'm', 'cn','model', 'd', 'model_score',
                             'k', 'k_score','dd', 'cyto', 'cent', 'status_d', 'status'])
+        
+        #TBR in release
+        df['model'] = [fix_model[model] for model in df['model'].tolist()]
+        
         df['size'] = (df['end'] - df['start'])/1e6
         
         data.set(pd.DataFrame())
@@ -258,8 +272,8 @@ def server(input, output, session):
         if len(tmp) > 0:
             chrom_sizes.set(tmp.groupby(by = 'chrom').agg({'end' : 'max'})['end'])
             tmp['filt'] = (tmp['cent'] <= input.cent_thr()) & (tmp['size'] >= input.size_thr())
-            #fix models in old runs
-            bed_full.set(tmp)
+            
+            #bed_full.set(tmp)
             bed.set (tmp.loc[tmp.filt])
     
     @reactive.Effect
@@ -324,9 +338,6 @@ def server(input, output, session):
             bed_report.set(pd.DataFrame.from_records (merged_segments,
                                                       columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto']))
     
-            
-            
-        
     @reactive.Effect
     @reactive.event(input.par_file)
     def _():
@@ -346,12 +357,12 @@ def server(input, output, session):
                         pard[key] = (float(value0),float(value1))
                     except:
                         print ('Line: ' + line + 'not parsed.')
+        print (pard)
         par.set(pard)
         
         opt_solution.set ((np.array([]), np.array([])))
         m0.set(float(pard['m0'][0]))
         m0_opt.set(float(pard['m0'][0]))
-        
         
     @reactive.Effect
     @reactive.event(input.data_file)
@@ -380,8 +391,7 @@ def server(input, output, session):
             axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets)+2,
                            loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
-    
-    
+        
     @output
     @render.plot (alt = "Genomewide view")
     def report_plot ():
@@ -396,7 +406,6 @@ def server(input, output, session):
             axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets)+2,
                            loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
-            
     
     @output
     @render.plot (alt = "Scoring view")
@@ -420,7 +429,6 @@ def server(input, output, session):
             k_pos = bed_data.loc[bed_data['k'] > 0, 'k'].values
             ax.set_ylim ((np.log10(k_pos.min()), 0.1))  
             return fig
-    
     
     @output
     @render.plot (alt = "Solution view")
@@ -449,14 +457,14 @@ def server(input, output, session):
         par_d = par()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, axs = plt.subplots (1, 2, figsize = (6,3), sharey = True)
-            tmp = bed_data.loc[bed_data.model != 'A(AB)B']
+            tmp = bed_data.loc[bed_data.model != '(AB)n']
             if len(tmp) > 0:
                 plot_cdf (tmp['dd'].values,
                           ax = axs[0], par = ((par_d['m_i'],),(par_d['s_i'],), (sum(tmp.status == 'norm')/len(tmp),)))
                 axs[0].set_title ('Imbalanced')
                 axs[0].set_xlabel ('Distance to usual')
                 axs[0].set_ylabel ('cdf')
-            tmp = bed_data.loc[bed_data.model == 'A(AB)B']
+            tmp = bed_data.loc[bed_data.model == '(AB)n']
             if len(tmp) > 0:
                 if len (par_d['a_b']) == 2:
                     neg_tmp = tmp.loc[tmp.k < 0]
@@ -592,10 +600,9 @@ def server(input, output, session):
         bed_data = bed()
         par_d = par()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
-            #models = models_dic()
-                        
+           
             ms = np.arange (m0()*input.min_cn(), m0()*input.max_cn(), input.step())
-            tmp = bed_data.loc[(~bed_data['model'].isna())&((bed_data['ai'] <= input.min_ai())|(bed_data['ai'] >= input.max_ai()))]
+            tmp = bed_data.loc[(~bed_data['model'].isna())] #&((bed_data['ai'] <= input.min_ai())|(bed_data['ai'] >= input.max_ai()))]
             
             with ui.Progress (min = ms[0], max = ms[-1]) as p:
                 p.set(message = 'Optimizing solution...', )
@@ -606,7 +613,7 @@ def server(input, output, session):
                     dt = 0
                     st = 0
                     for _, b in tmp.iterrows():
-                        dt += min([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets.values()])*b['size']  
+                        dt += min([Models.calculate_distance(model, b['m']/m, b['k'], 1) for model in model_presets.values()])*b['size']  
                         st += b['size']
                     dts.append(dt)
                     sts.append(st)
@@ -615,17 +622,17 @@ def server(input, output, session):
                 
             m0_opt.set (ms[np.where(dtsa == dtsa.min())[0][0]])
             
-    @reactive.Effect
-    @reactive.event (input.max_ai)
-    def _():
-        if input.min_ai() > input.max_ai():
-            ui.update_slider ('min_ai', value = input.max_ai())
+    #@reactive.Effect
+    #@reactive.event (input.max_ai)
+    #def _():
+    #    if input.min_ai() > input.max_ai():
+    #        ui.update_slider ('min_ai', value = input.max_ai())
             
-    @reactive.Effect
-    @reactive.event (input.min_ai)
-    def _():
-        if input.max_ai() < input.min_ai():
-            ui.update_slider ('max_ai', value = input.min_ai())
+    #@reactive.Effect
+    #@reactive.event (input.min_ai)
+    #def _():
+    #    if input.max_ai() < input.min_ai():
+    #        ui.update_slider ('max_ai', value = input.min_ai())
         
     @reactive.Effect
     @reactive.event (input.m0_cov)
@@ -634,20 +641,20 @@ def server(input, output, session):
             m0.set(input.m0_cov())
     
     
-    @output
-    @render.text
-    def m_diploid ():
-        par_d = par()
-        opt = opt_solution()
-        if (len(par_d.keys()) != 0) & (len(opt[0]) > 0):
-            min_dist_at = opt[0][np.where(opt[1] == opt[1].min())[0][0]]
-            text = ["Experimental feature!!",
-                    "Found m0: " + str(par['m0']),
-                    "Optimized m0: " + str(min_dist_at),
-                    f"The relative difference: {np.abs(min_dist_at - par_d['m0'])/par_d['m0']}"]
-            return '\n'.join(text)
-        else:
-            return
+    #@output
+    #@render.text
+    #def m_diploid ():
+    #    par_d = par()
+    #    opt = opt_solution()
+    #    if (len(par_d.keys()) != 0) & (len(opt[0]) > 0):
+    #        min_dist_at = opt[0][np.where(opt[1] == opt[1].min())[0][0]]
+    #        text = ["Experimental feature!!",
+    #                "Found m0: " + str(par['m0']),
+    #                "Optimized m0: " + str(min_dist_at),
+    #                f"The relative difference: {np.abs(min_dist_at - par_d['m0'])/par_d['m0']}"]
+    #        return '\n'.join(text)
+    #    else:
+    #        return
         
         
 app = App(app_ui, server, debug=True)

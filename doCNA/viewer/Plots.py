@@ -285,7 +285,7 @@ def check_solution_plot_opt (bed_df, params, ax, cent_thr = 0.3, size_thr = 1,
     ax.set_ylabel ('Allelic imbalance')
     
     
-def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 50):
+def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 100):
     assert type in ["CDF", "PDF"], "Unknown plot type!"
     for stat, df in ch_bed.groupby (by = 'status'):
         starts = df.start.values
