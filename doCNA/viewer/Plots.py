@@ -18,6 +18,7 @@ colorsCN['AB'] = 'lightgray'
 colorsCN['AAAB'] = 'magenta'
 colorsCN['AAA'] = 'brown'
 colorsCN['AAAA'] = 'darkolivegreen'
+colorsCN[np.nan] = 'lightskyblue'
 
     
     

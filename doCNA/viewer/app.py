@@ -51,13 +51,15 @@ def merge_records (all_records, chrom):
     if len (records) == 1:
         mr = (chrom, r.start, r.end, r.m, r.cn,
                 r.model if r.status != 'norm' else 'AB',
-                r.k if r.status != 'norm' else 0, r.cyto)
+                r.k if r.status != 'norm' else 0, r.cyto, r.k_score)
     else:
         status = r.status
         size = np.array ([r.end-r.start for r in records])
         m = np.array([r.m for r in records])
         cn = np.array([r.cn for r in records])
         k = np.array([r.k for r in records])
+        chi2 = (np.array([r.k_score for r in records])*np.log2(10))
+        print (chi2)
         cyto = '-'.join([records[0].cyto.split('-')[0], records[-1].cyto.split('-')[-1]])
         if status == 'norm':
             model = 'AB'
@@ -66,7 +68,7 @@ def merge_records (all_records, chrom):
             
         mr =  (chrom, records[0].start, records[-1].end,
                     sum(m*size)/sum(size), sum(cn*size)/sum(size), model,
-                    sum(k*size)/sum(size), cyto)
+                    sum(k*size)/sum(size), cyto, -np.log10(sts.chi2.sf(2*sum(chi2), 2*len(records))))
     
     return mr
 
@@ -136,7 +138,7 @@ app_ui = ui.page_fluid(
                                                    ui.nav("Solution test",
                                                           ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Optimize settings:"),
                                                                                              ui.input_slider ('min_cn', "Min cov (relative):",
-                                                                                                              value = 0.4, min = 0.1, max = 1, step = 0.05),
+                                                                                                              value = 0.7, min = 0.1, max = 1, step = 0.05),
                                                                                              ui.input_slider ('max_cn', "Max cov (relative):",
                                                                                                               value = 1.1, min = 0.5, max = 1.5, step = 0.05),
                                                                                              ui.row(ui.column(6,ui.input_numeric ("step", 'Step:', 0.1, min = 0.01, max = 1, step = 0.1)),
@@ -336,7 +338,7 @@ def server(input, output, session):
                 
                 
             bed_report.set(pd.DataFrame.from_records (merged_segments,
-                                                      columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto']))
+                                                      columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto', 'score']))
     
     @reactive.Effect
     @reactive.event(input.par_file)
@@ -385,7 +387,7 @@ def server(input, output, session):
                           model_thr = input.model_thr())
             
             for model in colorsCN.keys():
-                axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model.split('+')[-1])
+                axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
             axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets)+2,
@@ -400,7 +402,7 @@ def server(input, output, session):
             fig, axs = plt.subplots (2, 1, figsize = (16,4), sharex = True)
             reporting_plot (bed_data, axs, chrom_sizes())
             for model in colorsCN.keys():
-                axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model.split('+')[-1])
+                axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
             axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets)+2,
