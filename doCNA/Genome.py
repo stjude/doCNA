@@ -262,7 +262,9 @@ class Genome:
         self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_imbalanced"]["score_FDR"]}.')
         
         k = all_data[balanced_index,0]
-        try: 
+        print (k)
+        try:
+        
             if len(k) < Consts.MIN_LEN_K_BALANCED:
                 self.logger.warning (f'Only {len(k)} balance regions. Attempt to score from normal imbalanced.')
                 #raise ValueError 
@@ -271,17 +273,20 @@ class Genome:
                 #k = [(all_data[i][2]/m0 -1) for i in imbalanced_norm_indexes]
                 k = all_data[imbalanced_norm_indexes, 2]/m0 -1                           
                 
-            gauss = Distribution.fit_single_G(k, alpha = kalpha, r = 0.2)
+            gauss = Distribution.fit_single_G(k[~np.isnan(k)], alpha = kalpha, r = 0.2)
             if gauss['p'] > 0.3:
+                
+                self.logger.info (f"Fitting single gauss considered success, p = {gauss['p']}")
                 params = gauss['2']
                 params['thr'] = gauss['thr']
                 params['p'] = gauss['p']
                 params['a'] = 1 
             else:
+                self.logger.info (f'Fitting single gauss consider failed, p = {gauss["p"]}')
                 bounds = [[0,-0.2, 0.01, 0.0, 0.01],
                           [1, 0.0, 0.2, 0.2, 0.2]]
             
-                gauss = Distribution.fit_double_G (k, alpha = kalpha, r = 0.2, 
+                gauss = Distribution.fit_double_G (k[~np.isnan(k)], alpha = kalpha, r = 0.2, 
                                                    initial_bounds = bounds,
                                                    initial_p0 = (0.5, -0.1, 0.02, 0.1, 0.02))
             
@@ -334,8 +339,8 @@ class Genome:
                 seg.parameters['call_FDR'] = 'CNVi' if seg.parameters['clonality_score'] > self.genome_medians["clonality_imbalanced"]["score_FDR"] else 'norm'
             else:
                 k = seg.parameters['k']
-                if params[m][0] == params[m][1]:
-                    p = sts.norm.sf (seg.parameters['k'], params[m][0], params[s][0])                
+                if params['m'].size == 1:
+                    p = sts.norm.sf (seg.parameters['k'], params['m'][0], params['s'][0])                
                 else:
                     z = (k - params['m'])/params['s']
                     p = np.min((sts.norm.cdf (z[0]), sts.norm.sf (z[-1])))

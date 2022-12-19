@@ -76,7 +76,7 @@ class Segment:
             v = self.parameters['ai']
             m0 = self.genome_medians['m']
         
-            self.distances = np.array ([calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
+            self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in Models.model_presets.values()])
             picked = np.where(self.distances == self.distances.min())[0][0]
                         
             self.parameters['d'] = self.distances.min()
@@ -91,23 +91,24 @@ class Segment:
             self.logger.info ('No model for this segment.')
                         
 
-def calculate_distance (preset, m, ai, m0):
-    
-    try:
-        k = preset.k(m,ai,m0)
-    except ZeroDivisionError:
-        k = np.inf
 
-    if np.isnan(k):
-        d = np.inf
-    elif (k > 1) | (k < 0):
-        ks = np.linspace (0,1,1000)
-        ms = preset.m(k,m0)/m0
-        d = np.min(np.sqrt((ks-k)**2+(ms-m/m0)**2))
-    else:
-        d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
+#def calculate_distance (preset, m, ai, m0):
     
-    return d
+#    try:
+#        k = preset.k(m,ai,m0)
+#    except ZeroDivisionError:
+#        k = np.inf
+
+#    if np.isnan(k):
+#        d = np.inf
+#    elif (k > 1) | (k < 0):
+#        ks = np.linspace (0,1,1000)
+#        ms = preset.m(k,m0)/m0
+#        d = np.min(np.sqrt((ks-k)**2+(ms-m/m0)**2))
+#    else:
+#        d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
+    
+#    return d
 
 
 def get_sensitive (data, fb, mG, z_thr = 1.5):

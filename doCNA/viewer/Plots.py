@@ -6,8 +6,8 @@ import pandas as pd
 import numpy as np
 import argparse as agp
 
-#from doCNA import Models
-import Models
+from doCNA import Models
+#import Models
 
 colorsCN = {}
 colorsCN['A'] = 'lime'
@@ -31,7 +31,8 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
     axs[1].plot ((start, start), (0, 4), 'k:', lw = 0.5)
     axs[0].plot ((start, start), (0, 0.95), 'k:', lw = 0.5)
     mids = []
-    
+    axst = axs[2].twinx() 
+   
     for chrom in chrs:
         for _, b in bed_df.loc[bed_df['chrom'] == chrom].iterrows():
             try:
@@ -59,15 +60,17 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
                 
             axs[0].fill_between ((start + b['start'], start + b['end']), (k, k), color = color, alpha = a)
             axs[1].fill_between (x = (start + b['start'], start + b['end']), y1 = (b['cn'], b['cn']), y2 = (2, 2), color = color, alpha = a)
-            #if b['model'] != 'cnB':
-            axs[2].fill_between ((start + b['start'], start + b['end']), (b['k_score'], b['k_score']), color = color, alpha = a)
+            if b['model'] != '(AB)n':
+                axs[2].fill_between ((start + b['start'], start + b['end']), (b['k_score'], b['k_score']), color = color, alpha = a)
+            else:
+                axst.fill_between ((start + b['start'], start + b['end']), (b['k_score'], b['k_score']), color = color, alpha = a)
             
                 
                 
         end = chrom_sizes[chrom]#bed_df.loc[bed_df['chrom'] == chrom, 'end'].max()
         mids.append (start + end / 2)
         start += end
-        axs[2].plot ((start, start), (-2.0, 2.), 'k:', lw = 0.5)
+        axs[2].plot ((start, start), (0, 2.), 'k:', lw = 0.5)
         axs[1].plot ((start, start), (0.0, 4), 'k:', lw = 0.5)
         axs[0].plot ((start, start), (0.0, 0.95), 'k:', lw = 0.5)        
     
@@ -86,7 +89,10 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
         
     axs[0].set_ylabel ('clonality')
     axs[1].set_ylabel ('copy number')
-    axs[2].set_ylabel ('score') 
+    axs[2].set_ylabel ('score imbalanced')
+    axst.set_ylabel ('score balanced') 
+    axst.set_ylim (0, axst.get_ylim()[1])
+    axs[2].set_ylim (0, axs[2].get_ylim()[1])
 
 def reporting_plot (bed_df, axs, chrom_sizes):
     chrs = chrom_sizes.index.values.tolist()

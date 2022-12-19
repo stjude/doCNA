@@ -69,7 +69,33 @@ model_presets_4 = {'AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
                                         m = lambda k,m0 : (1+k)*m0,
                                         ai = lambda k,m0 : k/(1+k))}
 
+
+model_presets = {}
+model_presets.update (model_presets_2)
+model_presets.update (model_presets_4)
+
 def calculate_distance (preset, m, ai, m0):
+    
+    try:
+        k = np.abs(preset.k(m,ai,m0))
+    except ZeroDivisionError:
+        k = np.inf
+
+    if np.isnan(k):
+        d = np.inf
+    elif (k > 1) | (k < 0):
+        ks = np.linspace (0,1,1000)
+        ms = preset.m(k,m0)/m0
+        d = np.min(np.sqrt((ks-k)**2+(ms-m/m0)**2))
+    else:
+        d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
+    
+    return d
+
+
+
+
+def calculate_distance_wrong (preset, m, ai, m0):
     """Function to calculate the distance of the segment to the model"""
     
     k = preset.k(m,ai,m0)

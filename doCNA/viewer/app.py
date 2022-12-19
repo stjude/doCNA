@@ -1,7 +1,7 @@
 from shiny import *
-from Plots import * #need a dot
-import Models
-#from doCNA import Models
+from .Plots import * #need a dot
+#import Models
+from doCNA import Models
 
 model_presets = {}
 model_presets.update (Models.model_presets_2)
@@ -418,11 +418,11 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, ax = plt.subplots (1, 1, figsize = (6,3))
             
-            leopard_plot (bed_data.loc[bed_data['model'] != 'A(AB)B'], 
+            leopard_plot (bed_data.loc[bed_data['model'] != '(AB)n'], 
                           (par_d['A_i'][0], par_d['C_i'][0], par_d['C_i'][0]-par_d['up_i'][0]),
                           ax, highlight = input.chroms_selected(),
                           color_norm = 'black', color_hit = 'darkred')
-            leopard_plot (bed_data.loc[bed_data['model'] == 'A(AB)B'], 
+            leopard_plot (bed_data.loc[bed_data['model'] == '(AB)n'], 
                           (np.nan, np.nan, np.nan),
                           ax, highlight = input.chroms_selected(), 
                           color_norm = 'gray', color_hit = 'darkorange', alpha = 0.3)
@@ -461,11 +461,11 @@ def server(input, output, session):
             fig, axs = plt.subplots (1, 2, figsize = (6,3), sharey = True)
             tmp = bed_data.loc[bed_data.model != '(AB)n']
             if len(tmp) > 0:
-                plot_cdf (tmp['dd'].values,
-                          ax = axs[0], par = ((par_d['m_i'],),(par_d['s_i'],), (sum(tmp.status == 'norm')/len(tmp),)))
+                plot_cdf (tmp['dd'].values, ax = axs[0], 
+                          par = ((par_d['m_i'],),(par_d['s_i'],), (sum(tmp.status == 'norm')/len(tmp),)))
                 axs[0].set_title ('Imbalanced')
                 axs[0].set_xlabel ('Distance to usual')
-                axs[0].set_ylabel ('cdf')
+                axs[0].set_ylabel ('CDF')
             tmp = bed_data.loc[bed_data.model == '(AB)n']
             if len(tmp) > 0:
                 if len (par_d['a_b']) == 2:
@@ -480,8 +480,8 @@ def server(input, output, session):
                               a0 = len(tmp.loc[(tmp.k < 0)& (tmp.status_d != 'norm')])/len(tmp) )
 
                 elif len(par_d['a_b']) == 1:
-                    plot_cdf (tmp['k'].values, ax = axs[0], 
-                              par = ((par_d['m_b'],),(par_d['s_b'],), (sum(tmp.status != 'norm')/len(tmp),)))
+                    plot_cdf (tmp['k'].values, ax = axs[1], 
+                              par = ((par_d['m_b'],),(par_d['s_b'],), (sum(tmp.status == 'norm')/len(tmp),)))
                  
                 axs[1].set_title ('Balanced')
                 axs[1].set_xlabel ('Sign clonality')
