@@ -41,32 +41,51 @@ for c in chromlist:
 def merge_records (all_records, chrom):
     
     filt_indexes = np.where([r.filt for r in all_records])[0]
-    records = [all_records[i] for i in filt_indexes]
-    
-    i = 0
-    while not records[i].filt:
-        i +=1 
-    r = records[i]
-    mr = ()
-    if len (records) == 1:
-        mr = (chrom, r.start, r.end, r.m, r.cn,
-                r.model if r.status != 'norm' else 'AB',
-                r.k if r.status != 'norm' else 0, r.cyto, r.k_score)
-    else:
-        status = r.status
+    #records = [all_records[i] for i in filt_indexes]
+    if len(filt_indexes) == 0:
+        r = all_records[0]
+        records = all_records
+        status = 'NA'
         size = np.array ([r.end-r.start for r in records])
         m = np.array([r.m for r in records])
         cn = np.array([r.cn for r in records])
-        k = np.array([r.k for r in records])
-        chi2 = (np.array([r.k_score for r in records])*np.log2(10))
-        print (chi2)
+        k = np.abs(np.array([r.k for r in records]))
+        #chi2 = (np.array([r.k_score for r in records])*np.log2(10))
         cyto = '-'.join([records[0].cyto.split('-')[0], records[-1].cyto.split('-')[-1]])
-        if status == 'norm':
-            model = 'AB'
+        model = 'NA'
+        mr = (chrom, r.start, records[-1].end, 
+              sum(m*size)/sum(size), sum(cn*size)/sum(size), model,
+              sum(k*size)/sum(size), cyto, 'NA')
+    else:
+        
+        records = [all_records[i] for i in filt_indexes]
+        i = 0
+        try:
+            while not records[i].filt:
+                i +=1 
+        except:
+            i = 0
+
+        r = records[i]
+        mr = ()
+        if len (records) == 1:
+            mr = (chrom, r.start, r.end, r.m, r.cn,
+                r.model if r.status != 'norm' else 'AB',
+                np.abs(r.k) if r.status != 'norm' else 0, r.cyto, r.k_score)
         else:
-            model = r.model
+            status = r.status
+            size = np.array ([r.end-r.start for r in records])
+            m = np.array([r.m for r in records])
+            cn = np.array([r.cn for r in records])
+            k = np.abs(np.array([r.k for r in records]))
+            chi2 = (np.array([r.k_score for r in records])*np.log2(10))
+            cyto = '-'.join([records[0].cyto.split('-')[0], records[-1].cyto.split('-')[-1]])
+            if status == 'norm':
+                model = 'AB'
+            else:
+                model = r.model
             
-        mr =  (chrom, records[0].start, records[-1].end,
+            mr =  (chrom, records[0].start, records[-1].end,
                     sum(m*size)/sum(size), sum(cn*size)/sum(size), model,
                     sum(k*size)/sum(size), cyto, -np.log10(sts.chi2.sf(2*sum(chi2), 2*len(records))))
     
@@ -295,10 +314,11 @@ def server(input, output, session):
                 
                 to_merge = [next(seg_iter)]
                 
-                while not to_merge[-1].filt:
-                    
-                    to_merge.append (next(seg_iter))
-                    
+                try:
+                    while not to_merge[-1].filt:
+                        to_merge.append (next(seg_iter))
+                except:
+                    pass
                 current_record = to_merge[-1]
                 
                 last_action = 'merge' 
@@ -311,13 +331,14 @@ def server(input, output, session):
                             to_merge.append (next_record)
                             next_record = next(seg_iter)
                         
-                        if (current_record.status == next_record.status):
+                        if (current_record.status == next_record.status)&\
+                                 (current_record.model == next_record.model):
                             if (current_record.status == 'norm'):
                            
                                 to_merge.append(next_record)
                                 last_action = 'merge'
-                            elif ((current_record.model == next_record.model)&\
-                                 np.abs(((current_record.k-next_record.k)/current_record.k) < 0.1)):
+                            elif (current_record.model == next_record.model)&\
+                                 np.abs(((current_record.k-next_record.k)/current_record.k) < 0.1):
                                 to_merge.append(next_record)
                                 last_action = 'merge'
                         
@@ -359,7 +380,6 @@ def server(input, output, session):
                         pard[key] = (float(value0),float(value1))
                     except:
                         print ('Line: ' + line + 'not parsed.')
-        print (pard)
         par.set(pard)
         
         opt_solution.set ((np.array([]), np.array([])))

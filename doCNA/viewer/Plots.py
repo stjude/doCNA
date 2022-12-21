@@ -19,7 +19,7 @@ colorsCN['AAAB'] = 'magenta'
 colorsCN['AAA'] = 'brown'
 colorsCN['AAAA'] = 'darkolivegreen'
 colorsCN[np.nan] = 'lightskyblue'
-
+colorsCN['NA'] = 'lightskyblue'
     
     
 
@@ -308,13 +308,13 @@ def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 100):
             ax.hist (v, bins = np.linspace (0,1, no_bins), lw = 2, 
                      histtype = "step", density = True, label = stat)
     
-    try:
+    try: 
         if type == "CDF":
-            x = np.linspace (0,1, 100)
-            ax.plot (x, sts.norm.cdf (x, 0.497, np.sqrt(1/par['m0']*par['fb'])), '.',
+            x = np.linspace (0,1, 500)
+            ax.plot (x, sts.norm.cdf (x, 0.497, np.sqrt(0.25/par['m0'][0])*par['fb'][0]), '.',
                      markersize = 1, label = 'median normal')
         else:
-            ax.plot (x, sts.norm.pdf (x, 0.497, np.sqrt(1/par['m0']*par['fb'])), '.',
+            ax.plot (x, sts.norm.pdf (x, 0.497, np.sqrt(0.25/par['m0'][0])*par['fb'][0]), '.',
                      markersize = 1, label = 'median normal')
     except:
         pass
