@@ -498,12 +498,18 @@ def fit_huber (data, alpha):
     d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
     
     down, up = Testing.get_outliers_thrdist (d, alpha = alpha)
-    m, std = sts.norm.fit (d[(d > down)&(d < up)])
-    
+    inlier_ds = d[(d > down)&(d < up)]
+    m, std = sts.norm.fit (inlier_ds)
+    std = std/Bolch_correction (len(inlier_ds))
+
     score_FDR = FDR (np.sort(sts.norm.sf (d, m, std)), alpha)
 
     return {'A' : A, 'B' : B, 'C' : C, 'down' : down, 'up' : up, 'm' : m,
             's' : std, 'score_FDR' : score_FDR}
+
+def Bolch_correction (n):
+    return 1 - 1/(4*n) - 7/(32*n**2) - 19/(128*n**3)
+
 
 def FDR (p, alpha):
     k = np.arange (1, len(p)+1)
