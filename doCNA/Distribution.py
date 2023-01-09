@@ -113,7 +113,7 @@ def fit_single_G (values, alpha = 0.01, r = 0.5):
                    's': np.array([popt[1], popt[1]])},
             'thr' : thr, 'a' : np.ones(1)}
 
-def fit_double_G (values_all, alpha, r = 0.5):
+def fit_double_G (values_all, alpha, r = 0.5, initial_bounds = None, initial_p0 = None):
     """
     Function to fit two Gauss' to _values_
     
@@ -123,16 +123,22 @@ def fit_double_G (values_all, alpha, r = 0.5):
     thr0 = get_outliers_thrdist (np.sort(values_all), alpha, r)   
     values = values_all[(values_all >= thr0[0]) & (values_all <= thr0[1])]
     
-    p0 = (0.5, np.percentile (values, 25), np.percentile(values,40)-np.percentile(values,10),
-          np.percentile (values, 75), np.percentile(values,90)-np.percentile(values,60))
+    if initial_p0 is None:
+        p0 = (0.5, np.percentile (values, 25), np.percentile(values,40)-np.percentile(values,10),
+              np.percentile (values, 75), np.percentile(values,90)-np.percentile(values,60))
+    else:
+        p0 = initial_p0
         
     
     #ValueError: Each lower bound must be strictly less than each upper bound
 
-    bounds = [[0, np.percentile (values, 5), 0.1*np.percentile (values, 40)-0.1*np.percentile (values, 10),
+    if initial_bounds is None:
+        bounds = [[0, np.percentile (values, 5), 0.1*np.percentile (values, 40)-0.1*np.percentile (values, 10),
                   np.percentile (values, 55), 0.1*np.percentile (values, 90)-0.1*np.percentile (values, 60)],
-              [1, np.percentile (values, 45), 2*np.percentile (values, 40)-2*np.percentile (values, 10),
+                 [1, np.percentile (values, 45), 2*np.percentile (values, 40)-2*np.percentile (values, 10),
                   np.percentile (values, 95), 2*np.percentile (values, 90)-2*np.percentile (values, 60)]]
+    else:
+        bounds = initial_bounds
 
     popti, pcovi = opt.curve_fit (gaus2, np.sort(values), np.linspace (0,1,len(values)), p0 = p0,
                                   bounds = check_bounds(bounds)) 

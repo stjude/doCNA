@@ -1,5 +1,4 @@
 import logging
-import pickle as pkl
 from doCNA import Genome
 
 class WGS:

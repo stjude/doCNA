@@ -29,7 +29,7 @@ def main():
                                  help = 'Number of processes. Default: 1')
     parser_analyze.add_argument ('-i', '--input_file', required = True,
                                  type = str, default = '',
-                                 help = 'Input file name.')
+                                 help = "Name of the input file with alleles' counts")
     parser_analyze.add_argument ('-c', '--config', required = False, default = 'config.ini',
                                  help = 'INI file with parameters')
     parser_analyze.add_argument ('-l', '--level', default = 'INFO', 
@@ -82,7 +82,7 @@ def analyze(args):
     keys = sample.genome.chromosomes.keys()
     data = pd.concat ([sample.genome.chromosomes[k].data for k in keys])
 
-    data.to_csv (args.sample_name + '.dat', index = None, sep = '\t', 
+    data.to_csv (args.sample_name + '.dat.gz', index = None, sep = '\t', 
                  compression = 'gzip')
 
     print ('All done')

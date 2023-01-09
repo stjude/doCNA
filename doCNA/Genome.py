@@ -13,6 +13,7 @@ from doCNA import Consts
 from doCNA import Report
 from doCNA import Run
 
+
 class Genome:
     """Class to run genome wide tests of HE and create chromosomes."""
     def __init__(self, sample_name, logger, config, CB_file, no_processes = 1):
@@ -42,19 +43,27 @@ class Genome:
             
         else:
             self.data = alldata
-            self.logger.info ("{len(self.data)} SNPs to analyze. No filtering applied.")
+            self.logger.info (f"{len(self.data)} SNPs to analyze. No filtering applied.")
 
         self.data['cov'] = self.data['ref_count'] + self.data['alt_count']
         self.data['vaf'] = self.data['alt_count']/self.data['cov']
         
         self.chromosomes = {}
+        
+        if len(self.data.loc[~self.data['vaf'].isna()]) == 0:
+            sys.exit (f'No data read in. Please cross check column names: {columns} with input file.')
+            
         self.logger.debug ("Creating chromosomes...")
+        
         for chrom, data in self.data.loc[~self.data['vaf'].isna()].groupby (by = 'chrom'):
             if chrom not in Consts.SEX_CHROMS:
                 self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
                                                                  self.config, self.logger,
                                                                  self.genome_medians, 
                                                                  self.CB.loc[self.CB['chrom'] == chrom])
+                self.logger.debug (f"Chromosome {chrom} has {len(data)} markers.")
+         
+
             
     def segment_genome (self, m0 = 0, fb_alpha = Consts.FB_ALPHA):
         
@@ -207,14 +216,15 @@ class Genome:
         for seg in self.all_segments:
             seg.parameters['model_score'] = -np.log10 (np.exp (-popt[0]*seg.parameters['d']))
         self.genome_medians['model_d'] = {'a' : popt[0]}
-        
+    
+    
     def score_clonality (self, size_thr = 5e6, model_thr = 3, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
-        balanced = [seg.parameters['model'] == 'A(AB)B' for seg in self.all_segments]
+        balanced = [seg.parameters['model'] == '(AB)n' for seg in self.all_segments]
         big = [(seg.end - seg.start)/1e6 > size_thr for seg in self.all_segments]
         notHO = [seg.parameters['k'] < k_thr for seg in self.all_segments]
         fit_model = [seg.parameters['model_score'] < model_thr for seg in self.all_segments]
         
-        all_data = np.array([(seg.parameters['k'], (seg.end - seg.start)/1e6) for seg in self.all_segments])
+        all_data = np.array([(seg.parameters['k'], (seg.end - seg.start)/1e6, seg.parameters['m']) for seg in self.all_segments])
                 
         balanced_index = np.where ([ba&bi&fi for ba,bi,fi in zip(balanced, big, fit_model)])[0]
         imbalanced_index = np.where ([(~ba)&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
@@ -225,7 +235,7 @@ class Genome:
             self.genome_medians['clonality_imbalanced'] = fit_huber (all_data[imbalanced_index,:],
                                                                      dalpha)
             
-            if self.genome_medians['clonality_imbalanced']['A'] > 0:
+            if self.genome_medians['clonality_imbalanced']['A'] < 0:
                 self.logger.warning ("Scoring of imbalanced segments seems to fail. Check before you yell!")
             
         except:
@@ -245,8 +255,9 @@ class Genome:
         ks = np.log10 (data[:,0])
         ss = np.log10 (data[:,1])
         d = (A*ss+B*ks+C)/np.sqrt (A**2+B**2)
+        p_imb = sts.norm.sf (d, m, s)
         
-        self.genome_medians["clonality_imbalanced"]["score_FDR"] = FDR(np.sort(sts.norm.sf (d, m, s)), dalpha)
+        self.genome_medians["clonality_imbalanced"]["score_FDR"] = FDR(np.sort(p_imb), dalpha)
 
         self.logger.info ('Score for imbalanced segments:')
         self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
@@ -255,18 +266,57 @@ class Genome:
         self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_imbalanced"]["score_FDR"]}.')
         
         k = all_data[balanced_index,0]
+        print (k)
         try:
-            params = Distribution.fit_double_G (k, alpha = kalpha, r = 0.2)
-            self.genome_medians['clonality_balanced'] = params
-            self.genome_medians['clonality_balanced']['score_FDR'] = FDR (score_double_gauss (k[:,np.newaxis],
-                                                                                          params['m'][np.newaxis,:],
-                                                                                          params['s'][np.newaxis,:]),
-                                                                          kalpha )
+        
+            if len(k) < Consts.MIN_LEN_K_BALANCED:
+                self.logger.warning (f'Only {len(k)} balance regions. Attempt to score from normal imbalanced.')
+                #raise ValueError 
+                m0 = self.genome_medians['m0']
+                imbalanced_norm_indexes = [imbalanced_all_index[i] for i in np.where(p_imb < self.genome_medians["clonality_imbalanced"]["score_FDR"])[0]]
+                #k = [(all_data[i][2]/m0 -1) for i in imbalanced_norm_indexes]
+                k = all_data[imbalanced_norm_indexes, 2]/m0 -1                           
+                
+            gauss = Distribution.fit_single_G(k[~np.isnan(k)], alpha = kalpha, r = 0.2)
+            if gauss['p'] > 0.3:
+                
+                self.logger.info (f"Fitting single gauss considered success, p = {gauss['p']}")
+                params = gauss['2']
+                params['thr'] = gauss['thr']
+                params['p'] = gauss['p']
+                params['a'] = 1 
+            else:
+                self.logger.info (f'Fitting single gauss consider failed, p = {gauss["p"]}')
+                bounds = [[0,-0.2, 0.01, 0.0, 0.01],
+                          [1, 0.0, 0.2, 0.2, 0.2]]
+            
+                gauss = Distribution.fit_double_G (k[~np.isnan(k)], alpha = kalpha, r = 0.2, 
+                                                   initial_bounds = bounds,
+                                                   initial_p0 = (0.5, -0.1, 0.02, 0.1, 0.02))
+            
+               
+                params = gauss['2']
+                params['thr'] = gauss['thr']
+                params['p'] = gauss['p']
+                
 
+            self.genome_medians['clonality_balanced'] = params
+            
+            self.genome_medians['clonality_balanced']['score_FDR'] = FDR (score_double_gauss (k[:,np.newaxis],
+                                                                                              params['m'][np.newaxis,:],
+                                                                                              params['s'][np.newaxis,:]),
+                                                                                              kalpha )
 
             self.logger.info ('Score for balanced segments:')
-            self.logger.info (f'Double normal estimation of k: m  = {params["m"]}, s = {params["s"]}.')
-            self.logger.info (f'Estimation fits double normal as: p = {params["p"]}.')
+            if params['m'][0] != params['m'][1]:
+                self.logger.info (f'Estimation fits double normal as: p = {params["p"]}.')
+                self.logger.info (f'Double normal estimation of k: m  = {params["m"]}, s = {params["s"]}.')
+            else:
+                self.logger.info (f'Estimation fits normal as: p = {params["p"]}.')
+                self.genome_medians['clonality_balanced']['m'] = params['m'][:1]
+                self.genome_medians['clonality_balanced']['s'] = params['s'][:1]
+                self.logger.info (f'Single normal estimation of k: m  = {params["m"]}, s = {params["s"]}.')
+                
             self.logger.info ('Note on quality')
             self.logger.info ('Distance of balanced distributions to k = 0:')
             self.logger.info (f'Absolute: m = {params["m"]}')
@@ -281,25 +331,33 @@ class Genome:
                       'thr' : np.array([np.nan, np.nan]),
                       'score_FDR' : np.inf}
 
-            self.genome_medians['clonality_balanced'] = params
+        self.genome_medians['clonality_balanced'] = params
 
         for seg in self.all_segments:
             x = np.log10((seg.end - seg.start)/10**6)
             y = np.log10(seg.parameters['k'])
-            if seg.parameters['model'] != 'A(AB)B':
+            if seg.parameters['model'] != '(AB)n':
                 seg.parameters['k_d'] = (A*x+B*y+C)/np.sqrt (A**2+B**2)
                 seg.parameters['clonality_score'] = -np.log10(sts.norm.sf(seg.parameters['k_d'], m, s))
                 seg.parameters['call'] = 'CNVi' if seg.parameters['k_d'] > up else 'norm'
                 seg.parameters['call_FDR'] = 'CNVi' if seg.parameters['clonality_score'] > self.genome_medians["clonality_imbalanced"]["score_FDR"] else 'norm'
             else:
                 k = seg.parameters['k']
-                z = (k - params['m'])/params['s']
-                p = np.min((sts.norm.cdf (z[0]), sts.norm.sf (z[1])))
+                if params['m'].size == 1:
+                    p = sts.norm.sf (seg.parameters['k'], params['m'][0], params['s'][0])                
+                else:
+                    z = (k - params['m'])/params['s']
+                    p = np.min((sts.norm.cdf (z[0]), sts.norm.sf (z[-1])))
+                
                 seg.parameters['k_d'] = np.nan
                 seg.parameters['clonality_score'] = -np.log10(p)
                 seg.parameters['call'] = 'norm' if (k < params['thr'][1]) & (k > params['thr'][0]) else 'CNVb'
                 seg.parameters['call_FDR'] = 'CNVb' if seg.parameters['clonality_score'] > self.genome_medians['clonality_balanced']['score_FDR'] else 'norm'
-                   
+    
+    
+        
+    
+    
             
     def report (self, report_type = 'bed'):
         return Report.Report(report_type).genome_report(self)
@@ -323,12 +381,18 @@ def fit_huber (data, alpha):
     d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
     
     down, up = Testing.get_outliers_thrdist (d, alpha = alpha)
-    m, std = sts.norm.fit (d[(d > down)&(d < up)])
-    
+    inlier_ds = d[(d > down)&(d < up)]
+    m, std = sts.norm.fit (inlier_ds)
+    std = std/Bolch_correction (len(inlier_ds))
+
     score_FDR = FDR (np.sort(sts.norm.sf (d, m, std)), alpha)
 
     return {'A' : A, 'B' : B, 'C' : C, 'down' : down, 'up' : up, 'm' : m,
             's' : std, 'score_FDR' : score_FDR}
+
+def Bolch_correction (n):
+    return 1 - 1/(4*n) - 7/(32*n**2) - 19/(128*n**3)
+
 
 def FDR (p, alpha):
     k = np.arange (1, len(p)+1)
