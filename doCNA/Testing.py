@@ -208,7 +208,7 @@ def HE_test (data, *args, **kwargs):
     N = len(data)
     fcov = (data['cov'].median() - cov_min)/(cov_max - cov_min)
     
-    aN = sum (data.loc[data['vaf'] < 0.1])/len(data)
+    aN = sum (data['vaf'] < 0.1)/len(data)
     
     res = opt.minimize (chi2, x0 = (0.5, fcov, 0.5,0.75, aN, 1.3, 6), args = (counts, N),
                     bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds))    
