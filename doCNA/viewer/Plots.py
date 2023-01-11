@@ -277,10 +277,6 @@ def check_solution_plot_opt (bed_df, params, ax, cent_thr = 0.3, size_thr = 1,
     bed = bed_df.loc[(bed_df['cent'] < cent_thr)&(bed_df['size'] > size_thr)]
     
     for _, b in bed.loc[bed['model'].notna(),:].iterrows():
-    #    if (b['ai'] > 0.07) & (b['ai'] < 0.01):
-    #        color = 'blue'
-    #    else:
-    #        color = 'darkgray'
         ax.scatter (b['m'],b['ai'], c = colorsCN[b['model']], s = b['size'])
 
     highlight_filter = [c in highlight for c in bed_df.chrom.tolist()]
@@ -291,7 +287,11 @@ def check_solution_plot_opt (bed_df, params, ax, cent_thr = 0.3, size_thr = 1,
     ax.set_xlabel ('Coverage')
     ax.set_ylabel ('Allelic imbalance')
     
-    
+stat_colors = {}
+stat_colors['norm'] = 'blue'
+stat_colors['CNVi'] = 'orange'
+stat_colors['CNVb'] = 'black'
+
 def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 100):
     assert type in ["CDF", "PDF"], "Unknown plot type!"
     for stat, df in ch_bed.groupby (by = 'status'):
@@ -300,25 +300,28 @@ def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 100):
         pos_filt = ((d_ch.position.values[:, np.newaxis] > starts[np.newaxis,:]) &(d_ch.position.values[:, np.newaxis] < ends[np.newaxis,:])).any (axis = 1) 
         #print (pos_filt.sum())
         tmp = d_ch.loc[(d_ch['vaf'] < 1)&(d_ch['vaf'] > 0)&(pos_filt)]
-        
+        stat
         v = np.sort (tmp['vaf'].values)
         if type == "CDF":
-            ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 1, label = stat)
+            ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 1, color = stat_colors[stat])
+            ax.plot ((),(), lw = 2, label = stat, color = stat_colors[stat])
         else:
             ax.hist (v, bins = np.linspace (0,1, no_bins), lw = 2, 
-                     histtype = "step", density = True, label = stat)
+                     histtype = "step", density = True, color = stat_colors[stat])
+            ax.plot ((),(), lw = 2, label = stat, color = stat_colors[stat])
     
     try: 
+        x = np.linspace (0,1, 500)
         if type == "CDF":
-            x = np.linspace (0,1, 500)
             ax.plot (x, sts.norm.cdf (x, 0.497, np.sqrt(0.25/par['m0'][0])*par['fb'][0]), '.',
-                     markersize = 1, label = 'median normal')
+                     markersize = 1, color = 'green')
         else:
             ax.plot (x, sts.norm.pdf (x, 0.497, np.sqrt(0.25/par['m0'][0])*par['fb'][0]), '.',
-                     markersize = 1, label = 'median normal')
+                     markersize = 1, color = 'green')
+        ax.plot ((),(), lw = 2, color = 'green', label = 'diploid reference')
     except:
         pass
     
     ax.legend()
-    ax.set_xlabel ('BAF')
-    ax.set_ylabel (type)
+    ax.set_xlabel ('BAF', fontsize = 14)
+    ax.set_ylabel (type, fontsize = 14)
