@@ -77,7 +77,7 @@ model_presets.update (model_presets_4)
 def calculate_distance (preset, m, ai, m0):
     
     try:
-        k = np.abs(preset.k(m,ai,m0))
+        k = (preset.k(m,ai,m0))
     except ZeroDivisionError:
         k = np.inf
 

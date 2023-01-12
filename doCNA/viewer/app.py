@@ -171,7 +171,7 @@ app_ui = ui.page_fluid(
                                                                                              width = 2),
                                                                             ui.panel_main(ui.h6("Solution check plot:"),
                                                                                           ui.output_plot('solution_plot_opt', "Solution plot"),
-                                                                                          ui.h6("Total distance to solution at coverage:"),
+                                                                                          ui.h6("Total weighted distance to solution at coverage:"),
                                                                                           ui.output_plot('opt_plot', "Relative distance plot"),
                                                                                           ui.h6("Pick coverage to plot models:"),
                                                                                           ui.row(ui.input_slider ('m0_cov', "Diploid coverage",
@@ -635,8 +635,8 @@ def server(input, output, session):
                     dt = 0
                     st = 0
                     for _, b in tmp.iterrows():
-                        dt += min([Models.calculate_distance(model, b['m']/m, b['k'], 1) for model in model_presets.values()])*b['size']  
-                        st += b['size']
+                        dt += min([Models.calculate_distance(model, b['m']/m, b['k'], 1) for model in model_presets.values()])*np.sqrt(b['size'])
+                        st += np.sqrt(b['size'])
                     dts.append(dt)
                     sts.append(st)
                 dtsa = np.array(dts)/np.array(sts)
