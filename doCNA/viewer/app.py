@@ -635,7 +635,7 @@ def server(input, output, session):
                     dt = 0
                     st = 0
                     for _, b in tmp.iterrows():
-                        dt += min([Models.calculate_distance(model, b['m']/m, b['k'], 1) for model in model_presets.values()])*np.sqrt(b['size'])
+                        dt += min([Models.calculate_distance(model, b['m']/m, b['ai'], 1) for model in model_presets.values()])*np.sqrt(b['size'])
                         st += np.sqrt(b['size'])
                     dts.append(dt)
                     sts.append(st)
