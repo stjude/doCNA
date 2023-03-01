@@ -8,6 +8,7 @@ from doCNA import Consts
 from doCNA import Models
 from doCNA.Report import Report
 
+#use model_presets from __main__
 model_presets = {}
 model_presets.update (Models.model_presets_2)
 model_presets.update (Models.model_presets_4)

@@ -231,7 +231,7 @@ def server(input, output, session):
     @render.ui
     def dyn_log_ui():
         return ui.TagList (ui.tags.textarea ([l.strip() for l in log_file()], 
-                                             cols = "250", rows = "50"))
+                                             cols = "200", rows = "30"))
     
     @output
     @render.text
