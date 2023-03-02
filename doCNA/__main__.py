@@ -13,7 +13,7 @@ from doCNA import Models
 
 _description = "Scan chromosomes in search for non-HE segments. Assigns copy numbers if can."
 
-__version__ = '0.8.4'
+__version__ = '0.9.1'
 
 
 def main():
@@ -42,9 +42,8 @@ def main():
                                  help = 'Coverage of diploid.', default = 0)    
     parser_analyze.add_argument ('-v', '--version', help = 'Print version', action = 'version',
                                  version = 'doCNA v. {version}'.format(version = __version__))
-    #parser_analyze.add_argument ('-m', '--models', choices=Models.models_presets_extra.keys(),
-    #                             nargs='*', action = 'append',
-    #                             help = 'Specify which of extra models should be included.')
+    parser_analyze.add_argument ('-m', '--models', choices=Models.models_presets_extra.keys(),
+                                 nargs='+', help = 'Specify which of extra models should be included.')
     parser_analyze.set_defaults (func=analyze)
 
     ### Viewer subparser ###
@@ -73,12 +72,12 @@ def analyze(args):
 
     sample.analyze (m0 = args.coverage_diploid)
 
-    #model_presets = {}
-    #model_presets.update (model_presets_2)
-    #model_presets.update (model_presets_4)
+    model_presets = {}
+    model_presets.update (Models.model_presets_2)
+    model_presets.update (Models.model_presets_4)
 
-    #for model in args.models:
-    #    model_presets[model] = Models.model_presets_extra[model]    
+    for model in args.models:
+        model_presets[model] = Models.model_presets_extra[model]    
     
 
     with open (args.sample_name + '.bed', 'w') as bed:
