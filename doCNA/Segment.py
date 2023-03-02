@@ -77,7 +77,7 @@ class Segment:
             v = self.parameters['ai']
             m0 = self.genome_medians['m']
         
-            self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in Models.model_presets.values()])
+            self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
             picked = np.where(self.distances == self.distances.min())[0][0]
                         
             self.parameters['d'] = self.distances.min()

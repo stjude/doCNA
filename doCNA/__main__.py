@@ -42,8 +42,9 @@ def main():
                                  help = 'Coverage of diploid.', default = 0)    
     parser_analyze.add_argument ('-v', '--version', help = 'Print version', action = 'version',
                                  version = 'doCNA v. {version}'.format(version = __version__))
-    parser_analyze.add_argument ('-m', '--models', choices=Models.models_presets_extra.keys(),
-                                 nargs='+', help = 'Specify which of extra models should be included.')
+    parser_analyze.add_argument ('-m', '--models', choices=Models.model_presets_extra.keys(),
+                                 nargs='+', help = 'Specify which of extra models should be included.',
+                                 default = [])
     parser_analyze.set_defaults (func=analyze)
 
     ### Viewer subparser ###
