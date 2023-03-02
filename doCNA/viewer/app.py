@@ -3,11 +3,6 @@ from .Plots import * #need a dot
 #import Models
 from doCNA import Models
 
-model_presets = {}
-model_presets.update (Models.model_presets_2)
-model_presets.update (Models.model_presets_4)
-
-
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -166,8 +161,10 @@ app_ui = ui.page_fluid(
                                                                                                    ),    
                                                                                              ui.h6("Coverage range:"),
                                                                                              ui.output_text_verbatim ("coverage_range"),
+                                                                                             ui.input_checkbox ('extra_models', 'Include extra models?',
+                                                                                                                value = False),
                                                                                              ui.input_action_button ('opt',
-                                                                                                                    "Optimize solution"),
+                                                                                                                     "Optimize solution"),
                                                                                              width = 2),
                                                                             ui.panel_main(ui.h6("Solution check plot:"),
                                                                                           ui.output_plot('solution_plot_opt', "Solution plot"),
@@ -213,7 +210,21 @@ def server(input, output, session):
     m0_opt = reactive.Value(np.nan)
     log_file = reactive.Value ([])
     bed_report = reactive.Value(pd.DataFrame())
+    model_presets = reactive.Value ({})
 
+    @reactive.Value
+    @reactive.event (input.extra_models)
+    def _():
+        mp = {}
+        mp.update (Models.model_presets_2)
+        mp.update (Models.model_presets_4)
+        if input.extra_models():
+            mp.update (Models.model_presets_extra)
+            
+        model_presets.set(mp)
+
+    
+    
     @output
     @render.text
     def solutions ():
@@ -425,7 +436,7 @@ def server(input, output, session):
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
-            axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets)+2,
+            axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets())+2,
                            loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
     
@@ -463,8 +474,8 @@ def server(input, output, session):
                                           highlight = input.chroms_selected())
             k = np.linspace (0,1,100)
             m0 = par_d['m0']
-            for model in model_presets.keys():
-                ax.plot (model_presets[model].m(k, m0), model_presets[model].ai(k, m0),  
+            for model in model_presets().keys():
+                ax.plot (model_presets()[model].m(k, m0), model_presets()[model].ai(k, m0),  
                          lw = 2, linestyle = '-', color = colorsCN[model], alpha  = 0.6)
             
             ax.set_xlim (0.9*bed_data.m.min(), 1.1*bed_data.m.max())
@@ -520,8 +531,8 @@ def server(input, output, session):
             check_solution_plot_opt (bed_data, par_d, ax, 
                                           highlight = [])
             k = np.linspace (0,1,100)
-            for model in model_presets.keys():
-                ax.plot (model_presets[model].m(k, m0()), model_presets[model].ai(k, m0()), 
+            for model in model_presets().keys():
+                ax.plot (model_presets()[model].m(k, m0()), model_presets()[model].ai(k, m0()), 
                          lw = 2, linestyle = '-', color = colorsCN[model], alpha = 0.6)
                 
             
@@ -635,7 +646,7 @@ def server(input, output, session):
                     dt = 0
                     st = 0
                     for _, b in tmp.iterrows():
-                        dt += min([Models.calculate_distance(model, b['m']/m, b['ai'], 1) for model in model_presets.values()])*np.sqrt(b['size'])
+                        dt += min([Models.calculate_distance(model, b['m']/m, b['ai'], 1) for model in model_presets().values()])*np.sqrt(b['size'])
                         st += np.sqrt(b['size'])
                     dts.append(dt)
                     sts.append(st)
