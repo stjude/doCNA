@@ -9,6 +9,11 @@ import pandas as pd
 import scipy.signal as sig
 from collections import defaultdict
 
+mp = {}
+mp.update (Models.model_presets_2)
+mp.update (Models.model_presets_4)
+
+
 #only useful to read in previous version models. TBR in release
 fix_model = {}
 fix_model ['AB+A'] = 'A'
@@ -204,15 +209,15 @@ def server(input, output, session):
     bed = reactive.Value(pd.DataFrame())
     data = reactive.Value(pd.DataFrame())
     par = reactive.Value({})
-    opt_solution = reactive.Value((np.array([]), np.array([])))
+    opt_solution = reactive.Value((np.array([]), np.array([]), np.array([])))
     chrom_sizes = reactive.Value(pd.Series())
     m0 = reactive.Value(np.nan)
     m0_opt = reactive.Value(np.nan)
     log_file = reactive.Value ([])
     bed_report = reactive.Value(pd.DataFrame())
-    model_presets = reactive.Value ({})
+    model_presets = reactive.Value (mp)
 
-    @reactive.Value
+    @reactive.Effect
     @reactive.event (input.extra_models)
     def _():
         mp = {}
@@ -222,20 +227,19 @@ def server(input, output, session):
             mp.update (Models.model_presets_extra)
             
         model_presets.set(mp)
-
-    
+        
     
     @output
     @render.text
     def solutions ():
-        m, d = opt_solution ()
+        m, d, f = opt_solution ()
         ind = sig.argrelmin (d)[0]
         minims = []
         for i in ind:
-            minims.append ((m[i], d[i])) 
+            minims.append ((m[i], d[i], f[i])) 
         minims.sort (key = lambda x: x[1], reverse = False)
         
-        return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) for m,d in minims])
+        return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) + ' f = ' + str (f) for m,d,f in minims])
   
    
     @output
@@ -293,7 +297,7 @@ def server(input, output, session):
         data.set(pd.DataFrame())
         par.set({})
         bed_full.set(df)
-        opt_solution.set ((np.array([]), np.array([])))
+        opt_solution.set ((np.array([]), np.array([]), np.array([])))
         log_file.set([])
         bed_report.set(pd.DataFrame())
             
@@ -393,7 +397,7 @@ def server(input, output, session):
                         print ('Line: ' + line + 'not parsed.')
         par.set(pard)
         
-        opt_solution.set ((np.array([]), np.array([])))
+        opt_solution.set ((np.array([]), np.array([]), np.array([])))
         m0.set(float(pard['m0'][0]))
         m0_opt.set(float(pard['m0'][0]))
         
@@ -421,7 +425,7 @@ def server(input, output, session):
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
-            axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets)+2,
+            axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets())+2,
                            loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
         
@@ -532,7 +536,7 @@ def server(input, output, session):
                                           highlight = [])
             k = np.linspace (0,1,100)
             for model in model_presets().keys():
-                ax.plot (model_presets()[model].m(k, m0()), model_presets()[model].ai(k, m0()), 
+                ax.plot (model_presets()[model].m(k, m0_opt()), model_presets()[model].ai(k, m0_opt()), 
                          lw = 2, linestyle = '-', color = colorsCN[model], alpha = 0.6)
                 
             
@@ -548,11 +552,14 @@ def server(input, output, session):
             opt = opt_solution()
             fig, ax = plt.subplots(1,1, figsize = (6,6))
             ax.plot (opt_solution()[0], opt_solution()[1], 'r-')
+            axt = ax.twinx()
+            axt.plot (opt_solution()[0], opt_solution()[2], 'b-')
             ax.set_xlabel ('Covearage')
             ax.set_ylabel ('Total distance to the solution')
+            axt.set_ylabel ('Fraction of genome modeled')
             for model in colorsCN.keys():
                 ax.plot ((),(), lw = 2, color = colorsCN[model], label = model)
-            ax.legend (bbox_to_anchor = (1,1))
+            ax.legend (bbox_to_anchor = (1.4,1), loc = 'upper center')
             return fig
     
     @reactive.Effect
@@ -635,43 +642,41 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
            
             ms = np.arange (m0()*input.min_cn(), m0()*input.max_cn(), input.step())
-            tmp = bed_data.loc[(~bed_data['model'].isna())] #&((bed_data['ai'] <= input.min_ai())|(bed_data['ai'] >= input.max_ai()))]
+            tmp = bed_data.loc[(~bed_data['model'].isna())]
             
             with ui.Progress (min = ms[0], max = ms[-1]) as p:
                 p.set(message = 'Optimizing solution...', )
                 dts = []
-                sts = []
+                fts = []
+                st = []
+                
+                for _, b in tmp.iterrows():
+                    st.append (b['size'])
+                                    
                 for m in ms:
                     p.set(m, message = 'Calculating')
-                    dt = 0
-                    st = 0
+                    dt = []
+                    ft = []
                     for _, b in tmp.iterrows():
-                        dt += min([Models.calculate_distance(model, b['m']/m, b['ai'], 1) for model in model_presets().values()])*np.sqrt(b['size'])
-                        st += np.sqrt(b['size'])
-                    dts.append(dt)
-                    sts.append(st)
-                dtsa = np.array(dts)/np.array(sts)
-                opt_solution.set((ms,dtsa))
-                
+                        dt.append (np.nanmin([Models.calculate_distance(model, b['m']/m, b['ai'], 1) for model in model_presets().values()])*np.sqrt(b['size']))
+                                            
+                    index = np.where(np.isfinite(dt))[0]
+                    fts.append (np.sum([st[i] for i in index])/np.sum(st))
+                    sts = np.sum(np.sqrt([st[i] for i in index]))
+                    dts.append (np.nansum(dt)/sts)
+                                        
+                fraction = np.array (fts)
+                dtsa = np.array(dts)
+            
+            opt_solution.set((ms,dtsa, fraction))
             m0_opt.set (ms[np.where(dtsa == dtsa.min())[0][0]])
-            
-    #@reactive.Effect
-    #@reactive.event (input.max_ai)
-    #def _():
-    #    if input.min_ai() > input.max_ai():
-    #        ui.update_slider ('min_ai', value = input.max_ai())
-            
-    #@reactive.Effect
-    #@reactive.event (input.min_ai)
-    #def _():
-    #    if input.max_ai() < input.min_ai():
-    #        ui.update_slider ('max_ai', value = input.min_ai())
-        
+            #print (len (model_presets()))
+           
     @reactive.Effect
     @reactive.event (input.m0_cov)
     def _():
         if len(opt_solution()[0]):
-            m0.set(input.m0_cov())
+            m0_opt.set(input.m0_cov())
     
     
     #@output

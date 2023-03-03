@@ -178,8 +178,9 @@ def HE_test (data, *args, **kwargs):
     lerr_bounds = Consts.HE_LERR_BOUNDS if 'lerr_bounds' not in kwargs else kwargs['lerr_bounds']    
     
     def chi2 (params, counts, N):
-        vaf, fcov, fN, a, aN, b, l = params
-        fe = 10**(-l)
+        vaf, fcov, fN, a, aN, b, le, lf = params
+        fe = 10**(-le)
+        ff = 10**(-lf)
         cs = np.arange (0, cov_max +1)
         cov = cov_min + fcov*(cov_max-cov_min)
         ns = 2*fN*N*cn2_cov_pdf (cs, cov, b)
@@ -189,7 +190,7 @@ def HE_test (data, *args, **kwargs):
             i = np.arange(0,c+1)
             nhe = ns[c]*cn2_vaf_pdf (i/c,vaf,c)
             nho = ns[c]*HO_vaf_pdf (i, c, fe ,b)
-            nno = ns[c]*NO_vaf_pdf (i, c, fe, b)
+            nno = ns[c]*NO_vaf_pdf (i, c, ff, b)
             
             na = a*nhe + (1-a -aN)*nho+ aN*nno
             
@@ -210,9 +211,9 @@ def HE_test (data, *args, **kwargs):
     
     aN = sum (data['vaf'] < 0.1)/len(data)
     
-    res = opt.minimize (chi2, x0 = (0.5, fcov, 0.5,0.75, aN, 1.3, 6), args = (counts, N),
-                    bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds))    
-    vaf, fcov, fN, a, a1, b, l = res.x    
+    res = opt.minimize (chi2, x0 = (0.5, fcov, 0.5,0.75, aN, 1.3, 6, 6), args = (counts, N),
+                    bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds))    
+    vaf, fcov, fN, a, a1, b, le, lf = res.x    
     cov = cov_min + fcov*(cov_max-cov_min)    
     return HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
 
