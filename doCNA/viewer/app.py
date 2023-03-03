@@ -31,6 +31,8 @@ fix_model ['AAAB'] = 'AAAB'
 fix_model ['AAA'] = 'AAA'
 fix_model ['AAAA'] = 'AAAA'
 fix_model [np.nan] = np.nan
+fix_model ['nan'] = 'nan'
+
 
 
 chromlist = ['chr' + str (i) for i in range (1,23)]
@@ -290,7 +292,7 @@ def server(input, output, session):
                             'k', 'k_score','dd', 'cyto', 'cent', 'status_d', 'status'])
         
         #TBR in release
-        df['model'] = [fix_model[model] for model in df['model'].tolist()]
+        #df['model'] = [fix_model[model] for model in df['model'].tolist()]
         
         df['size'] = (df['end'] - df['start'])/1e6
         
@@ -658,19 +660,19 @@ def server(input, output, session):
                     dt = []
                     ft = []
                     for _, b in tmp.iterrows():
-                        dt.append (np.nanmin([Models.calculate_distance(model, b['m']/m, b['ai'], 1) for model in model_presets().values()])*np.sqrt(b['size']))
+                        dt.append ((b['size'])*(np.nanmin([Models.calculate_distance(model, b['m']/m, b['ai'], 1) for model in model_presets().values()])))
                                             
                     index = np.where(np.isfinite(dt))[0]
                     fts.append (np.sum([st[i] for i in index])/np.sum(st))
-                    sts = np.sum(np.sqrt([st[i] for i in index]))
+                    sts = np.sum(([st[i] for i in index]))
                     dts.append (np.nansum(dt)/sts)
                                         
                 fraction = np.array (fts)
                 dtsa = np.array(dts)
             
             opt_solution.set((ms,dtsa, fraction))
-            m0_opt.set (ms[np.where(dtsa == dtsa.min())[0][0]])
-            #print (len (model_presets()))
+            m0_opt.set (ms[np.where(dtsa == np.nanmin(dtsa))[0][0]])
+            
            
     @reactive.Effect
     @reactive.event (input.m0_cov)
@@ -678,21 +680,5 @@ def server(input, output, session):
         if len(opt_solution()[0]):
             m0_opt.set(input.m0_cov())
     
-    
-    #@output
-    #@render.text
-    #def m_diploid ():
-    #    par_d = par()
-    #    opt = opt_solution()
-    #    if (len(par_d.keys()) != 0) & (len(opt[0]) > 0):
-    #        min_dist_at = opt[0][np.where(opt[1] == opt[1].min())[0][0]]
-    #        text = ["Experimental feature!!",
-    #                "Found m0: " + str(par['m0']),
-    #                "Optimized m0: " + str(min_dist_at),
-    #                f"The relative difference: {np.abs(min_dist_at - par_d['m0'])/par_d['m0']}"]
-    #        return '\n'.join(text)
-    #    else:
-    #        return
-        
-        
+            
 app = App(app_ui, server, debug=True)
