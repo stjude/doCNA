@@ -79,8 +79,10 @@ class Segment:
         
             self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
             self.logger.debug (f"Segment distances {self.distances}")
-            
-            picked = np.where(self.distances == np.nanmin(self.distances))[0][0]
+            try:
+                picked = np.where(self.distances == np.nanmin(self.distances))[0][0]
+            except:
+                picked = np.nan
                         
             self.parameters['d'] = np.nanmin(self.distances)
             self.parameters['model'] = list(model_presets.keys())[picked]
