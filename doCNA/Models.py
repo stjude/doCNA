@@ -40,7 +40,7 @@ model_presets_2 = {'A'   : Preset(A = lambda m,dv,m0: -m0/2,
                                     B = lambda m,dv,m0: 1/2,
                                     C = lambda m,dv,m0: dv,
                                     D = lambda m,dv,m0: 0,
-                                    k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > -0.1) & (m/m0 < 4.1) else np.nan,
+                                    k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > 0.9) & (m/m0 < 4.1) else np.nan,
                                     m = lambda k,m0: (1+k)*m0,
                                     ai = lambda k,m0: np.repeat(0, len(k)) if hasattr(k, "shape") else 0.0),
                    

@@ -81,14 +81,18 @@ class Segment:
             self.logger.debug (f"Segment distances {self.distances}")
             try:
                 picked = np.where(self.distances == np.nanmin(self.distances))[0][0]
+                self.parameters['d'] = np.nanmin(self.distances)
+                self.parameters['model'] = list(model_presets.keys())[picked]
+                k = model_presets[self.parameters['model']].k(m,v,m0) 
+                self.parameters['k'] = k if k < Consts.K_MAX else np.nan
+                self.logger.info (f"Segment identified as {self.parameters['model']}, d = {self.parameters['d']}")
             except:
                 picked = np.nan
-                        
-            self.parameters['d'] = np.nanmin(self.distances)
-            self.parameters['model'] = list(model_presets.keys())[picked]
-            k = model_presets[self.parameters['model']].k(m,v,m0) 
-            self.parameters['k'] = k if k < Consts.K_MAX else np.nan
-            self.logger.info (f"Segment identified as {self.parameters['model']}, d = {self.parameters['d']}")
+                self.parameters['d'] = np.nan
+                self.parameters['model'] = 'NaN'
+                self.parameters['k'] = np.nan
+                self.logger.info (f"Segment not identified!")
+            
         else:
             self.parameters['d'] = np.nan
             self.parameters['model'] = 'NA'

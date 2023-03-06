@@ -660,7 +660,7 @@ def server(input, output, session):
                     dt = []
                     ft = []
                     for _, b in tmp.iterrows():
-                        dt.append ((b['size'])*(np.nanmin([Models.calculate_distance(model, b['m']/m, b['ai'], 1) for model in model_presets().values()])))
+                        dt.append (np.sqrt(b['size'])*(np.nanmin([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets().values()])))
                                             
                     index = np.where(np.isfinite(dt))[0]
                     fts.append (np.sum([st[i] for i in index])/np.sum(st))
