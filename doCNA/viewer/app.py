@@ -200,7 +200,10 @@ app_ui = ui.page_fluid(
                                                                             ui.output_plot('report_plot'),
                                                                             ui.row (ui.h6 ("Report diploid regions?"),
                                                                                     ui.input_checkbox ('rep_AB', "Yes", value = False)),
-                                                                            ui.output_table('report'))))
+                                                                            ui.output_table('report')))),
+                                                    ui.nav("Publication",
+                                                           ui.h6 ("Under development"))
+                                                            
                                                    )
                                    )
           )

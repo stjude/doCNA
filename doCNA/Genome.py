@@ -161,11 +161,11 @@ class Genome:
   
         if m0 > 0:
             self.logger.info (f"Using user supplied m0 = {m0}, instead of estimated m0 = {self.genome_medians['COV']['m']}")
-            self.genome_medians['m'] = m0
+            self.genome_medians['m0'] = m0
         else:
-            self.genome_medians['m'] = self.genome_medians['COV']['m'] 
+            self.genome_medians['m0'] = self.genome_medians['COV']['m'] 
 
-        if self.COV.medians['m'] < float(self.config['COV']['min_cov']):
+        if self.COV.medians['m0'] < float(self.config['COV']['min_cov']):
             self.logger.critical (f"Coverage is below threshold {self.COV.medians['m']} < {self.config['COV']['min_cov']}")
             exit (1)
 
