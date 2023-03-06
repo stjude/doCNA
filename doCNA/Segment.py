@@ -78,11 +78,11 @@ class Segment:
             m0 = self.genome_medians['m']
         
             self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
-            self.logger.debug (f"Segment distances {self.parameters['model']}, d = {self.parameters['d']}")
+            self.logger.debug (f"Segment distances {self.distances}")
             
             picked = np.where(self.distances == np.nanmin(self.distances))[0][0]
                         
-            self.parameters['d'] = self.distances.min()
+            self.parameters['d'] = np.nanmin(self.distances)
             self.parameters['model'] = list(model_presets.keys())[picked]
             k = model_presets[self.parameters['model']].k(m,v,m0) 
             self.parameters['k'] = k if k < Consts.K_MAX else np.nan
