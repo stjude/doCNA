@@ -42,7 +42,15 @@ model_presets_2 = {'A'   : Preset(A = lambda m,dv,m0: -m0/2,
                                     D = lambda m,dv,m0: 0,
                                     k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > -0.1) & (m/m0 < 4.1) else np.nan,
                                     m = lambda k,m0: (1+k)*m0,
-                                    ai = lambda k,m0: np.repeat(0, len(k)) if hasattr(k, "shape") else 0.0)} 
+                                    ai = lambda k,m0: np.repeat(0, len(k)) if hasattr(k, "shape") else 0.0),
+                   
+                   np.nan : Preset(A = lambda m,dv,m0: np.nan,
+                                   B = lambda m,dv,m0: np.nan,
+                                   C = lambda m,dv,m0: np.nan,
+                                   D = lambda m,dv,m0: np.nan,
+                                   k = lambda m,dv,m0: np.nan,
+                                   m = lambda k,m0: np.nan,
+                                   ai = lambda k,m0: np.nan)} 
     
 #models of more copies, not a strict classification 
 model_presets_4 = {'AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
