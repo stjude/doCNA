@@ -507,6 +507,8 @@ def server(input, output, session):
                 axs[0].set_xlabel ('Distance to usual')
                 axs[0].set_ylabel ('CDF')
             tmp = bed_data.loc[bed_data.model == '(AB)n']
+            k = tmp['m']/par_d['m0'] - 1
+            
             if len(tmp) > 0:
                 if len (par_d['a_b']) == 2:
                     neg_tmp = tmp.loc[tmp.cn < 2.0]
@@ -515,12 +517,12 @@ def server(input, output, session):
                     pos_tmp = tmp.loc[tmp.cn >= 2.0]
                     fpnorm = sum(pos_tmp.status_d == 'norm')/len (pos_tmp)
 
-                    plot_cdf (tmp['k'].values, ax = axs[1], 
+                    plot_cdf (k, ax = axs[1], 
                               par = (par_d['m_b'],par_d['s_b'], (par_d['a_b'][0]*fnnorm, par_d['a_b'][1]*fpnorm)),
-                              a0 = len(tmp.loc[(tmp.k < 0)& (tmp.status_d != 'norm')])/len(tmp) )
+                              a0 = len(tmp.loc[(tmp.cn < 2)& (tmp.status_d != 'norm')])/len(tmp) )
 
                 elif len(par_d['a_b']) == 1:
-                    plot_cdf (tmp['k'].values, ax = axs[1], 
+                    plot_cdf (k, ax = axs[1], 
                               par = ((par_d['m_b'],),(par_d['s_b'],), (sum(tmp.status == 'norm')/len(tmp),)))
                  
                 axs[1].set_title ('Balanced')
