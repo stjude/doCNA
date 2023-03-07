@@ -509,10 +509,10 @@ def server(input, output, session):
             tmp = bed_data.loc[bed_data.model == '(AB)n']
             if len(tmp) > 0:
                 if len (par_d['a_b']) == 2:
-                    neg_tmp = tmp.loc[tmp.k < 0]
+                    neg_tmp = tmp.loc[tmp.cn < 2.0]
                     fnnorm = sum(neg_tmp.status_d == 'norm')/len (neg_tmp)
 
-                    pos_tmp = tmp.loc[tmp.k >= 0]
+                    pos_tmp = tmp.loc[tmp.cn >= 2.0]
                     fpnorm = sum(pos_tmp.status_d == 'norm')/len (pos_tmp)
 
                     plot_cdf (tmp['k'].values, ax = axs[1], 
