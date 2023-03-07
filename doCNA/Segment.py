@@ -52,7 +52,7 @@ class Segment:
         if self.symbol == Consts.E_SYMBOL:
             self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == Consts.E_SYMBOL,],
                                              self.genome_medians['fb'],
-                                             self.genome_medians['m'])
+                                             self.genome_medians['m0'])
             method = 'sensitive'
             if self.parameters['ai'] > Consts.MAX_AI_THRESHOLD_FOR_SENSITIVE:
                 self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',])
@@ -75,7 +75,7 @@ class Segment:
         if self.parameters['success']:
             m = self.parameters['m']
             v = self.parameters['ai']
-            m0 = self.genome_medians['m']
+            m0 = self.genome_medians['m0']
         
             self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
             self.logger.debug (f"Segment distances {self.distances}")

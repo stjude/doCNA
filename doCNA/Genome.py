@@ -165,7 +165,7 @@ class Genome:
         else:
             self.genome_medians['m0'] = self.genome_medians['COV']['m'] 
 
-        if self.COV.medians['m0'] < float(self.config['COV']['min_cov']):
+        if self.COV.medians['m'] < float(self.config['COV']['min_cov']):
             self.logger.critical (f"Coverage is below threshold {self.COV.medians['m']} < {self.config['COV']['min_cov']}")
             exit (1)
 
