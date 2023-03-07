@@ -202,7 +202,7 @@ class Genome:
         zs_ns = [(seg.parameters['d'], seg.parameters['n']) for seg in self.all_segments]
         
         z_n_a = np.array(zs_ns)
-        z_n = z_n_a[~np.isnan(z_n_a[:,1]) ,:]
+        z_n = z_n_a[~np.isnan(z_n_a[:,0]) ,:]
         try:
             popt, _ = opt.curve_fit (exp, np.sort (z_n[:,0]), np.linspace (0,1,len(z_n[:,0])),
                                      p0 = (10), sigma = 1/np.sqrt(z_n[:,1])[np.argsort(z_n[:,0])])
