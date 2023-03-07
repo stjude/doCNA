@@ -202,7 +202,7 @@ app_ui = ui.page_fluid(
                                                                                     ui.input_checkbox ('rep_AB', "Yes", value = False)),
                                                                             ui.output_table('report')))),
                                                     ui.nav("Publication",
-                                                           ui.h6 ("Under development"))
+                                                           ui.h6 ("AI still in school"))
                                                             
                                                    )
                                    )
@@ -562,7 +562,7 @@ def server(input, output, session):
             axt = ax.twinx()
             axt.plot (opt_solution()[0], opt_solution()[2], 'b-')
             ax.set_xlabel ('Covearage')
-            ax.set_ylabel ('Total distance to the solution')
+            ax.set_ylabel ('Relative distance to the model')
             axt.set_ylabel ('Fraction of genome modeled')
             for model in colorsCN.keys():
                 ax.plot ((),(), lw = 2, color = colorsCN[model], label = model)
@@ -663,7 +663,7 @@ def server(input, output, session):
                 for m in ms:
                     p.set(m, message = 'Calculating')
                     dt = []
-                    ft = []
+                    
                     for _, b in tmp.iterrows():
                         dt.append (np.sqrt(b['size'])*(np.nanmin([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets().values()])))
                                             
@@ -673,7 +673,8 @@ def server(input, output, session):
                     dts.append (np.nansum(dt)/sts)
                                         
                 fraction = np.array (fts)
-                dtsa = np.array(dts)
+                dtsb = np.array (dts)
+                dtsa = np.array(dtsb)#/fraction)
             
             opt_solution.set((ms,dtsa, fraction))
             m0_opt.set (ms[np.where(dtsa == np.nanmin(dtsa))[0][0]])

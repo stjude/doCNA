@@ -12,7 +12,15 @@ import numpy as np
 Preset = namedtuple ('Preset', ['A', 'B', 'C', 'D', 'k','m', 'ai'])
 
 #Presets of models with 2 +/- 1 copies
-model_presets_2 = {'A'   : Preset(A = lambda m,dv,m0: -m0/2,
+model_presets_2 = {'(AB)n' : Preset(A = lambda m,dv,m0: 0,
+                                    B = lambda m,dv,m0: 1/2,
+                                    C = lambda m,dv,m0: dv,
+                                    D = lambda m,dv,m0: 0,
+                                    k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > 1.9/2) & (m/m0 < 4.1/2) else np.nan,
+                                    m = lambda k,m0: (1+k)*m0,
+                                    ai = lambda k,m0: np.repeat(0, len(k)) if hasattr(k, "shape") else 0.0),
+                   
+                   'A'   : Preset(A = lambda m,dv,m0: -m0/2,
                                   B = lambda m,dv,m0: -1,
                                   C = lambda m,dv,m0: m0,
                                   D = lambda m,dv,m0: m0*(2*dv/(0.5+dv))/2+m,
@@ -36,14 +44,6 @@ model_presets_2 = {'A'   : Preset(A = lambda m,dv,m0: -m0/2,
                                   m = lambda k,m0: (2+k)*m0/2,
                                   ai = lambda k,m0: k/(2*(2+k))),
 
-                   '(AB)n' : Preset(A = lambda m,dv,m0: 0,
-                                    B = lambda m,dv,m0: 1/2,
-                                    C = lambda m,dv,m0: dv,
-                                    D = lambda m,dv,m0: 0,
-                                    k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > 0.8) & (m/m0 < 4.1) else np.nan,
-                                    m = lambda k,m0: (1+k)*m0,
-                                    ai = lambda k,m0: np.repeat(0, len(k)) if hasattr(k, "shape") else 0.0),
-                   
                    np.nan : Preset(A = lambda m,dv,m0: np.nan,
                                    B = lambda m,dv,m0: np.nan,
                                    C = lambda m,dv,m0: np.nan,
@@ -122,23 +122,5 @@ def calculate_distance (preset, m, ai, m0):
         d = np.min(np.sqrt((ks-k)**2+(ms-m/m0)**2))
     else:
         d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
-    
-    return d
-
-
-
-
-def calculate_distance_wrong (preset, m, ai, m0):
-    """Function to calculate the distance of the segment to the model"""
-    
-    k = preset.k(m,ai,m0)
-    if np.isnan(k):
-        d = np.inf
-    elif ((k > 1) | (k < 0)):
-        ks = np.linspace (0,1,1000)
-        ms = preset.m(ks,m0)/m0
-        d = np.min(np.sqrt((ks-k)**2+(ms-m/m0)**2))
-    else:
-        d = np.abs (preset.C (m/m0,k,1) - preset.D (m/m0,k,1))/np.sqrt (preset.A(m/m0,k,1)**2 + preset.B(m/m0,k,1)**2)
     
     return d
