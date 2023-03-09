@@ -374,7 +374,7 @@ def server(input, output, session):
                
                 
                      
-                if last_action == 'merge':
+                if last_action == 'no merge':
                     merged_segments.append(merge_records(to_merge, chrom))
                 
                 
@@ -426,7 +426,7 @@ def server(input, output, session):
                           max_k_score = input.k_max(),
                           model_thr = input.model_thr())
             
-            for model in colorsCN.keys():
+            for model in model_presets().keys():
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
@@ -441,7 +441,7 @@ def server(input, output, session):
         if len (bed_data):
             fig, axs = plt.subplots (2, 1, figsize = (16,4), sharex = True)
             reporting_plot (bed_data, axs, chrom_sizes())
-            for model in colorsCN.keys():
+            for model in model_presets().keys():
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
