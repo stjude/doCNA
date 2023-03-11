@@ -238,7 +238,7 @@ def server(input, output, session):
     @render.text
     def solutions ():
         m, d, f = opt_solution ()
-        ind = sig.argrelmin (d)[0]
+        ind = sig.argrelmin (d/f)[0]
         minims = []
         for i in ind:
             minims.append ((m[i], d[i], f[i])) 
@@ -544,10 +544,10 @@ def server(input, output, session):
             k = np.linspace (0,1,100)
             for model in model_presets().keys():
                 ax.plot (model_presets()[model].m(k, m0_opt()), model_presets()[model].ai(k, m0_opt()), 
-                         lw = 2, linestyle = '-', color = colorsCN[model], alpha = 0.6)
-                
+                         lw = 2, linestyle = '-', color = colorsCN[model], alpha = 0.6, label = model)
             
-            ax.legend (bbox_to_anchor = (1,0))
+            #ax.legend (bbox_to_anchor = (1,0))
+            ax.legend (bbox_to_anchor = (1.2,1), loc = 'upper center')
                
             return fig
     
@@ -558,15 +558,18 @@ def server(input, output, session):
         if len(opt_solution()[0]):
             opt = opt_solution()
             fig, ax = plt.subplots(1,1, figsize = (6,6))
-            ax.plot (opt_solution()[0], opt_solution()[1], 'r-')
+            ax.plot (opt_solution()[0], opt_solution()[1], 'r:', label = 'Total distance')
+            ax.plot (opt_solution()[0], opt_solution()[1]/opt_solution()[2], 'r-', label = 'Normed total distance')
             axt = ax.twinx()
-            axt.plot (opt_solution()[0], opt_solution()[2], 'b-')
+            axt.plot (opt_solution()[0], opt_solution()[2], 'b-', label = 'fraction')
             ax.set_xlabel ('Covearage')
             ax.set_ylabel ('Relative distance to the model')
             axt.set_ylabel ('Fraction of genome modeled')
-            for model in colorsCN.keys():
-                ax.plot ((),(), lw = 2, color = colorsCN[model], label = model)
-            ax.legend (bbox_to_anchor = (1.4,1), loc = 'upper center')
+            
+            #for model in colorsCN.keys():
+            #    ax.plot ((),(), lw = 2, color = colorsCN[model], label = model)
+            ax.legend()
+            #ax.legend (bbox_to_anchor = (1.4,1), loc = 'upper center')
             return fig
     
     @reactive.Effect
@@ -659,7 +662,8 @@ def server(input, output, session):
                 
                 for _, b in tmp.iterrows():
                     st.append (b['size'])
-                                    
+                sttotal = np.sum(st)
+                            
                 for m in ms:
                     p.set(m, message = 'Calculating')
                     dt = []
@@ -668,16 +672,15 @@ def server(input, output, session):
                         dt.append (np.sqrt(b['size'])*(np.nanmin([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets().values()])))
                                             
                     index = np.where(np.isfinite(dt))[0]
-                    fts.append (np.sum([st[i] for i in index])/np.sum(st))
                     sts = np.sum(([st[i] for i in index]))
+                    fts.append (sts/sttotal)
                     dts.append (np.nansum(dt)/sts)
                                         
                 fraction = np.array (fts)
-                dtsb = np.array (dts)
-                dtsa = np.array(dtsb)#/fraction)
+                dtsa = np.array(dts)
             
             opt_solution.set((ms,dtsa, fraction))
-            m0_opt.set (ms[np.where(dtsa == np.nanmin(dtsa))[0][0]])
+            m0_opt.set (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
             
            
     @reactive.Effect

@@ -16,7 +16,7 @@ model_presets_2 = {'(AB)n' : Preset(A = lambda m,dv,m0: 0,
                                     B = lambda m,dv,m0: 1/2,
                                     C = lambda m,dv,m0: dv,
                                     D = lambda m,dv,m0: 0,
-                                    k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > 0/2) & (m/m0 < 4.1/2) else np.nan,
+                                    k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > -0.1/2) & (m/m0 < 4.1/2) else np.nan,
                                     m = lambda k,m0: (1+k)*m0,
                                     ai = lambda k,m0: np.repeat(0, len(k)) if hasattr(k, "shape") else 0.0),
                    
@@ -101,9 +101,9 @@ def calculate_distance (preset, m, ai, m0):
     except ZeroDivisionError:
         k = np.nan
 
-    if np.isnan(k):# | (k > 1.1) | (k < -0.1):
+    if np.isnan(k) | (k > 1.1) | (k < -0.1):
         d = np.nan
-    if (k >= 1) | (k <= 0):
+    elif (k >= 1) | (k <= 0):
         ks = np.linspace (0,1,1000)
         ms = preset.m(k,m0)/m0
         d = np.min(np.sqrt((ks-k)**2+(ms-m/m0)**2))
