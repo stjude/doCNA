@@ -33,7 +33,7 @@ model_presets_2 = {'(AB)n' : Preset(A = lambda m,dv,m0: 0,
                                   C = lambda m,dv,m0: m0,
                                   D = lambda m,dv,m0: m,
                                   k = lambda m,dv,m0: 2*dv if (m/m0 > 1.9/2) & (m/m0 < 2.1/2) else np.nan,
-                                  m = lambda k,m0: np.repeat(m0, len(k)),
+                                  m = lambda k,m0: np.repeat(m0, len(k)) if hasattr(k, "shape") else m0,
                                   ai = lambda k,m0: k/2),
                  
                    'AAB' : Preset(A = lambda m,dv,m0: m0/2,
