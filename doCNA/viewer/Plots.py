@@ -9,7 +9,8 @@ import argparse as agp
 from doCNA import Models
 #import Models
 
-colorsCN = {}
+#colorsCN = {}
+colorsCN = defaultdict (lambda: 'purple')
 colorsCN['A'] = 'lime'
 colorsCN['AA'] = 'blue'
 colorsCN['AAB'] = 'cyan'

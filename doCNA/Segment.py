@@ -8,6 +8,7 @@ from doCNA import Consts
 from doCNA import Models
 from doCNA.Report import Report
 
+#use model_presets from __main__
 model_presets = {}
 model_presets.update (Models.model_presets_2)
 model_presets.update (Models.model_presets_4)
@@ -51,7 +52,7 @@ class Segment:
         if self.symbol == Consts.E_SYMBOL:
             self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == Consts.E_SYMBOL,],
                                              self.genome_medians['fb'],
-                                             self.genome_medians['m'])
+                                             self.genome_medians['m0'])
             method = 'sensitive'
             if self.parameters['ai'] > Consts.MAX_AI_THRESHOLD_FOR_SENSITIVE:
                 self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',])
@@ -74,16 +75,24 @@ class Segment:
         if self.parameters['success']:
             m = self.parameters['m']
             v = self.parameters['ai']
-            m0 = self.genome_medians['m']
+            m0 = self.genome_medians['m0']
         
-            self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in Models.model_presets.values()])
-            picked = np.where(self.distances == self.distances.min())[0][0]
-                        
-            self.parameters['d'] = self.distances.min()
-            self.parameters['model'] = list(model_presets.keys())[picked]
-            k = model_presets[self.parameters['model']].k(m,v,m0) 
-            self.parameters['k'] = k if k < Consts.K_MAX else np.nan
-            self.logger.info (f"Segment identified as {self.parameters['model']}, d = {self.parameters['d']}")
+            self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
+            self.logger.debug (f"Segment distances {self.distances}")
+            try:
+                picked = np.where(self.distances == np.nanmin(self.distances))[0][0]
+                self.parameters['d'] = np.nanmin(self.distances)
+                self.parameters['model'] = list(model_presets.keys())[picked]
+                k = model_presets[self.parameters['model']].k(m,v,m0) 
+                self.parameters['k'] = k if k < Consts.K_MAX else np.nan
+                self.logger.info (f"Segment identified as {self.parameters['model']}, d = {self.parameters['d']}")
+            except:
+                picked = np.nan
+                self.parameters['d'] = np.nan
+                self.parameters['model'] = 'NaN'
+                self.parameters['k'] = np.nan
+                self.logger.info (f"Segment not identified!")
+            
         else:
             self.parameters['d'] = np.nan
             self.parameters['model'] = 'NA'

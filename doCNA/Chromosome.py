@@ -204,7 +204,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
                                                        cytobands = cytobands_str))
     
     def find_Nruns (self):
-        vaf_thr = (self.genome_medians['m'] - 1)/self.genome_medians['m']
+        vaf_thr = (self.genome_medians['m0'] - 1)/self.genome_medians['m0']
 
         symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != Consts.U_SYMBOL), 'symbol'].values
         if len (symbol_list) >= Consts.N_STR_LEN_THR:    

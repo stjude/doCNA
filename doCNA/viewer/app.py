@@ -3,16 +3,16 @@ from .Plots import * #need a dot
 #import Models
 from doCNA import Models
 
-model_presets = {}
-model_presets.update (Models.model_presets_2)
-model_presets.update (Models.model_presets_4)
-
-
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.signal as sig
 from collections import defaultdict
+
+mp = {}
+mp.update (Models.model_presets_2)
+mp.update (Models.model_presets_4)
+
 
 #only useful to read in previous version models. TBR in release
 fix_model = {}
@@ -31,6 +31,8 @@ fix_model ['AAAB'] = 'AAAB'
 fix_model ['AAA'] = 'AAA'
 fix_model ['AAAA'] = 'AAAA'
 fix_model [np.nan] = np.nan
+fix_model ['nan'] = 'nan'
+
 
 
 chromlist = ['chr' + str (i) for i in range (1,23)]
@@ -166,8 +168,10 @@ app_ui = ui.page_fluid(
                                                                                                    ),    
                                                                                              ui.h6("Coverage range:"),
                                                                                              ui.output_text_verbatim ("coverage_range"),
+                                                                                             ui.input_checkbox ('extra_models', 'Include extra models?',
+                                                                                                                value = False),
                                                                                              ui.input_action_button ('opt',
-                                                                                                                    "Optimize solution"),
+                                                                                                                     "Optimize solution"),
                                                                                              width = 2),
                                                                             ui.panel_main(ui.h6("Solution check plot:"),
                                                                                           ui.output_plot('solution_plot_opt', "Solution plot"),
@@ -196,7 +200,10 @@ app_ui = ui.page_fluid(
                                                                             ui.output_plot('report_plot'),
                                                                             ui.row (ui.h6 ("Report diploid regions?"),
                                                                                     ui.input_checkbox ('rep_AB', "Yes", value = False)),
-                                                                            ui.output_table('report'))))
+                                                                            ui.output_table('report')))),
+                                                    ui.nav("Publication",
+                                                           ui.h6 ("AI still in school"))
+                                                            
                                                    )
                                    )
           )
@@ -207,31 +214,44 @@ def server(input, output, session):
     bed = reactive.Value(pd.DataFrame())
     data = reactive.Value(pd.DataFrame())
     par = reactive.Value({})
-    opt_solution = reactive.Value((np.array([]), np.array([])))
+    opt_solution = reactive.Value((np.array([]), np.array([]), np.array([])))
     chrom_sizes = reactive.Value(pd.Series())
     m0 = reactive.Value(np.nan)
     m0_opt = reactive.Value(np.nan)
     log_file = reactive.Value ([])
     bed_report = reactive.Value(pd.DataFrame())
+    model_presets = reactive.Value (mp)
 
+    @reactive.Effect
+    @reactive.event (input.extra_models)
+    def _():
+        mp = {}
+        mp.update (Models.model_presets_2)
+        mp.update (Models.model_presets_4)
+        if input.extra_models():
+            mp.update (Models.model_presets_extra)
+            
+        model_presets.set(mp)
+        
+    
     @output
     @render.text
     def solutions ():
-        m, d = opt_solution ()
-        ind = sig.argrelmin (d)[0]
+        m, d, f = opt_solution ()
+        ind = sig.argrelmin (d/f)[0]
         minims = []
         for i in ind:
-            minims.append ((m[i], d[i])) 
+            minims.append ((m[i], d[i], f[i])) 
         minims.sort (key = lambda x: x[1], reverse = False)
         
-        return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) for m,d in minims])
+        return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) + ' f = ' + str (f) for m,d,f in minims])
   
    
     @output
     @render.ui
     def dyn_log_ui():
         return ui.TagList (ui.tags.textarea ([l.strip() for l in log_file()], 
-                                             cols = "250", rows = "50"))
+                                             cols = "200", rows = "30"))
     
     @output
     @render.text
@@ -275,14 +295,14 @@ def server(input, output, session):
                             'k', 'k_score','dd', 'cyto', 'cent', 'status_d', 'status'])
         
         #TBR in release
-        df['model'] = [fix_model[model] for model in df['model'].tolist()]
+        #df['model'] = [fix_model[model] for model in df['model'].tolist()]
         
         df['size'] = (df['end'] - df['start'])/1e6
         
         data.set(pd.DataFrame())
         par.set({})
         bed_full.set(df)
-        opt_solution.set ((np.array([]), np.array([])))
+        opt_solution.set ((np.array([]), np.array([]), np.array([])))
         log_file.set([])
         bed_report.set(pd.DataFrame())
             
@@ -354,7 +374,7 @@ def server(input, output, session):
                
                 
                      
-                if last_action == 'merge':
+                if last_action == 'no merge':
                     merged_segments.append(merge_records(to_merge, chrom))
                 
                 
@@ -382,7 +402,7 @@ def server(input, output, session):
                         print ('Line: ' + line + 'not parsed.')
         par.set(pard)
         
-        opt_solution.set ((np.array([]), np.array([])))
+        opt_solution.set ((np.array([]), np.array([]), np.array([])))
         m0.set(float(pard['m0'][0]))
         m0_opt.set(float(pard['m0'][0]))
         
@@ -406,11 +426,11 @@ def server(input, output, session):
                           max_k_score = input.k_max(),
                           model_thr = input.model_thr())
             
-            for model in colorsCN.keys():
+            for model in model_presets().keys():
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
-            axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets)+2,
+            axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets())+2,
                            loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
         
@@ -421,11 +441,11 @@ def server(input, output, session):
         if len (bed_data):
             fig, axs = plt.subplots (2, 1, figsize = (16,4), sharex = True)
             reporting_plot (bed_data, axs, chrom_sizes())
-            for model in colorsCN.keys():
+            for model in model_presets().keys():
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
-            axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets)+2,
+            axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets())+2,
                            loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
     
@@ -463,8 +483,8 @@ def server(input, output, session):
                                           highlight = input.chroms_selected())
             k = np.linspace (0,1,100)
             m0 = par_d['m0']
-            for model in model_presets.keys():
-                ax.plot (model_presets[model].m(k, m0), model_presets[model].ai(k, m0),  
+            for model in model_presets().keys():
+                ax.plot (model_presets()[model].m(k, m0), model_presets()[model].ai(k, m0),  
                          lw = 2, linestyle = '-', color = colorsCN[model], alpha  = 0.6)
             
             ax.set_xlim (0.9*bed_data.m.min(), 1.1*bed_data.m.max())
@@ -487,20 +507,22 @@ def server(input, output, session):
                 axs[0].set_xlabel ('Distance to usual')
                 axs[0].set_ylabel ('CDF')
             tmp = bed_data.loc[bed_data.model == '(AB)n']
+            k = tmp['m']/par_d['m0'] - 1
+            
             if len(tmp) > 0:
                 if len (par_d['a_b']) == 2:
-                    neg_tmp = tmp.loc[tmp.k < 0]
+                    neg_tmp = tmp.loc[tmp.cn < 2.0]
                     fnnorm = sum(neg_tmp.status_d == 'norm')/len (neg_tmp)
 
-                    pos_tmp = tmp.loc[tmp.k >= 0]
+                    pos_tmp = tmp.loc[tmp.cn >= 2.0]
                     fpnorm = sum(pos_tmp.status_d == 'norm')/len (pos_tmp)
 
-                    plot_cdf (tmp['k'].values, ax = axs[1], 
+                    plot_cdf (k, ax = axs[1], 
                               par = (par_d['m_b'],par_d['s_b'], (par_d['a_b'][0]*fnnorm, par_d['a_b'][1]*fpnorm)),
-                              a0 = len(tmp.loc[(tmp.k < 0)& (tmp.status_d != 'norm')])/len(tmp) )
+                              a0 = len(tmp.loc[(tmp.cn < 2)& (tmp.status_d != 'norm')])/len(tmp) )
 
                 elif len(par_d['a_b']) == 1:
-                    plot_cdf (tmp['k'].values, ax = axs[1], 
+                    plot_cdf (k, ax = axs[1], 
                               par = ((par_d['m_b'],),(par_d['s_b'],), (sum(tmp.status == 'norm')/len(tmp),)))
                  
                 axs[1].set_title ('Balanced')
@@ -520,12 +542,12 @@ def server(input, output, session):
             check_solution_plot_opt (bed_data, par_d, ax, 
                                           highlight = [])
             k = np.linspace (0,1,100)
-            for model in model_presets.keys():
-                ax.plot (model_presets[model].m(k, m0()), model_presets[model].ai(k, m0()), 
-                         lw = 2, linestyle = '-', color = colorsCN[model], alpha = 0.6)
-                
+            for model in model_presets().keys():
+                ax.plot (model_presets()[model].m(k, m0_opt()), model_presets()[model].ai(k, m0_opt()), 
+                         lw = 2, linestyle = '-', color = colorsCN[model], alpha = 0.6, label = model)
             
-            ax.legend (bbox_to_anchor = (1,0))
+            #ax.legend (bbox_to_anchor = (1,0))
+            ax.legend (bbox_to_anchor = (1.2,1), loc = 'upper center')
                
             return fig
     
@@ -536,12 +558,18 @@ def server(input, output, session):
         if len(opt_solution()[0]):
             opt = opt_solution()
             fig, ax = plt.subplots(1,1, figsize = (6,6))
-            ax.plot (opt_solution()[0], opt_solution()[1], 'r-')
+            ax.plot (opt_solution()[0], opt_solution()[1], 'r:', label = 'Total distance')
+            ax.plot (opt_solution()[0], opt_solution()[1]/opt_solution()[2], 'r-', label = 'Normed total distance')
+            axt = ax.twinx()
+            axt.plot (opt_solution()[0], opt_solution()[2], 'b-', label = 'fraction')
             ax.set_xlabel ('Covearage')
-            ax.set_ylabel ('Total distance to the solution')
-            for model in colorsCN.keys():
-                ax.plot ((),(), lw = 2, color = colorsCN[model], label = model)
-            ax.legend (bbox_to_anchor = (1,1))
+            ax.set_ylabel ('Relative distance to the model')
+            axt.set_ylabel ('Fraction of genome modeled')
+            
+            #for model in colorsCN.keys():
+            #    ax.plot ((),(), lw = 2, color = colorsCN[model], label = model)
+            ax.legend()
+            #ax.legend (bbox_to_anchor = (1.4,1), loc = 'upper center')
             return fig
     
     @reactive.Effect
@@ -624,59 +652,42 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
            
             ms = np.arange (m0()*input.min_cn(), m0()*input.max_cn(), input.step())
-            tmp = bed_data.loc[(~bed_data['model'].isna())] #&((bed_data['ai'] <= input.min_ai())|(bed_data['ai'] >= input.max_ai()))]
+            tmp = bed_data.loc[(~bed_data['model'].isna())]
             
             with ui.Progress (min = ms[0], max = ms[-1]) as p:
                 p.set(message = 'Optimizing solution...', )
                 dts = []
-                sts = []
+                fts = []
+                st = []
+                
+                for _, b in tmp.iterrows():
+                    st.append (b['size'])
+                sttotal = np.sum(st)
+                            
                 for m in ms:
                     p.set(m, message = 'Calculating')
-                    dt = 0
-                    st = 0
+                    dt = []
+                    
                     for _, b in tmp.iterrows():
-                        dt += min([Models.calculate_distance(model, b['m']/m, b['ai'], 1) for model in model_presets.values()])*np.sqrt(b['size'])
-                        st += np.sqrt(b['size'])
-                    dts.append(dt)
-                    sts.append(st)
-                dtsa = np.array(dts)/np.array(sts)
-                opt_solution.set((ms,dtsa))
-                
-            m0_opt.set (ms[np.where(dtsa == dtsa.min())[0][0]])
+                        dt.append (np.sqrt(b['size'])*(np.nanmin([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets().values()])))
+                                            
+                    index = np.where(np.isfinite(dt))[0]
+                    sts = np.sum(([st[i] for i in index]))
+                    fts.append (sts/sttotal)
+                    dts.append (np.nansum(dt)/sts)
+                                        
+                fraction = np.array (fts)
+                dtsa = np.array(dts)
             
-    #@reactive.Effect
-    #@reactive.event (input.max_ai)
-    #def _():
-    #    if input.min_ai() > input.max_ai():
-    #        ui.update_slider ('min_ai', value = input.max_ai())
+            opt_solution.set((ms,dtsa, fraction))
+            m0_opt.set (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
             
-    #@reactive.Effect
-    #@reactive.event (input.min_ai)
-    #def _():
-    #    if input.max_ai() < input.min_ai():
-    #        ui.update_slider ('max_ai', value = input.min_ai())
-        
+           
     @reactive.Effect
     @reactive.event (input.m0_cov)
     def _():
         if len(opt_solution()[0]):
-            m0.set(input.m0_cov())
+            m0_opt.set(input.m0_cov())
     
-    
-    #@output
-    #@render.text
-    #def m_diploid ():
-    #    par_d = par()
-    #    opt = opt_solution()
-    #    if (len(par_d.keys()) != 0) & (len(opt[0]) > 0):
-    #        min_dist_at = opt[0][np.where(opt[1] == opt[1].min())[0][0]]
-    #        text = ["Experimental feature!!",
-    #                "Found m0: " + str(par['m0']),
-    #                "Optimized m0: " + str(min_dist_at),
-    #                f"The relative difference: {np.abs(min_dist_at - par_d['m0'])/par_d['m0']}"]
-    #        return '\n'.join(text)
-    #    else:
-    #        return
-        
-        
+            
 app = App(app_ui, server, debug=True)

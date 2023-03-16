@@ -161,9 +161,9 @@ class Genome:
   
         if m0 > 0:
             self.logger.info (f"Using user supplied m0 = {m0}, instead of estimated m0 = {self.genome_medians['COV']['m']}")
-            self.genome_medians['m'] = m0
+            self.genome_medians['m0'] = m0
         else:
-            self.genome_medians['m'] = self.genome_medians['COV']['m'] 
+            self.genome_medians['m0'] = self.genome_medians['COV']['m'] 
 
         if self.COV.medians['m'] < float(self.config['COV']['min_cov']):
             self.logger.critical (f"Coverage is below threshold {self.COV.medians['m']} < {self.config['COV']['min_cov']}")
@@ -202,7 +202,7 @@ class Genome:
         zs_ns = [(seg.parameters['d'], seg.parameters['n']) for seg in self.all_segments]
         
         z_n_a = np.array(zs_ns)
-        z_n = z_n_a[~np.isnan(z_n_a[:,1]) ,:]
+        z_n = z_n_a[~np.isnan(z_n_a[:,0]) ,:]
         try:
             popt, _ = opt.curve_fit (exp, np.sort (z_n[:,0]), np.linspace (0,1,len(z_n[:,0])),
                                      p0 = (10), sigma = 1/np.sqrt(z_n[:,1])[np.argsort(z_n[:,0])])
@@ -210,7 +210,7 @@ class Genome:
             
         except ValueError:
             popt = [np.nan]
-            self.logger.warning ("Scoring of models failed. None of the scoring may sense.")
+            self.logger.warning ("Scoring of models failed. None of the scoring have any sense.")
             self.logger.warning ("Consider rerunning with manually set m0.")
 
         for seg in self.all_segments:
@@ -265,8 +265,8 @@ class Genome:
         self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
         self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_imbalanced"]["score_FDR"]}.')
         
-        k = all_data[balanced_index,0]
-        print (k)
+        k = all_data[balanced_index,2]/self.genome_medians['m0'] -1
+        
         try:
         
             if len(k) < Consts.MIN_LEN_K_BALANCED:

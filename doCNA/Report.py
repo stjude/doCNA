@@ -19,7 +19,7 @@ class Report:
             report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
         elif self._report_type == 'params':
             shift_i = genome.genome_medians['clonality_imbalanced']['up']
-            report_list = ['m0\t'+ str(genome.genome_medians['m']),
+            report_list = ['m0\t'+ str(genome.genome_medians['m0']),
                            'fb\t'+ str(genome.genome_medians ['fb']),
                            'a_model\t' + str(genome.genome_medians['model_d']['a']),
                            'Imbalanced:']
@@ -61,7 +61,7 @@ class Report:
 
             report = '\t'.join([str(p) for p in [segment.chrom, segment.start, segment.end,
                                                  segment.parameters['ai'], segment.parameters['m'],
-                                                 2*segment.parameters['m']/segment.genome_medians['m'],
+                                                 2*segment.parameters['m']/segment.genome_medians['m0'],
                                                  segment.parameters['model'], segment.parameters['d'], 
                                                  segment.parameters['model_score'],
                                                  k, segment.parameters['clonality_score'],
