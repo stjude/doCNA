@@ -36,7 +36,11 @@ All done
 
 4. Launch the viewer and visualize output:
 ```shell
+# if you are running this on your local machine, such as a desktop or laptop:
 docna viewer
+
+# if you are running this on a remote machine, like a cluster:
+docna viewer --remote
 **********
 Access dashboard in browser via: http://10.220.16.129:39738
 **********

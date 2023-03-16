@@ -43,7 +43,6 @@ class Testing:
             results = []
             index = []
             for chrom in self.chromosomes.keys():
-                
                 res = self.test (self.chromosomes[chrom].data, args, exclude_symbol = exclude_symbol)
                 if res is not None:
                     results.append (res)
@@ -70,8 +69,13 @@ class Testing:
             
             self.logger.debug (f'Parameter {column} being analyzed with alpha = {alpha} and r = {r}')
             res = self.results.loc[[c not in outliers for c in self.results.index.tolist()] & (self.results.notna().all(axis = 1)), column].values
-        
-            if len (np.unique(res)) < 5:
+            if len(res) == 0:
+                self.logger.critical (f'No parameters to work on')
+                exit(1)
+            if all(np.isnan(np.unique(res))):
+                self.logger.critical (f'Parameter {column} undetermined!')
+                exit(1) 
+            elif len (np.unique(res)) < 5:
                 param_range = (res.min(), res.max())
                 self.logger.warning(f'Parameter {column} range estimation based on normal approximation not possible. Min max used.')
             else:
@@ -169,12 +173,14 @@ def HE_test (data, *args, **kwargs):
     fcov_bounds = Consts.HE_FCOV_BOUNDS if 'fcov_bounds' not in kwargs else kwargs['fcov_bounds']
     fN_bounds = Consts.HE_FN_BOUNDS if 'fN_bounds' not in kwargs else kwargs['fN_bounds']
     a_bounds = Consts.HE_A_BOUNDS if 'a_bounds' not in kwargs else kwargs['a_bounds']
+    aN_bounds = Consts.HE_AN_BOUNDS if 'aN_bounds' not in kwargs else kwargs['aN_bounds']
     b_bounds = Consts.HE_B_BOUNDS if 'b_bounds' not in kwargs else kwargs['b_bounds']
     lerr_bounds = Consts.HE_LERR_BOUNDS if 'lerr_bounds' not in kwargs else kwargs['lerr_bounds']    
     
     def chi2 (params, counts, N):
-        vaf, fcov, fN, a, b, l = params
-        fe = 10**(-l)
+        vaf, fcov, fN, a, aN, b, le, lf = params
+        fe = 10**(-le)
+        ff = 10**(-lf)
         cs = np.arange (0, cov_max +1)
         cov = cov_min + fcov*(cov_max-cov_min)
         ns = 2*fN*N*cn2_cov_pdf (cs, cov, b)
@@ -184,8 +190,10 @@ def HE_test (data, *args, **kwargs):
             i = np.arange(0,c+1)
             nhe = ns[c]*cn2_vaf_pdf (i/c,vaf,c)
             nho = ns[c]*HO_vaf_pdf (i, c, fe ,b)
-        
-            na = a*nhe + (1-a)*nho
+            nno = ns[c]*NO_vaf_pdf (i, c, ff, b)
+            
+            na = a*nhe + (1-a -aN)*nho+ aN*nno
+            
             chi2 += sum((cnt - na)**2/np.sqrt(na*na+1))/c 
         return chi2/len(counts)
 
@@ -201,11 +209,14 @@ def HE_test (data, *args, **kwargs):
     N = len(data)
     fcov = (data['cov'].median() - cov_min)/(cov_max - cov_min)
     
-    res = opt.minimize (chi2, x0 = (0.5, fcov, 0.5,0.8, 1.3, 6), args = (counts, N),
-                    bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, b_bounds, lerr_bounds))    
-    vaf, fcov, fN, a, b, l = res.x    
+    aN = sum (data['vaf'] < 0.1)/len(data)
+    
+    res = opt.minimize (chi2, x0 = (0.5, fcov, 0.5,0.75, aN, 1.3, 6, 6), args = (counts, N),
+                    bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds))    
+    vaf, fcov, fN, a, a1, b, le, lf = res.x    
     cov = cov_min + fcov*(cov_max-cov_min)    
     return HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
+
 
 def cn2_vaf_pdf (x,v,c):
     p = sts.norm.pdf (x, v, np.sqrt((v*(1-v))/c))
@@ -214,8 +225,11 @@ def cn2_vaf_pdf (x,v,c):
 def cn2_cov_pdf (n,c,b = 1):
     return sts.norm.pdf (n, c, np.sqrt(b*c))
 
-def HO_vaf_pdf (i, n, fe = 10**-6,b=1):
+def HO_vaf_pdf (i, n, fe = 10**-6, b = 1):
     return sts.binom.pmf(i, n, 1-b*fe)
+
+def NO_vaf_pdf (i, n, fe = 10**-6, b = 1):
+    return sts.binom.pmf(i, n, b*fe)
 
 def VAF_test (data, m, **kwargs):
     

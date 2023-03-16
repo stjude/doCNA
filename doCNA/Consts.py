@@ -4,11 +4,12 @@ SEX_CHROMS = ['chrX', 'chrY']
 #Scoring
 SIZE_THR = 1 #in Mb
 K_THR = 0.11
+MIN_LEN_K_BALANCED = 6
 MODEL_THR = 3
 #alpha used to determine weidening threshold, using normal approximation 
 FB_ALPHA = 0.1
-DSCORE_ALPHA = 0.01
-KSCORE_ALPHA = 0.01
+DSCORE_ALPHA = 0.05
+KSCORE_ALPHA = 0.05
 
 ##Chromosome
 N_SYMBOL = 'N'
@@ -45,6 +46,7 @@ HE_VAF_BOUNDS = (0.4,0.6)
 HE_FCOV_BOUNDS = (0.01, 0.8)
 HE_FN_BOUNDS = (0.2,1.0)
 HE_A_BOUNDS = (0.1,0.9)
+HE_AN_BOUNDS = (0.0,0.5)
 HE_B_BOUNDS = (1,10)
 HE_LERR_BOUNDS = (2,10)
 

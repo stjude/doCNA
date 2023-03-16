@@ -9,10 +9,11 @@ import pandas as pd
 from doCNA.Run import Solution
 
 from doCNA import WGS
+from doCNA import Models
 
 _description = "Scan chromosomes in search for non-HE segments. Assigns copy numbers if can."
 
-__version__ = '0.8.4'
+__version__ = '0.9.1'
 
 
 def main():
@@ -29,7 +30,7 @@ def main():
                                  help = 'Number of processes. Default: 1')
     parser_analyze.add_argument ('-i', '--input_file', required = True,
                                  type = str, default = '',
-                                 help = 'Input file name.')
+                                 help = "Name of the input file with alleles' counts")
     parser_analyze.add_argument ('-c', '--config', required = False, default = 'config.ini',
                                  help = 'INI file with parameters')
     parser_analyze.add_argument ('-l', '--level', default = 'INFO', 
@@ -41,10 +42,16 @@ def main():
                                  help = 'Coverage of diploid.', default = 0)    
     parser_analyze.add_argument ('-v', '--version', help = 'Print version', action = 'version',
                                  version = 'doCNA v. {version}'.format(version = __version__))
+    parser_analyze.add_argument ('-m', '--models', choices=Models.model_presets_extra.keys(),
+                                 nargs='+', help = 'Specify which of extra models should be included.',
+                                 default = [])
     parser_analyze.set_defaults (func=analyze)
 
     ### Viewer subparser ###
     parser_viewer = subparsers.add_parser ("viewer", description="launches the viewer")
+    parser_viewer.add_argument ('--remote', action="store_true",
+                                help="use a if running from a remote machine, for example a compute cluster")
+    parser_viewer.add_argument ('-p', '--port', type=str, help="specific port to use")
     parser_viewer.set_defaults (func=viewer)
 
     ### Get Config subparser ###
@@ -66,6 +73,14 @@ def analyze(args):
 
     sample.analyze (m0 = args.coverage_diploid)
 
+    model_presets = {}
+    model_presets.update (Models.model_presets_2)
+    model_presets.update (Models.model_presets_4)
+
+    for model in args.models:
+        model_presets[model] = Models.model_presets_extra[model]    
+    
+
     with open (args.sample_name + '.bed', 'w') as bed:
         bed.writelines (sample.report(report_type = 'bed'))
 
@@ -79,7 +94,7 @@ def analyze(args):
     keys = sample.genome.chromosomes.keys()
     data = pd.concat ([sample.genome.chromosomes[k].data for k in keys])
 
-    data.to_csv (args.sample_name + '.dat', index = None, sep = '\t', 
+    data.to_csv (args.sample_name + '.dat.gz', index = None, sep = '\t', 
                  compression = 'gzip')
 
     print ('All done')
@@ -89,13 +104,17 @@ def viewer(args):
     import socket
     s = socket.socket()
     hostname = socket.gethostname()
-    private_ip = socket.gethostbyname(hostname)
+    host_to_use = socket.gethostbyname(hostname)
     s.bind(("", 0))
     open_port = str(s.getsockname()[1])
     s.close()
-    cmd = ["shiny", "run", "--port", open_port, "--host", private_ip, "doCNA.viewer.app"]
+    if args.port:
+        open_port = args.port
+    if not args.remote:
+        host_to_use = "localhost"
+    cmd = ["shiny", "run", "--port", open_port, "--host", host_to_use, "doCNA.viewer.app"]
     print("**********")
-    print(f"Access dashboard in browser via: http://{private_ip}:{open_port}")
+    print(f"Access dashboard in browser via: http://{host_to_use}:{open_port}")
     print("**********")
 
     proc = subprocess.run(cmd, stdout=sys.stdout, stderr=sys.stderr)    

@@ -1,12 +1,17 @@
 import scipy.stats as sts
 import numpy as np
-from collections import namedtuple
 
 import scipy.optimize as opt
 
 from doCNA import Testing
 from doCNA import Consts
+from doCNA import Models
 from doCNA.Report import Report
+
+#use model_presets from __main__
+model_presets = {}
+model_presets.update (Models.model_presets_2)
+model_presets.update (Models.model_presets_4)
 
 class Segment:
     """Class to calculate clonality and find the model."""
@@ -47,7 +52,7 @@ class Segment:
         if self.symbol == Consts.E_SYMBOL:
             self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == Consts.E_SYMBOL,],
                                              self.genome_medians['fb'],
-                                             self.genome_medians['m'])
+                                             self.genome_medians['m0'])
             method = 'sensitive'
             if self.parameters['ai'] > Consts.MAX_AI_THRESHOLD_FOR_SENSITIVE:
                 self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',])
@@ -70,117 +75,30 @@ class Segment:
         if self.parameters['success']:
             m = self.parameters['m']
             v = self.parameters['ai']
-            m0 = self.genome_medians['m']
+            m0 = self.genome_medians['m0']
         
-            self.distances = np.array ([calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
-            picked = np.where(self.distances == self.distances.min())[0][0]
-                        
-            self.parameters['d'] = self.distances.min()
-            self.parameters['model'] = list(model_presets.keys())[picked]
-            k = model_presets[self.parameters['model']].k(m,v,m0) 
-            self.parameters['k'] = k if k < Consts.K_MAX else np.nan
-            self.logger.info (f"Segment identified as {self.parameters['model']}, d = {self.parameters['d']}")
+            self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
+            self.logger.debug (f"Segment distances {self.distances}")
+            try:
+                picked = np.where(self.distances == np.nanmin(self.distances))[0][0]
+                self.parameters['d'] = np.nanmin(self.distances)
+                self.parameters['model'] = list(model_presets.keys())[picked]
+                k = model_presets[self.parameters['model']].k(m,v,m0) 
+                self.parameters['k'] = k if k < Consts.K_MAX else np.nan
+                self.logger.info (f"Segment identified as {self.parameters['model']}, d = {self.parameters['d']}")
+            except IndexError:
+                picked = np.nan
+                self.parameters['d'] = np.nan
+                self.parameters['model'] = 'NaN'
+                self.parameters['k'] = np.nan
+                self.logger.info (f"Segment not identified!")
+            
         else:
             self.parameters['d'] = np.nan
             self.parameters['model'] = 'NA'
             self.parameters['k'] = np.nan
             self.logger.info ('No model for this segment.')
                         
-
-def calculate_distance_old (preset, m, ai, m0):
-    try:
-        d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
-    except:
-        d = np.inf
-    return d
-
-def calculate_distance (preset, m, ai, m0):
-    
-    try:
-        k = np.abs(preset.k(m,ai,m0))
-    except ZeroDivisionError:
-        k = np.inf
-
-    if np.isnan(k):
-        d = np.inf
-    elif (k > 1) | (k < 0):
-        ks = np.linspace (0,1,1000)
-        ms = preset.m(k,m0)/m0
-        d = np.min(np.sqrt((ks-k)**2+(ms-m/m0)**2))
-    else:
-        d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
-    
-    return d
-
-
-Preset = namedtuple ('Preset', ['A', 'B', 'C', 'D', 'k','m', 'ai'])
-model_presets_2 = {#'cn1' 
-                 'AB+A'   : Preset(A = lambda m,dv,m0: -m0/2,
-                                B = lambda m,dv,m0: -1,
-                                C = lambda m,dv,m0: m0,
-                                D = lambda m,dv,m0: m0*(2*dv/(0.5+dv))/2+m,
-                                k = lambda m,dv,m0: 2*dv/(0.5+dv),
-                                m = lambda k,m0: (2-k)*m0/2,
-                                ai = lambda k,m0: k/(2*(2-k))),
-                 
-                 #'cnL'
-                 'AB+AA'  : Preset(A = lambda m,dv,m0: 0,
-                                B = lambda m,dv,m0: -1,
-                                C = lambda m,dv,m0: m0,
-                                D = lambda m,dv,m0: m,
-                                k = lambda m,dv,m0: 2*dv,
-                                m = lambda k,m0: np.repeat(m0, len(k)),
-                                ai = lambda k,m0: k/2),
-                 
-                 #'cn3'
-                 'AB+AAB' : Preset(A = lambda m,dv,m0: m0/2,
-                                B = lambda m,dv,m0: -1,
-                                C = lambda m,dv,m0: m0,
-                                D = lambda m,dv,m0: -m0*(2*dv/(0.5-dv))/2+m,
-                                k = lambda m,dv,m0: 2*dv/(0.5-dv),
-                                m = lambda k,m0: (2+k)*m0/2,
-                                ai = lambda k,m0: k/(2*(2+k))),
-
-
-                 #'cnB'
-                 'A(AB)B' : Preset(A = lambda m,dv,m0: 0,
-                                   B = lambda m,dv,m0: 1/2,
-                                   C = lambda m,dv,m0: dv,
-                                   D = lambda m,dv,m0: 0,
-                                   k = lambda m,dv,m0: m/m0 - 1,
-                                   m = lambda k,m0: (1+k)*m0,
-                                   ai = lambda k,m0: np.repeat(0, len(k)))} 
-    
-
-model_presets_4 = {'AB+AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
-                                       B = lambda m,dv,m0 : -1,
-                                       C = lambda m,dv,m0 : m0,
-                                       D = lambda m,dv,m0 : m - 2*m0*dv/(1-2*dv),
-                                       k = lambda m,dv,m0 : 2*dv/(1-2*dv),
-                                       m = lambda k,m0 : (1+k)*m0,
-                                       ai = lambda k,m0 : k/(2+2*k)),
-                   
-                    'AB+AAA' : Preset (A = lambda m,dv,m0 : m0/2,
-                                       B = lambda m,dv,m0 : -1,
-                                       C = lambda m,dv,m0 : m0,
-                                       D = lambda m,dv,m0 : m - 2*dv*m0/(3-2*dv),
-                                       k = lambda m,dv,m0 : 4*dv/(3-2*dv),
-                                       m = lambda k,m0 : (2+k)*m0/2,
-                                       ai = lambda k,m0 : 3*k/(4+2*k)),
-                    
-                    'AB+AAAA' : Preset (A = lambda m,dv,m0 : m0/2,
-                                        B = lambda m,dv,m0 : -1,
-                                        C = lambda m,dv,m0 : m0,
-                                        D = lambda m,dv,m0 : m - dv*m0/(1-dv),
-                                        k = lambda m,dv,m0 : dv/(1-dv),
-                                        m = lambda k,m0 : (1+k)*m0,
-                                        ai = lambda k,m0 : k/(1+k))}
-
-model_presets = {}
-model_presets.update (model_presets_2)
-model_presets.update (model_presets_4)
-
-
 
 
 def get_sensitive (data, fb, mG, z_thr = 1.5):
@@ -228,7 +146,7 @@ def get_full (data, b = 1.01):
         p0 = [dv0, ones0/c.sum(), 2, 0.5, 0.5, b]        
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
-                                              (0.5, 0.95, 5, 1, 0.55, 10)))
+                                              (0.499, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, vaf, b = popt      
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
                       'fraction_1' : ones0/c.sum(), 'n' : len (data)/Consts.SNPS_IN_WINDOW,
