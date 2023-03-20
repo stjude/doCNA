@@ -4,6 +4,7 @@ import numpy as np
 import multiprocessing as mpl
 import scipy.stats as sts
 import scipy.optimize as opt
+import sys
 from sklearn.linear_model import HuberRegressor
 
 from doCNA import Testing
@@ -56,21 +57,25 @@ class Genome:
         self.logger.debug ("Creating chromosomes...")
         
         for chrom, data in self.data.loc[~self.data['vaf'].isna()].groupby (by = 'chrom'):
-            if chrom not in Consts.SEX_CHROMS:
-                self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
-                                                                 self.config, self.logger,
-                                                                 self.genome_medians, 
-                                                                 self.CB.loc[self.CB['chrom'] == chrom])
-                self.logger.debug (f"Chromosome {chrom} has {len(data)} markers.")
+            #if chrom not in Consts.SEX_CHROMS:
+            self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
+                                                             self.config, self.logger,
+                                                             self.genome_medians, 
+                                                             self.CB.loc[self.CB['chrom'] == chrom])
+            self.logger.debug (f"Chromosome {chrom} has {len(data)} markers.")
          
-
-            
     def segment_genome (self, m0 = 0, fb_alpha = Consts.FB_ALPHA):
+        
+        non_sex_chromosomes = []
+        for chrom in self.chromosomes:
+            if chrom.chrom not in Consts.SEX_CHROMS:
+                non_sex_chromosomes.append[chrom]
         
         self.logger.debug ('Starting testing ...')
         
         self.HE = Testing.Testing ('HE', 
-                                   self.chromosomes,
+                                   #self.chromosomes,
+                                   non_sex_chromosomes,
                                    self.logger)
         
         self.HE.run_test(no_processes = self.no_processes)
@@ -105,7 +110,11 @@ class Genome:
                     
         self.logger.debug ('Testing N/E marking.')    
         
-        self.VAF = Testing.Testing ('VAF', self.chromosomes, self.logger)
+        self.VAF = Testing.Testing ('VAF', 
+                                    #self.chromosomes, 
+                                    non_sex_chromosomes,
+                                    self.logger)
+        
         self.VAF.run_test (self.HE.medians['cov'], no_processes = self.no_processes)
         
         self.logger.debug ("Genomewide VAF: " + f"\n" + str(self.VAF.report_results()))
@@ -136,7 +145,10 @@ class Genome:
                 self.logger.debug (f'Chromosome {chrom} marked on full model.')
                 self.chromosomes[chrom].mark_on_full_model (self.HE.medians['cov']) 
                 
-        self.COV = Testing.Testing ('COV', self.chromosomes, self.logger)
+        self.COV = Testing.Testing ('COV', 
+                                    #self.chromosomes,
+                                    non_sex_chromosomes,
+                                    self.logger)
         self.COV.run_test(no_processes = self.no_processes,
                           exclude_symbol = [Consts.N_SYMBOL, Consts.U_SYMBOL])
         self.logger.debug ('Genomewide COV: ' + f"\n" + str(self.COV.report_results()))

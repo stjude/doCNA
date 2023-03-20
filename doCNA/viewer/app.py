@@ -680,7 +680,13 @@ def server(input, output, session):
                 dtsa = np.array(dts)
             
             opt_solution.set((ms,dtsa, fraction))
-            m0_opt.set (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
+            try:
+                m0_opt.set (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
+                print ()
+                print (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
+                print ()
+            except:
+                m0_opt.set(m0())
             
            
     @reactive.Effect
