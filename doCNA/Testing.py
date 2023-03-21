@@ -109,11 +109,14 @@ class Testing:
         return test_results
     
     def get_status (self, chromosome):
-        try:
-            status = (self.status.T[chromosome] == 'inlier').T
-        except KeyError:
-            status = False
-        return status
+        #try:
+        #    status = (self.status.T[chromosome] == 'inlier').T
+        #except KeyError:
+        #    status = False
+        if chromosome not in self.status.index.values.tolist():
+            #self.status.T[chromosome] = 'outlier'
+            self.status.loc[chromosome] = 'outlier' 
+        return (self.status.T[chromosome] == 'inlier').T
     
     def get_genome_medians (self):
         return self.medians

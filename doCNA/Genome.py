@@ -5,6 +5,7 @@ import multiprocessing as mpl
 import scipy.stats as sts
 import scipy.optimize as opt
 import sys
+import copy
 from sklearn.linear_model import HuberRegressor
 
 from doCNA import Testing
@@ -66,10 +67,9 @@ class Genome:
          
     def segment_genome (self, m0 = 0, fb_alpha = Consts.FB_ALPHA):
         
-        non_sex_chromosomes = []
-        for chrom in self.chromosomes:
-            if chrom.chrom not in Consts.SEX_CHROMS:
-                non_sex_chromosomes.append[chrom]
+        non_sex_chromosomes = copy.deepcopy(self.chromosomes)
+        for chrom in Consts.SEX_CHROMS:
+                non_sex_chromosomes.pop(chrom)
         
         self.logger.debug ('Starting testing ...')
         
@@ -99,6 +99,7 @@ class Genome:
         
         self.logger.debug ('Running N/E marking.')
         
+        chroms_to_remove = []
         for chrom in self.chromosomes.keys():
             status = self.HE.get_status (chrom)
             params = self.HE.get_parameters(chrom).copy()
@@ -107,9 +108,25 @@ class Genome:
                     params[par] = self.HE.get_genome_medians()[par]  
             
             self.chromosomes[chrom].markE_onHE (params, float(self.config['HE']['z_thr']))
-                    
+            
+            if sum (self.chromosomes[chrom].data['symbol'] == Consts.E_SYMBOL) < Consts.WINDOWS_THRESHOLD*Consts.SNPS_IN_WINDOW:
+                 #self.chromosomes.pop(chrom)
+                 self.logger.info(f'Chromosome {chrom} removed because not enough HE markers')
+                 chroms_to_remove.append(chrom)
+            
+        for chrom in chroms_to_remove:
+            self.chromosomes.pop(chrom)  
+
+        
         self.logger.debug ('Testing N/E marking.')    
         
+        non_sex_chromosomes = copy.deepcopy(self.chromosomes)
+        for chrom in Consts.SEX_CHROMS:
+                try:
+                    non_sex_chromosomes.pop(chrom)
+                except:
+                    pass
+
         self.VAF = Testing.Testing ('VAF', 
                                     #self.chromosomes, 
                                     non_sex_chromosomes,
