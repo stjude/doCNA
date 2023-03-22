@@ -36,9 +36,9 @@ fix_model ['nan'] = 'nan'
 
 
 
-chromlist = ['chr' + str (i) for i in range (1,23)]
+#chromlist = ['chr' + str (i) for i in range (1,23)]
 chromdic = {}
-for c in chromlist:
+for c in Consts.CHROM_ORDER:
     chromdic[c] = c
 
 def merge_records (all_records, chrom):
@@ -211,6 +211,7 @@ app_ui = ui.page_fluid(
         ) 
 
 def server(input, output, session):
+    
     bed_full = reactive.Value(pd.DataFrame())
     bed = reactive.Value(pd.DataFrame())
     data = reactive.Value(pd.DataFrame())
@@ -222,7 +223,7 @@ def server(input, output, session):
     log_file = reactive.Value ([])
     bed_report = reactive.Value(pd.DataFrame())
     model_presets = reactive.Value (mp)
-
+    
     @reactive.Effect
     @reactive.event (input.extra_models)
     def _():
