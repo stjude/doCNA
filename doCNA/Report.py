@@ -16,7 +16,7 @@ class Report:
         if self._report_type == 'bed':
             keys = list(genome.chromosomes.keys())
             #keys.sort(key = lambda x: int(x[3:]))
-            sorted (keys, key = Consts.CHROM_ORDER)
+            sorted (keys, key = Consts.CHROM_ORDER.index)
             report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
         elif self._report_type == 'params':
             shift_i = genome.genome_medians['clonality_imbalanced']['up']

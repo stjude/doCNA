@@ -2,6 +2,7 @@ from shiny import *
 from .Plots import * #need a dot
 #import Models
 from doCNA import Models
+from doCNA import Consts
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -324,7 +325,8 @@ def server(input, output, session):
         b = bed()
         if (len(bf) != 0) & (len(b) != 0):
             chrs = chrom_sizes().index.values.tolist()
-            chrs.sort (key = lambda x: int(x[3:]))
+            #chrs.sort (key = lambda x: int(x[3:]))
+            sorted (chrs, key = Consts.CHROM_ORDER.index)
             merged_segments = []
             for chrom in chrs: #
                 segments = bf.loc[bf.chrom == chrom] #, segments in bf.groupby (by = 'chrom'):
