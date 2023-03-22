@@ -326,7 +326,7 @@ def server(input, output, session):
         if (len(bf) != 0) & (len(b) != 0):
             chrs = chrom_sizes().index.values.tolist()
             #chrs.sort (key = lambda x: int(x[3:]))
-            sorted (chrs, key = Consts.CHROM_ORDER.index)
+            chrs.sort (key = Consts.CHROM_ORDER.index)
             merged_segments = []
             for chrom in chrs: #
                 segments = bf.loc[bf.chrom == chrom] #, segments in bf.groupby (by = 'chrom'):
