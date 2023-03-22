@@ -69,7 +69,10 @@ class Genome:
         
         non_sex_chromosomes = copy.deepcopy(self.chromosomes)
         for chrom in Consts.SEX_CHROMS:
+            try:
                 non_sex_chromosomes.pop(chrom)
+            except KeyError:
+                pass
         
         self.logger.debug ('Starting testing ...')
         
@@ -124,7 +127,7 @@ class Genome:
         for chrom in Consts.SEX_CHROMS:
                 try:
                     non_sex_chromosomes.pop(chrom)
-                except:
+                except KeyError:
                     pass
 
         self.VAF = Testing.Testing ('VAF', 
