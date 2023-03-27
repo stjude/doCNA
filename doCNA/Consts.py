@@ -1,5 +1,7 @@
 ##Genome
-SEX_CHROMS = ['chrX', 'chrY']
+FEMALE_CHROM = 'chrX'
+MALE_CHROM = 'chrY'
+SEX_CHROMS = [FEMALE_CHROM, MALE_CHROM]
 
 #Scoring
 SIZE_THR = 1 #in Mb

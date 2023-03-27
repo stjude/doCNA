@@ -58,8 +58,13 @@ class Genome:
         self.logger.debug ("Creating chromosomes...")
         
         for chrom, data in self.data.loc[~self.data['vaf'].isna()].groupby (by = 'chrom'):
-            #if chrom not in Consts.SEX_CHROMS:
-            self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
+            if chrom not in Consts.SEX_CHROMS:
+                self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
+                                                             self.config, self.logger,
+                                                             self.genome_medians, 
+                                                             self.CB.loc[self.CB['chrom'] == chrom])
+            else:
+                self.sex_chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
                                                              self.config, self.logger,
                                                              self.genome_medians, 
                                                              self.CB.loc[self.CB['chrom'] == chrom])
@@ -67,18 +72,10 @@ class Genome:
          
     def segment_genome (self, m0 = 0, fb_alpha = Consts.FB_ALPHA):
         
-        non_sex_chromosomes = copy.deepcopy(self.chromosomes)
-        for chrom in Consts.SEX_CHROMS:
-            try:
-                non_sex_chromosomes.pop(chrom)
-            except KeyError:
-                pass
-        
         self.logger.debug ('Starting testing ...')
         
         self.HE = Testing.Testing ('HE', 
-                                   #self.chromosomes,
-                                   non_sex_chromosomes,
+                                   self.chromosomes,
                                    self.logger)
         
         self.HE.run_test(no_processes = self.no_processes)
@@ -102,7 +99,7 @@ class Genome:
         
         self.logger.debug ('Running N/E marking.')
         
-        chroms_to_remove = []
+        
         for chrom in self.chromosomes.keys():
             status = self.HE.get_status (chrom)
             params = self.HE.get_parameters(chrom).copy()
@@ -112,27 +109,17 @@ class Genome:
             
             self.chromosomes[chrom].markE_onHE (params, float(self.config['HE']['z_thr']))
             
-            if sum (self.chromosomes[chrom].data['symbol'] == Consts.E_SYMBOL) < Consts.WINDOWS_THRESHOLD*Consts.SNPS_IN_WINDOW:
-                 #self.chromosomes.pop(chrom)
-                 self.logger.info(f'Chromosome {chrom} removed because not enough HE markers')
-                 chroms_to_remove.append(chrom)
+        #for formatting
+        for  par in status.index.values:
+            params[par] = self.HE.get_genome_medians()[par]  
             
-        for chrom in chroms_to_remove:
-            self.chromosomes.pop(chrom)  
-
+        self.sex_chromosomes[Consts.FEMALE_CHROM].markE_onHE (params, float(self.config['HE']['z_thr']))
+        self.sex_chromosomes[Consts.MALE_CHROM].data['status'] = 'N'
         
         self.logger.debug ('Testing N/E marking.')    
         
-        non_sex_chromosomes = copy.deepcopy(self.chromosomes)
-        for chrom in Consts.SEX_CHROMS:
-                try:
-                    non_sex_chromosomes.pop(chrom)
-                except KeyError:
-                    pass
-
         self.VAF = Testing.Testing ('VAF', 
-                                    #self.chromosomes, 
-                                    non_sex_chromosomes,
+                                    self.chromosomes,
                                     self.logger)
         
         self.VAF.run_test (self.HE.medians['cov'], no_processes = self.no_processes)
@@ -164,10 +151,28 @@ class Genome:
                 params = self.VAF.get_parameters (chrom)
                 self.logger.debug (f'Chromosome {chrom} marked on full model.')
                 self.chromosomes[chrom].mark_on_full_model (self.HE.medians['cov']) 
-                
+        
+        self.logger.info (f'Analyzing {Consts.FEMALE_CHROM}: ...')
+        female_chrom_vaf_results = Testing.VAF_test (self.sex_chromosomes[Consts.FEMALE_CHROM].data,
+                                                     self.genome_medians['cov'])
+        self.logger.info (f'VAF test results: {female_chrom_vaf_results}')
+        self.VAF.results. pd.DataFrame.from_records (female_chrom_vaf_results,
+                                                     columns = female_chrom_vaf_results[0]._fields, 
+                                                     index = Consts.FEMALE_CHROM)        
+        
+        
+        self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
+        self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
+        male_markers = len (self.sex_chromsomes[Consts.MALE_CHROM].data)
+        if len(male_markers) > Consts.SNPS_IN_WINDOW*2:
+            self.chromosomes[Consts.MALE_CHROM] = self.sex_chromosomes[Consts.MALE_CHROM]
+            self.logger.info(f'Chromosome {Consts.MALE_CHROM} added.')
+        else:
+            self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, only {male_markers} markers.')
+        
+                        
         self.COV = Testing.Testing ('COV', 
-                                    #self.chromosomes,
-                                    non_sex_chromosomes,
+                                    self.chromosomes,
                                     self.logger)
         self.COV.run_test(no_processes = self.no_processes,
                           exclude_symbol = [Consts.N_SYMBOL, Consts.U_SYMBOL])
