@@ -51,6 +51,7 @@ class Genome:
         self.data['vaf'] = self.data['alt_count']/self.data['cov']
         
         self.chromosomes = {}
+        self.sex_chromosomes = {}
         
         if len(self.data.loc[~self.data['vaf'].isna()]) == 0:
             sys.exit (f'No data read in. Please cross check column names: {columns} with input file.')
@@ -114,7 +115,8 @@ class Genome:
             params[par] = self.HE.get_genome_medians()[par]  
             
         self.sex_chromosomes[Consts.FEMALE_CHROM].markE_onHE (params, float(self.config['HE']['z_thr']))
-        self.sex_chromosomes[Consts.MALE_CHROM].data['status'] = 'N'
+        #self.sex_chromosomes[Consts.MALE_CHROM].data['symbol'] = 'N'
+        self.sex_chromosomes[Consts.MALE_CHROM].markE_onHE (params, float(self.config['HE']['z_thr']))
         
         self.logger.debug ('Testing N/E marking.')    
         
@@ -154,21 +156,29 @@ class Genome:
         
         self.logger.info (f'Analyzing {Consts.FEMALE_CHROM}: ...')
         female_chrom_vaf_results = Testing.VAF_test (self.sex_chromosomes[Consts.FEMALE_CHROM].data,
-                                                     self.genome_medians['cov'])
+                                                     self.HE.medians['cov'])
         self.logger.info (f'VAF test results: {female_chrom_vaf_results}')
-        self.VAF.results. pd.DataFrame.from_records (female_chrom_vaf_results,
-                                                     columns = female_chrom_vaf_results[0]._fields, 
-                                                     index = Consts.FEMALE_CHROM)        
+        self.VAF.results.append(pd.DataFrame.from_records ([female_chrom_vaf_results],
+                                                     columns = female_chrom_vaf_results._fields, 
+                                                     index = [Consts.FEMALE_CHROM]))
         
+        self.logger.info (f'Analyzing {Consts.MALE_CHROM}: ...')
+        male_chrom_vaf_results = Testing.VAF_test (self.sex_chromosomes[Consts.MALE_CHROM].data,
+                                                     self.HE.medians['cov'])
+        self.logger.info (f'VAF test results: {male_chrom_vaf_results}')
+        self.VAF.results.append(pd.DataFrame.from_records ([male_chrom_vaf_results],
+                                                     columns = male_chrom_vaf_results._fields,
+                                                     index = [Consts.MALE_CHROM]))
         
-        self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
-        self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
-        male_markers = len (self.sex_chromsomes[Consts.MALE_CHROM].data)
-        if len(male_markers) > Consts.SNPS_IN_WINDOW*2:
-            self.chromosomes[Consts.MALE_CHROM] = self.sex_chromosomes[Consts.MALE_CHROM]
-            self.logger.info(f'Chromosome {Consts.MALE_CHROM} added.')
-        else:
-            self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, only {male_markers} markers.')
+
+        #self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
+        #self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
+        #male_markers = len (self.sex_chromosomes[Consts.MALE_CHROM].data)
+        #if male_markers > Consts.SNPS_IN_WINDOW:
+        #    self.chromosomes[Consts.MALE_CHROM] = self.sex_chromosomes[Consts.MALE_CHROM]
+        #    self.logger.info(f'Chromosome {Consts.MALE_CHROM} added.')
+        #else:
+        #    self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, only {male_markers} markers.')
         
                         
         self.COV = Testing.Testing ('COV', 
@@ -182,6 +192,16 @@ class Genome:
         
         self.logger.info ("Genome COV reference: " + f"\n" + str(self.COV.get_genome_medians()))
         self.genome_medians['COV'] = self.COV.get_genome_medians()
+
+        self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
+        self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
+        male_markers = len (self.sex_chromosomes[Consts.MALE_CHROM].data)
+        if male_markers > 0: #Consts.SNPS_IN_WINDOW:
+            self.chromosomes[Consts.MALE_CHROM] = self.sex_chromosomes[Consts.MALE_CHROM]
+            self.logger.info(f'Chromosome {Consts.MALE_CHROM} added.')
+        else:
+            self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, no markers.')
+
 
         inliers = self.VAF.get_inliers()
         inliers_fb = self.VAF.results.loc[inliers,'fb'].values

@@ -215,9 +215,21 @@ def HE_test (data, *args, **kwargs):
     aN = sum (data['vaf'] < 0.1)/len(data)
     
     res = opt.minimize (chi2, x0 = (0.5, fcov, 0.5,0.75, aN, 1.3, 6, 6), args = (counts, N),
-                    bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds))    
-    vaf, fcov, fN, a, a1, b, le, lf = res.x    
-    cov = cov_min + fcov*(cov_max-cov_min)    
+                        bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
+                        options = {'maxiter' : 2000})    
+     
+    if res.success:
+        #print('success', res.message)
+        chi2 = res.fun
+        vaf, fcov, fN, a, a1, b, le, lf = res.x    
+        cov = cov_min + fcov*(cov_max-cov_min)    
+    else:
+        #print('fail', res.message)
+        chi2 = np.nan
+        vaf = np.nan
+        cov = np.nan
+        b = np.nan
+ 
     return HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
 
 
