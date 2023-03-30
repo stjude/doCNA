@@ -22,10 +22,18 @@ class Distribution:
 
         """
         assert len (values) > Consts.LENGTH_THRESHOLD, print ("Not enough data points to consider distribution.")
-        single_G_par = fit_single_G (np.sort(values), alpha = 0.01, r = 0.5)
+        
+        try: 
+            single_G_par = fit_single_G (np.sort(values), alpha = 0.01, r = 0.5)
+            values = 'all'
+        except:
+            single_G_par = fit_single_G (np.sort(np.unique(values)), alpha = 0.01, r = 0.5)
+            values = 'unique'
+             
         self.all_parameters = {}
         self.all_parameters['single'] = single_G_par
-                
+        self.all_parameters['single']['values_used'] = values
+        
         z = np.abs(values-single_G_par['m'])/single_G_par['s']
         string = list ('O' * len(values))
         for i in np.where ((z < thr_z))[0]:
@@ -34,10 +42,18 @@ class Distribution:
         self.all_parameters['single']['string'] = string
                 
         if single_G_par['p'] < p_thr:
-            double_G_par = fit_double_G (np.sort(values), alpha = 0.01, r = 0.5)
+            try:
+                double_G_par = fit_double_G (np.sort(values), alpha = 0.01, r = 0.5)
+                values = 'all'
+            except:
+                double_G_par = fit_double_G (np.sort(values), alpha = 0.01, r = 0.5)
+                values = 'unique'
+                
             self.key = 'double'
             self.parameters = double_G_par
             self.all_parameters ['double'] = double_G_par
+            self.all_parameters ['double']['values_used'] = values
+            
             z0 = np.abs(values-double_G_par['m'][0])/double_G_par['s'][0]
             z1 = np.abs(values-double_G_par['m'][1])/double_G_par['s'][1]
             #generate string
