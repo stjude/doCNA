@@ -123,12 +123,8 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         dva[dva == 0] = median
         self.dv = dva
         self.v0 = np.array(v0s)
-        try:
-            self.dv_dist = Distribution.Distribution (self.dv,
+        self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = 0.1, thr_z = z_thr)
-        except:
-            print ('Error error')
-            print (self.dv)
         
  
     def find_runs (self):
