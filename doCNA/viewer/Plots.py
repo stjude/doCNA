@@ -268,7 +268,9 @@ def earth_worm_plot (data_df, bed_df, params, chrom, axs, k_score_column = 'k_sc
             axs[2].plot ((seg.start, seg.end), (seg.k, seg.k), c = 'magenta', lw = 1.5, marker = 'o', ls = ':')
             axs[3].plot ((seg.start, seg.end), (seg.cn, seg.cn), c = 'magenta', ls = ':')
 
-    axs[3].set_ylim (chrombed['cn'].agg([min, max])*np.array ((0.95,1.05)))
+    if len(chrombed) > 0:
+        axs[3].set_ylim (chrombed['cn'].agg([min, max])*np.array ((0.95,1.05)))
+        
     axs[3].plot ((0, chromdata.position.max()), (2, 2), 'k:')
     
     axs[2].set_ylabel ('clonality')
@@ -279,11 +281,17 @@ def check_solution_plot_opt (bed_df, params, ax, cent_thr = 0.3, size_thr = 1,
     bed = bed_df.loc[(bed_df['cent'] < cent_thr)&(bed_df['size'] > size_thr)]
     
     for _, b in bed.loc[bed['model'].notna(),:].iterrows():
-        ax.scatter (b['m'],b['ai'], c = colorsCN[b['model']], s = b['size'])
+        if b['chrom'] == 'chrX':
+            ax.scatter (b['m'],b['ai'], c = colorsCN[b['model']], s = b['size'], edgecolor = 'w', marker = 'X')
+        elif b['chrom'] == 'chrY':
+            ax.scatter (b['m'],b['ai'], c = colorsCN[b['model']], s = b['size'], edgecolor = 'w', marker = 'v')
+        else:
+            ax.scatter (b['m'],b['ai'], c = colorsCN[b['model']], s = b['size'], edgecolor = 'w', marker = 'o')
 
     highlight_filter = [c in highlight for c in bed_df.chrom.tolist()]
     x = bed_df.loc[(highlight_filter), 'm'].values
     y = bed_df.loc[(highlight_filter), 'ai'].values
+    
     ax.plot (x, y, marker = 's', c = 'darkorange', lw = 0, alpha = 1, fillstyle = 'none')
     
     ax.set_xlabel ('Coverage')
