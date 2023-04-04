@@ -7,7 +7,7 @@ import numpy as np
 import argparse as agp
 
 from doCNA import Models
-#import Models
+from doCNA import Consts
 
 #colorsCN = {}
 colorsCN = defaultdict (lambda: 'purple')
@@ -26,8 +26,8 @@ colorsCN['NA'] = 'lightskyblue'
 
 def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
     chrs = chrom_sizes.index.values.tolist()
-    chrs.sort (key = lambda x: int(x[3:]))
-    
+    #chrs.sort (key = lambda x: int(x[3:]))
+    chrs.sort (key = Consts.CHROM_ORDER.index)
     start = 0
     axs[1].plot ((start, start), (0, 4), 'k:', lw = 0.5)
     axs[0].plot ((start, start), (0, 0.95), 'k:', lw = 0.5)
@@ -97,7 +97,8 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
 
 def reporting_plot (bed_df, axs, chrom_sizes):
     chrs = chrom_sizes.index.values.tolist()
-    chrs.sort (key = lambda x: int(x[3:]))
+    #chrs.sort (key = lambda x: int(x[3:]))
+    chrs.sort(key = Consts.CHROM_ORDER.index)
     
     start = 0
     axs[1].plot ((start, start), (0, 4), 'k:', lw = 0.5)

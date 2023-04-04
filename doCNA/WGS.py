@@ -1,3 +1,4 @@
+import sys
 import logging
 from doCNA import Genome
 
