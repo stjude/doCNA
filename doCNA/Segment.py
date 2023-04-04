@@ -79,19 +79,33 @@ class Segment:
         
             self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
             self.logger.debug (f"Segment distances {self.distances}")
-            try:
+            if all (np.isnan(self.distances)):
+                picked = np.nan
+                self.parameters['d'] = np.nan
+                self.parameters['model'] = 'NaN'
+                self.parameters['k'] = np.nan
+                self.logger.info (f"Segment not kariotyped!")    
+            else:
                 picked = np.where(self.distances == np.nanmin(self.distances))[0][0]
                 self.parameters['d'] = np.nanmin(self.distances)
                 self.parameters['model'] = list(model_presets.keys())[picked]
                 k = model_presets[self.parameters['model']].k(m,v,m0) 
                 self.parameters['k'] = k if k < Consts.K_MAX else np.nan
-                self.logger.info (f"Segment identified as {self.parameters['model']}, d = {self.parameters['d']}")
-            except IndexError:
-                picked = np.nan
-                self.parameters['d'] = np.nan
-                self.parameters['model'] = 'NaN'
-                self.parameters['k'] = np.nan
-                self.logger.info (f"Segment not identified!")
+                self.logger.info (f"Segment kariotyped as {self.parameters['model']}, d = {self.parameters['d']}")
+                
+            #try:
+            #    picked = np.where(self.distances == np.nanmin(self.distances))[0][0]
+            #    self.parameters['d'] = np.nanmin(self.distances)
+            #    self.parameters['model'] = list(model_presets.keys())[picked]
+            #    k = model_presets[self.parameters['model']].k(m,v,m0) 
+            #    self.parameters['k'] = k if k < Consts.K_MAX else np.nan
+            #    self.logger.info (f"Segment identified as {self.parameters['model']}, d = {self.parameters['d']}")
+            #except IndexError:
+            #    picked = np.nan
+            #    self.parameters['d'] = np.nan
+            #    self.parameters['model'] = 'NaN'
+            #    self.parameters['k'] = np.nan
+            #    self.logger.info (f"Segment not identified!")
             
         else:
             self.parameters['d'] = np.nan

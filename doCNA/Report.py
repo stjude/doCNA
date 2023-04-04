@@ -4,7 +4,7 @@ import warnings as warn
 import scipy.stats as sts
 
 from doCNA import Run
-
+from doCNA import Consts
 
 class Report:
     """ Class that holds reports used by other objects in the program """
@@ -15,7 +15,8 @@ class Report:
         """ Generates a report for Genome objects """
         if self._report_type == 'bed':
             keys = list(genome.chromosomes.keys())
-            keys.sort(key = lambda x: int(x[3:]))
+            #keys.sort(key = lambda x: int(x[3:]))
+            keys.sort (key = Consts.CHROM_ORDER.index)
             report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
         elif self._report_type == 'params':
             shift_i = genome.genome_medians['clonality_imbalanced']['up']

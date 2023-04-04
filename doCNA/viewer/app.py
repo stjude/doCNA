@@ -2,6 +2,7 @@ from shiny import *
 from .Plots import * #need a dot
 #import Models
 from doCNA import Models
+from doCNA import Consts
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,9 +36,9 @@ fix_model ['nan'] = 'nan'
 
 
 
-chromlist = ['chr' + str (i) for i in range (1,23)]
+#chromlist = ['chr' + str (i) for i in range (1,23)]
 chromdic = {}
-for c in chromlist:
+for c in Consts.CHROM_ORDER:
     chromdic[c] = c
 
 def merge_records (all_records, chrom):
@@ -210,6 +211,7 @@ app_ui = ui.page_fluid(
         ) 
 
 def server(input, output, session):
+    
     bed_full = reactive.Value(pd.DataFrame())
     bed = reactive.Value(pd.DataFrame())
     data = reactive.Value(pd.DataFrame())
@@ -221,7 +223,7 @@ def server(input, output, session):
     log_file = reactive.Value ([])
     bed_report = reactive.Value(pd.DataFrame())
     model_presets = reactive.Value (mp)
-
+    
     @reactive.Effect
     @reactive.event (input.extra_models)
     def _():
@@ -324,7 +326,8 @@ def server(input, output, session):
         b = bed()
         if (len(bf) != 0) & (len(b) != 0):
             chrs = chrom_sizes().index.values.tolist()
-            chrs.sort (key = lambda x: int(x[3:]))
+            #chrs.sort (key = lambda x: int(x[3:]))
+            chrs.sort (key = Consts.CHROM_ORDER.index)
             merged_segments = []
             for chrom in chrs: #
                 segments = bf.loc[bf.chrom == chrom] #, segments in bf.groupby (by = 'chrom'):
@@ -680,7 +683,13 @@ def server(input, output, session):
                 dtsa = np.array(dts)
             
             opt_solution.set((ms,dtsa, fraction))
-            m0_opt.set (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
+            try:
+                m0_opt.set (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
+                print ()
+                print (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
+                print ()
+            except:
+                m0_opt.set(m0())
             
            
     @reactive.Effect

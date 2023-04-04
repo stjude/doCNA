@@ -22,10 +22,18 @@ class Distribution:
 
         """
         assert len (values) > Consts.LENGTH_THRESHOLD, print ("Not enough data points to consider distribution.")
-        single_G_par = fit_single_G (np.sort(values), alpha = 0.01, r = 0.5)
+        
+        try: 
+            single_G_par = fit_single_G (np.sort(values), alpha = 0.01, r = 0.5)
+            values_used = 'all'
+        except:
+            single_G_par = fit_single_G (np.sort(np.unique(values)), alpha = 0.01, r = 0.5)
+            values_used = 'unique'
+             
         self.all_parameters = {}
         self.all_parameters['single'] = single_G_par
-                
+        self.all_parameters['single']['values_used'] = values_used
+        
         z = np.abs(values-single_G_par['m'])/single_G_par['s']
         string = list ('O' * len(values))
         for i in np.where ((z < thr_z))[0]:
@@ -34,10 +42,18 @@ class Distribution:
         self.all_parameters['single']['string'] = string
                 
         if single_G_par['p'] < p_thr:
-            double_G_par = fit_double_G (np.sort(values), alpha = 0.01, r = 0.5)
+            try:
+                double_G_par = fit_double_G (np.sort(values), alpha = 0.01, r = 0.5)
+                values_used = 'all'
+            except:
+                double_G_par = fit_double_G (np.sort(values), alpha = 0.01, r = 0.5)
+                values_used = 'unique'
+                
             self.key = 'double'
             self.parameters = double_G_par
             self.all_parameters ['double'] = double_G_par
+            self.all_parameters ['double']['values_used'] = values_used
+            
             z0 = np.abs(values-double_G_par['m'][0])/double_G_par['s'][0]
             z1 = np.abs(values-double_G_par['m'][1])/double_G_par['s'][1]
             #generate string
@@ -99,7 +115,11 @@ def fit_single_G (values, alpha = 0.01, r = 0.5):
     
     Returns dictionary with parameters.
     """
-    thr = get_outliers_thrdist (np.sort(values), alpha, r)
+    try:
+        thr = get_outliers_thrdist (np.sort(values), alpha, r)
+    except: 
+        thr = (min(values), max(values))
+
     a = np.sort(values[(values >= thr[0])&(values <= thr[1])])
     popt, pcov = opt.curve_fit (sts.norm.cdf, a, np.linspace(0,1, len(a)), 
                                 p0 = [np.mean(a), np.std (a)])
@@ -120,7 +140,11 @@ def fit_double_G (values_all, alpha, r = 0.5, initial_bounds = None, initial_p0 
     Returns dictionary with parameters.
     """
     
-    thr0 = get_outliers_thrdist (np.sort(values_all), alpha, r)   
+    try:
+        thr0 = get_outliers_thrdist (np.sort(values_all), alpha, r)   
+    except:
+        thr0 = (min(values_all),max(values_all))
+ 
     values = values_all[(values_all >= thr0[0]) & (values_all <= thr0[1])]
     
     if initial_p0 is None:
