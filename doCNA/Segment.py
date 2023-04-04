@@ -79,7 +79,7 @@ class Segment:
         
             self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
             self.logger.debug (f"Segment distances {self.distances}")
-            if all (self.distances.isna()):
+            if all (np.isnan(self.distances)):
                 picked = np.nan
                 self.parameters['d'] = np.nan
                 self.parameters['model'] = 'NaN'

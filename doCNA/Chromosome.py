@@ -259,6 +259,8 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
     try:
         ind = np.arange (0, min (4, len(x)))
         popt, _ = opt.curve_fit (lin,  x[ind], y[ind], p0 = [-1,1])
+        if popt[0] > -0.01:
+            raise (ValueError)
         xt = (np.arange(1, hist[0].max()))
         xmax = x.max()
         while lin (xt, *popt)[-1] > -1:
@@ -266,7 +268,7 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
             xt = np.arange(1, xmax)
 
         N_thr = (xt[lin(xt, *popt) > -1].max())
-    except (RuntimeError,TypeError):
+    except (RuntimeError,TypeError, ValueError):
         N_thr = Consts.DEFAULT_N_THRESHOLD
     
     hist = np.unique(counts[values == E], return_counts = True)
