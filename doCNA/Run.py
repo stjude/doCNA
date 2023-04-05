@@ -136,14 +136,17 @@ class Run:
             ones0 = c[v >= (cov-1)/cov].sum()
             try:
                 f0 = c[v < v0].sum()/(c.sum() - ones0) 
-            
-                dv0 = v0 - np.median (v[v < v0])
+                if (f0 >= 0.95):
+                    dvs.append (0.5)
+                    v0s.append (v0)
+                else:
+                    dv0 = v0 - np.median (v[v < v0])
               
-                popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = [dv0, ones0/c.sum(), 2, f0, 0.5, b], 
-                                            bounds = ((0,   0,   1, 0, 0.45, 1),
+                    popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = [dv0, ones0/c.sum(), 2, f0, 0.5, b], 
+                                                bounds = ((0,   0,   1, 0, 0.45, 1),
                                                       (0.51, 0.95, 5, 1, 0.55, 10)))
-                dvs.append (popt[0])
-                v0s.append (popt[-1])
+                    dvs.append (popt[0])
+                    v0s.append (popt[-1])
             except (RuntimeError, ValueError):
                 dvs.append (0)
             except Exception as e:
@@ -151,7 +154,7 @@ class Run:
             
         dva = np.array (dvs)      
         self.dv = dva
-        self.v0 = np.array(v0s)
+        self.v0 = np.array(v0s)        
         self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = p_thr, thr_z = z_thr)
         self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist['key']} distribution.")
