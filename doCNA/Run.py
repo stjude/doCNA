@@ -116,7 +116,7 @@ class Run:
         self.v0 = np.array (v0l)
         self.dv_dist = Distribution.Distribution (self.dv, p_thr = p_thr, thr_z = z_thr)
         self.logger.debug ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult-0.01))
-        self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist['key']} distribution.")        
+        self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution.")        
             
     def get_ai_full (self, z_thr = Consts.AI_FULL_Z, p_thr = Consts.SINGLE_P_FULL):
         
