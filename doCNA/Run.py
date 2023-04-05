@@ -44,6 +44,9 @@ class Run:
                 self.solve_windows ()
             except:
                 self.logger.info (f"Run can't be describe by any of the models.")
+                self.logger.debug (f"Len of estimated ai: {len(self.dv)}")
+                self.logger.debug (f"Len of estimated m: {len(self.m)}")
+                self.logger.debug (f"Len of estimated l: {len(self.l)}")
                 self.dumy_solution ()
                 self.logger.info ('One solution devised for crazy run')
             
@@ -149,9 +152,7 @@ class Run:
                     v0s.append (popt[-1])
             except (RuntimeError, ValueError):
                 dvs.append (0)
-            except Exception as e:
-                self.logger.debug (f'get_full_ai failed because: {e}')
-            
+                        
         dva = np.array (dvs)      
         self.dv = dva
         self.v0 = np.array(v0s)        

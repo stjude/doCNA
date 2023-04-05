@@ -29,7 +29,8 @@ class Distribution:
         except:
             single_G_par = fit_single_G (np.sort(np.unique(values)), alpha = 0.01, r = 0.5)
             values_used = 'unique'
-             
+        
+                   
         self.all_parameters = {}
         self.all_parameters['single'] = single_G_par
         self.all_parameters['single']['values_used'] = values_used
