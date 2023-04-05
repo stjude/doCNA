@@ -136,7 +136,7 @@ class Run:
             ones0 = c[v >= (cov-1)/cov].sum()
             try:
                 f0 = c[v < v0].sum()/(c.sum() - ones0) 
-                if (f0 >= 0.95):
+                if (ones0/c.sum() >= 0.95):
                     dvs.append (0.5)
                     v0s.append (v0)
                 else:
