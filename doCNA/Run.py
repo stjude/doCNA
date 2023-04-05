@@ -86,7 +86,7 @@ class Run:
     def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
                           z_thr = Consts.AI_SENSITIVE_Z):
         tmpf = 1
-        s0 = np.sqrt (0.25/self.genome_medians['m'])
+        s0 = np.sqrt (0.25/self.genome_medians['m0'])
         
         vafs = []
         for window in self.windows:
