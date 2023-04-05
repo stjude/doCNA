@@ -40,9 +40,7 @@ class Run:
         if len(self.windows) >= Consts.WINDOWS_THRESHOLD:
             try:
                 self.get_ai ()
-                
                 self.get_coverage ()
-                
                 self.solve_windows ()
             except:
                 self.logger.info (f"Run can't be describe by any of the models.")
@@ -146,10 +144,11 @@ class Run:
                                                       (0.51, 0.95, 5, 1, 0.55, 10)))
                 dvs.append (popt[0])
                 v0s.append (popt[-1])
-            except RuntimeError:
+            except (RuntimeError, ValueError):
                 dvs.append (0)
-            except ValueError:
-                dvs.append (0)
+            except Exception as e:
+                self.logger.debug (f'get_full_ai failed because: {e}')
+            
         dva = np.array (dvs)      
         self.dv = dva
         self.v0 = np.array(v0s)
