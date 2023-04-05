@@ -224,9 +224,7 @@ def chicken_feet_plot (bed_df, ax, highlight = '', k_score_column = 'k_score',
     ax.set_xlabel ('copy number')
     ax.set_ylabel ('clonality')
 
-def earth_worm_plot (data_df, bed_df, params, chrom, axs, k_score_column = 'k_score',
-                     max_k_score = 10, markersize = 2, centromere_column = 'cent',
-                     centromere_thr = 0.3, size_thr = 1):
+def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2, max_k_score = 10):
     chromdata = data_df.loc[data_df.chrom == chrom]
 
     chromdata.loc[chromdata['symbol'] == 'E'].plot(x = 'position', y = 'vaf', lw = 0, alpha = 0.3, color = 'orange', marker = '.', 
@@ -249,7 +247,7 @@ def earth_worm_plot (data_df, bed_df, params, chrom, axs, k_score_column = 'k_sc
     axs[0].set_ylabel ('BAF')
     axs[1].set_ylabel ('cn')
     
-    chrombed = bed_df.loc[(bed_df.chrom == chrom)&(bed_df[centromere_column] < centromere_thr)&(bed_df['size'] > size_thr)]
+    chrombed = bed_df.loc[(bed_df.chrom == chrom)]
     for _, seg in chrombed.loc[(chrombed.cent < 0.5)&(chrombed['size'] > 1)].iterrows():
     
         if (seg['k_score'] <= 0) | (np.isnan(seg['k_score'])):
