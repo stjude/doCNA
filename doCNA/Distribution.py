@@ -41,7 +41,8 @@ class Distribution:
             string[i] = 'B'
         
         self.all_parameters['single']['string'] = string
-                
+        
+        ##UGLY solution                
         if single_G_par['p'] < p_thr:
             try:
                 double_G_par = fit_double_G (np.sort(values), alpha = 0.01, r = 0.5)
@@ -49,29 +50,32 @@ class Distribution:
             except:
                 double_G_par = fit_double_G (np.sort(values), alpha = 0.01, r = 0.5)
                 values_used = 'unique'
-                
-            self.key = 'double'
-            self.parameters = double_G_par
-            self.all_parameters ['double'] = double_G_par
-            self.all_parameters ['double']['values_used'] = values_used
+            if (double_G_par['p'] < single_G_par['p']):
+                self.key = 'double'
+                self.parameters = double_G_par
+                self.all_parameters ['double'] = double_G_par
+                self.all_parameters ['double']['values_used'] = values_used
             
-            z0 = np.abs(values-double_G_par['m'][0])/double_G_par['s'][0]
-            z1 = np.abs(values-double_G_par['m'][1])/double_G_par['s'][1]
-            #generate string
-            string = list ('O' * len(values))
-            #marking C population
-            for i in np.where ((z0 < z1)&(z0 < thr_z))[0]:
-                string[i] = 'C'
-            #marking D population
-            for i in np.where ((z1 < z0)&(z1 < thr_z))[0]:
-                string[i] = 'D'
-            self.parameters['string'] = ''.join(string)
-            self.all_parameters['double']['string'] = string
-            self.string = ''.join(string)
+                z0 = np.abs(values-double_G_par['m'][0])/double_G_par['s'][0]
+                z1 = np.abs(values-double_G_par['m'][1])/double_G_par['s'][1]
+                #generate string
+                string = list ('O' * len(values))
+                #marking C population
+                for i in np.where ((z0 < z1)&(z0 < thr_z))[0]:
+                    string[i] = 'C'
+                #marking D population
+                for i in np.where ((z1 < z0)&(z1 < thr_z))[0]:
+                    string[i] = 'D'
+                self.parameters['string'] = ''.join(string)
+                self.all_parameters['double']['string'] = string
+                self.string = ''.join(string)
+            else:
+                self.key = 'single'
+                self.parameters = single_G_par
+                self.string = ''.join(string)
         else:
             self.key = 'single'
             self.parameters = single_G_par
-            
             self.string = ''.join(string)
         
         
