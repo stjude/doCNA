@@ -40,7 +40,9 @@ class Run:
         if len(self.windows) >= Consts.WINDOWS_THRESHOLD:
             try:
                 self.get_ai ()
+                
                 self.get_coverage ()
+                
                 self.solve_windows ()
             except:
                 self.logger.info (f"Run can't be describe by any of the models.")
@@ -112,7 +114,8 @@ class Run:
         self.dv = np.array(dvl)
         self.v0 = np.array (v0l)
         self.dv_dist = Distribution.Distribution (self.dv, p_thr = p_thr, thr_z = z_thr)
-        self.logger.info ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult-0.01))        
+        self.logger.debug ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult-0.01))
+        self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist['key']} distribution.")        
             
     def get_ai_full (self, z_thr = Consts.AI_FULL_Z, p_thr = Consts.SINGLE_P_FULL):
         
@@ -152,6 +155,7 @@ class Run:
         self.v0 = np.array(v0s)
         self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = p_thr, thr_z = z_thr)
+        self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist['key']} distribution.")
     
     def get_coverage (self, z_thr = Consts.M_Z, p_thr = Consts.SINGLE_P_SENSITIVE):
         ml = []
@@ -169,8 +173,10 @@ class Run:
 
         self.m = np.array (ml)
         self.m_dist = Distribution.Distribution (self.m, thr_z = z_thr, p_thr = p_thr)
+        self.logger.debug (f"Cov m calculated. Described by: {self.m_dist['key']} distribution.")
         self.l = np.array (ll)
         self.l_dist = Distribution.Distribution (self.l, thr_z = z_thr, p_thr = p_thr)
+        self.logger.debug (f"Cov l calculated. Described by: {self.l_dist['key']} distribution.")
     
     def solve_windows (self, chi2_thr = 14.0):
         
