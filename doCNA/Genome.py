@@ -180,7 +180,16 @@ class Genome:
         #else:
         #    self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, only {male_markers} markers.')
         
-                        
+        self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
+        self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
+        male_markers = len (self.sex_chromosomes[Consts.MALE_CHROM].data)
+        if male_markers > 0: #Consts.SNPS_IN_WINDOW:
+            self.chromosomes[Consts.MALE_CHROM] = self.sex_chromosomes[Consts.MALE_CHROM]
+            self.logger.info(f'Chromosome {Consts.MALE_CHROM} added.')
+        else:
+            self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, no markers.')                
+                
+        
         self.COV = Testing.Testing ('COV', 
                                     self.chromosomes,
                                     self.logger)
@@ -193,16 +202,7 @@ class Genome:
         self.logger.info ("Genome COV reference: " + f"\n" + str(self.COV.get_genome_medians()))
         self.genome_medians['COV'] = self.COV.get_genome_medians()
 
-        self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
-        self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
-        male_markers = len (self.sex_chromosomes[Consts.MALE_CHROM].data)
-        if male_markers > 0: #Consts.SNPS_IN_WINDOW:
-            self.chromosomes[Consts.MALE_CHROM] = self.sex_chromosomes[Consts.MALE_CHROM]
-            self.logger.info(f'Chromosome {Consts.MALE_CHROM} added.')
-        else:
-            self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, no markers.')
-
-
+        
         inliers = self.VAF.get_inliers()
         inliers_fb = self.VAF.results.loc[inliers,'fb'].values
         
