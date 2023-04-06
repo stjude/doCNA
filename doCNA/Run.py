@@ -185,6 +185,9 @@ class Run:
         x = np.array([self.dv, self.m, self.l]).T
         
         for m0, s0, labels in zip(*self.get_distributions()):
+            if s0[0] == 0:
+                self.logger.info (f'Std of ai is zero; adjusted to {1/np.sqrt(m0[1])}')
+                s0[0] = 1/np.sqrt(m0[1])
             self.logger.debug (f'Calculating solution /dv,m,l/ = [{m0[0]},{m0[1]},{m0[2]}],[{s0[0]},{s0[1]},{s0[2]}]') 
             y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])/s0[np.newaxis,:,:])**2
             z = y.sum(axis = 1)
