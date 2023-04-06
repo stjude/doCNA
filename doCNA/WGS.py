@@ -51,7 +51,6 @@ class WGS:
         self.logger.debug ('Segmenting genome...')
         self.genome.segment_genome (m0)
         self.logger.info ('Ready to report!')
-
     
     def report (self, report_type = 'bed'):
         return self.genome.report(report_type)

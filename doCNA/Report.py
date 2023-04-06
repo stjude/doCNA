@@ -47,18 +47,17 @@ class Report:
             data = '\n'.join([s.report(report_type='solution') for s in runs])
         return data
 
-    
     def segment_report (self, segment):
 
         """ Generates a report for Segment objects """
         if self._report_type == 'bed':    
-            if np.isnan (segment.parameters['k']):
-                if segment.parameters['fraction_1'] > 0.95:
-                    k = 1
-                else:
-                    k = np.nan
-            else:
-                k = segment.parameters['k']
+            #if np.isnan (segment.parameters['k']):
+            #    if segment.parameters['fraction_1'] > 0.95:
+            #        k = 1
+            #    else:
+            #        k = np.nan
+            #else:
+            k = segment.parameters['k']
 
             report = '\t'.join([str(p) for p in [segment.chrom, segment.start, segment.end,
                                                  segment.parameters['ai'], segment.parameters['m'],

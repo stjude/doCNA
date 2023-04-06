@@ -37,8 +37,6 @@ class Segment:
         self.estimate_parameters ()
         self.select_model ()
         self.logger.debug ('Segment analyzed.')
-
- 
         
     def tostring(self) -> str:
         return '\n'.join ([self.name, str(self.parameters)])

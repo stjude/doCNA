@@ -197,7 +197,7 @@ class Genome:
                           exclude_symbol = [Consts.N_SYMBOL, Consts.U_SYMBOL])
         self.logger.debug ('Genomewide COV: ' + f"\n" + str(self.COV.report_results()))
         
-        self.COV.analyze (parameters = self.config['COV'], outliers = self.VAF.get_outliers())
+        self.COV.analyze (parameters = self.config['COV'], outliers = self.VAF.get_outliers()+Consts.SEX_CHROMS)
         
         self.logger.info ("Genome COV reference: " + f"\n" + str(self.COV.get_genome_medians()))
         self.genome_medians['COV'] = self.COV.get_genome_medians()
@@ -252,7 +252,6 @@ class Genome:
         self.score_clonality (size_thr = Consts.SIZE_THR, model_thr = Consts.MODEL_THR,
                               dalpha = Consts.DSCORE_ALPHA, kalpha = Consts.KSCORE_ALPHA,
                               k_thr = Consts.K_THR)
-
         
     def score_model_distance (self):
     
@@ -273,8 +272,7 @@ class Genome:
         for seg in self.all_segments:
             seg.parameters['model_score'] = -np.log10 (np.exp (-popt[0]*seg.parameters['d']))
         self.genome_medians['model_d'] = {'a' : popt[0]}
-    
-    
+        
     def score_clonality (self, size_thr = 5e6, model_thr = 3, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
         balanced = [seg.parameters['model'] == '(AB)n' for seg in self.all_segments]
         big = [(seg.end - seg.start)/1e6 > size_thr for seg in self.all_segments]
@@ -410,11 +408,6 @@ class Genome:
                 seg.parameters['clonality_score'] = -np.log10(p)
                 seg.parameters['call'] = 'norm' if (k < params['thr'][1]) & (k > params['thr'][0]) else 'CNVb'
                 seg.parameters['call_FDR'] = 'CNVb' if seg.parameters['clonality_score'] > self.genome_medians['clonality_balanced']['score_FDR'] else 'norm'
-    
-    
-        
-    
-    
             
     def report (self, report_type = 'bed'):
         return Report.Report(report_type).genome_report(self)

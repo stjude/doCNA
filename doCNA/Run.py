@@ -155,7 +155,7 @@ class Run:
         self.v0 = np.array(v0s)        
         self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = p_thr, thr_z = z_thr)
-        self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: {self.dv_dist.parameters['m']}.")
+        self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: m = {self.dv_dist.parameters['m']}, s = {self.dv_dist.parameters['s']}.")
     
     def get_coverage (self, z_thr = Consts.M_Z, p_thr = Consts.SINGLE_P_SENSITIVE):
         ml = []
@@ -173,10 +173,10 @@ class Run:
 
         self.m = np.array (ml)
         self.m_dist = Distribution.Distribution (self.m, thr_z = z_thr, p_thr = p_thr)
-        self.logger.debug (f"Cov m calculated. Described by: {self.m_dist.key} distribution: {self.m_dist.parameters['m']}.")
+        self.logger.debug (f"Cov m calculated. Described by: {self.m_dist.key} distribution: m = {self.m_dist.parameters['m']}, s = {self.dv_dist.parameters['s']}.")
         self.l = np.array (ll)
         self.l_dist = Distribution.Distribution (self.l, thr_z = z_thr, p_thr = p_thr)
-        self.logger.debug (f"Cov l calculated. Described by: {self.l_dist.key} distribution: {self.l_dist.parameters['m']}.")
+        self.logger.debug (f"Cov l calculated. Described by: {self.l_dist.key} distribution: m = {self.l_dist.parameters['m']}, s = {self.dv_dist.parameters['s']}.")
     
     def solve_windows (self, chi2_thr = 14.0):
         
@@ -185,7 +185,7 @@ class Run:
         x = np.array([self.dv, self.m, self.l]).T
         
         for m0, s0, labels in zip(*self.get_distributions()):
-            self.logger.debug (f'Calculating solution /dv,m,l/ = [{m0[0]},{m0[1]},{m0[2]}]') 
+            self.logger.debug (f'Calculating solution /dv,m,l/ = [{m0[0]},{m0[1]},{m0[2]}],[{s0[0]},{s0[1]},{s0[2]}]') 
             y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])/s0[np.newaxis,:,:])**2
             z = y.sum(axis = 1)
             dist_index = np.asarray(z == z.min(axis = 1)[:,np.newaxis]).nonzero()
