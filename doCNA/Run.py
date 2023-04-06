@@ -43,10 +43,7 @@ class Run:
                 self.get_coverage ()
                 self.solve_windows ()
             except:
-                self.logger.info (f"Run can't be describe by any of the models.")
-                self.logger.debug (f"Len of estimated ai: {len(self.dv)}")
-                self.logger.debug (f"Len of estimated m: {len(self.m)}")
-                self.logger.debug (f"Len of estimated l: {len(self.l)}")
+                self.logger.info (f"Run can't be analyzed.")
                 self.dumy_solution ()
                 self.logger.info ('One solution devised for crazy run')
             
