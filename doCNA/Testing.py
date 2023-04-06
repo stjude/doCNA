@@ -122,10 +122,10 @@ class Testing:
         return self.medians
     
     def get_inliers (self):
-        return self.status[(self.status == 'inlier').all(axis = 1)].index.values
+        return self.status[(self.status == 'inlier').all(axis = 1)].index.values.tolist()
     
     def get_outliers (self):
-        return self.status[(self.status == 'outlier').all(axis = 1)].index.values
+        return self.status[(self.status == 'outlier').all(axis = 1)].index.values.tolist()
     
     def report_results (self) -> pd.DataFrame:
         """Method to report only test results without status."""
