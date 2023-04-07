@@ -23,8 +23,13 @@ class Chromosome:
         self.genome_medians = genome_medians
         
         self.CB = CB
-        self.cent = (CB.loc[(CB['gieStain'] == 'acen') | (CB['gieStain'] == 'gvar'),'chromStart'].min(),
+        ##Very ugly
+        if name != 'chrY':
+            self.cent = (CB.loc[(CB['gieStain'] == 'acen') | (CB['gieStain'] == 'gvar'),'chromStart'].min(),
                      CB.loc[(CB['gieStain'] == 'acen') | (CB['gieStain'] == 'gvar'),'chromEnd'].max())
+        else:
+            self.cent = (CB.loc[(CB['gieStain'] == 'acen') ,'chromStart'].min(),
+                         CB.loc[(CB['gieStain'] == 'acen'),'chromEnd'].max())
          
         self.Eruns = []
         self.Uruns = []

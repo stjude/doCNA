@@ -239,14 +239,14 @@ def server(input, output, session):
     @output
     @render.text
     def solutions ():
-        m, d, f = opt_solution ()
-        ind = sig.argrelmin (d/f)[0]
+        m, d = opt_solution ()
+        ind = sig.argrelmin (d)[0]
         minims = []
         for i in ind:
-            minims.append ((m[i], d[i], f[i])) 
+            minims.append ((m[i], d[i])) 
         minims.sort (key = lambda x: x[1], reverse = False)
         
-        return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) + ' f = ' + str (f) for m,d,f in minims])
+        return '\n'.join(['m = ' + str(m) + '  d = ' + str(d)  for m,d in minims])
   
    
     @output
@@ -295,9 +295,6 @@ def server(input, output, session):
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
                    names = ['chrom', 'start', 'end', 'ai', 'm', 'cn','model', 'd', 'model_score',
                             'k', 'k_score','dd', 'cyto', 'cent', 'status_d', 'status'])
-        
-        #TBR in release
-        #df['model'] = [fix_model[model] for model in df['model'].tolist()]
         
         df['size'] = (df['end'] - df['start'])/1e6
         
@@ -562,12 +559,12 @@ def server(input, output, session):
             opt = opt_solution()
             fig, ax = plt.subplots(1,1, figsize = (6,6))
             ax.plot (opt_solution()[0], opt_solution()[1], 'r:', label = 'Total distance')
-            ax.plot (opt_solution()[0], opt_solution()[1]/opt_solution()[2], 'r-', label = 'Normed total distance')
-            axt = ax.twinx()
-            axt.plot (opt_solution()[0], opt_solution()[2], 'b-', label = 'fraction')
+            #ax.plot (opt_solution()[0], opt_solution()[1]/opt_solution()[2], 'r-', label = 'Normed total distance')
+            #axt = ax.twinx()
+            #axt.plot (opt_solution()[0], opt_solution()[2], 'b-', label = 'Diploid distance')
             ax.set_xlabel ('Covearage')
             ax.set_ylabel ('Relative distance to the model')
-            axt.set_ylabel ('Fraction of genome modeled')
+            #axt.set_ylabel ('Fraction of genome modeled')
             
             #for model in colorsCN.keys():
             #    ax.plot ((),(), lw = 2, color = colorsCN[model], label = model)
@@ -672,22 +669,22 @@ def server(input, output, session):
                     dt = []
                     
                     for _, b in tmp.iterrows():
-                        dt.append (np.sqrt(b['size'])*(np.nanmin([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets().values()])))
-                                            
-                    index = np.where(np.isfinite(dt))[0]
-                    sts = np.sum(([st[i] for i in index]))
-                    fts.append (sts/sttotal)
-                    dts.append (np.nansum(dt)/sts)
+                        #dt.append (np.sqrt(b['size'])*(np.nanmin([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets().values()])))
+                        dt.append (np.sqrt(b['size'])*(np.min([Models.calculate_distance_new (b['ai'], 2*b['m']/m, model)['d'] for model in model_presets().values()])))                    
+                    #index = np.where(np.isfinite(dt))[0]
+                    #sts = np.sum(([st[i] for i in index]))
+                    #fts.append (sts/sttotal)
+                    dts.append (np.sum(dt))#/sts)
                                         
-                fraction = np.array (fts)
+                #fraction = np.array (fts)
                 dtsa = np.array(dts)
             
-            opt_solution.set((ms,dtsa, fraction))
+            opt_solution.set((ms,dtsa))
             try:
-                m0_opt.set (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
-                print ()
-                print (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
-                print ()
+                m0_opt.set (ms[np.where(dts == np.nanmin(dtsa))[0][0]])
+                #print ()
+                #print (ms[np.where(dts == np.nanmin(dtsa))[0][0]])
+                #print ()
             except:
                 m0_opt.set(m0())
             

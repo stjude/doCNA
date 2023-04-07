@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 import numpy as np
+import scipy.optimize as opt
 
 #Fields of the tuple are functions describing model of karyotype
 # A,B,C -  
@@ -18,7 +19,7 @@ model_presets_2 = {'(AB)n' : Preset(A = lambda m,dv,m0: 0,
                                     D = lambda m,dv,m0: 0,
                                     k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > -0.1/2) & (m/m0 < 4.1/2) else np.nan,
                                     m = lambda k,m0: (1+k)*m0,
-                                    ai = lambda k,m0: np.repeat(0, len(k)) if hasattr(k, "shape") else 0.0),
+                                    ai = lambda k,m0:  np.zeros_like(k)),#np.repeat(0, len(k)) if hasattr(k, "shape") else 0.0),
                    
                    'A'   : Preset(A = lambda m,dv,m0: -m0/2,
                                   B = lambda m,dv,m0: -1,
@@ -33,7 +34,7 @@ model_presets_2 = {'(AB)n' : Preset(A = lambda m,dv,m0: 0,
                                   C = lambda m,dv,m0: m0,
                                   D = lambda m,dv,m0: m,
                                   k = lambda m,dv,m0: 2*dv if (m/m0 > 1.9/2) & (m/m0 < 2.1/2) else np.nan,
-                                  m = lambda k,m0: np.repeat(m0, len(k)) if hasattr(k, "shape") else m0,
+                                  m = lambda k,m0: (np.zeros_like(k)+1)*m0, #np.repeat(m0, len(k)) if hasattr(k, "shape") else m0,
                                   ai = lambda k,m0: k/2),
                  
                    'AAB' : Preset(A = lambda m,dv,m0: m0/2,
@@ -111,3 +112,19 @@ def calculate_distance (preset, m, ai, m0):
         d = np.abs (preset.C (m/m0,ai,1) - preset.D (m/m0,ai,1))/np.sqrt (preset.A(m/m0,ai,1)**2 + preset.B(m/m0,ai,1)**2)
     
     return d
+
+def calculate_distance_new (ai, ci, model):
+    
+    res = opt.minimize_scalar (dist, bounds = (0,1), args = ((ai, ci, model)), 
+                               method = 'bounded', tol = 1e-2)
+    
+    return {'d' : res.fun,
+            'k' : res.x}
+
+def dist (k, ai, ci, model):
+    da = ai - model.ai(k,2)
+    dc = ci - model.m(k,2)
+    return np.sqrt(da**2+dc**2)
+
+def dist_diploid (ai, ci):
+    return np.sqrt (ai**2+(ci-2)**2)
