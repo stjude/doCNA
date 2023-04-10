@@ -239,7 +239,7 @@ def server(input, output, session):
     @output
     @render.text
     def solutions ():
-        m, d = opt_solution ()
+        m, d, _, _ = opt_solution ()
         ind = sig.argrelmin (d)[0]
         minims = []
         for i in ind:
@@ -484,10 +484,10 @@ def server(input, output, session):
             k = np.linspace (0,1,100)
             m0 = par_d['m0']
             for model in model_presets().keys():
-                ax.plot (model_presets()[model].m(k, m0), model_presets()[model].ai(k, m0),  
-                         lw = 2, linestyle = '-', color = colorsCN[model], alpha  = 0.6)
+                ax.plot (2*model_presets()[model].m(k, m0)/m0, model_presets()[model].ai(k, m0),  
+                         lw = 1, linestyle = ':', color = colorsCN[model], alpha  = 1)
             
-            ax.set_xlim (0.9*bed_data.m.min(), 1.1*bed_data.m.max())
+            ax.set_xlim (2*0.9*bed_data.m.min()/m0, 2*1.1*bed_data.m.max()/m0)
             ax.set_ylim ((max(-0.02, -0.02*bed_data.ai.max()), bed_data.ai.max()*1.1))
             
             return fig
@@ -540,36 +540,16 @@ def server(input, output, session):
            
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
             check_solution_plot_opt (bed_data, par_d, ax, 
-                                          highlight = [])
+                                          highlight = [], xcol = 'm')
             k = np.linspace (0,1,100)
+            #m0 = m0_opt()
             for model in model_presets().keys():
                 ax.plot (model_presets()[model].m(k, m0_opt()), model_presets()[model].ai(k, m0_opt()), 
-                         lw = 2, linestyle = '-', color = colorsCN[model], alpha = 0.6, label = model)
+                         lw = 1, linestyle = ':', color = colorsCN[model], alpha = 0.6, label = model)
             
             #ax.legend (bbox_to_anchor = (1,0))
             ax.legend (bbox_to_anchor = (1.2,1), loc = 'upper center')
                
-            return fig
-    
-    @output
-    @render.plot (alt = 'Total distance to the model')
-    def opt_plot ():
-        
-        if len(opt_solution()[0]):
-            opt = opt_solution()
-            fig, ax = plt.subplots(1,1, figsize = (6,6))
-            ax.plot (opt_solution()[0], opt_solution()[1], 'r:', label = 'Total distance')
-            #ax.plot (opt_solution()[0], opt_solution()[1]/opt_solution()[2], 'r-', label = 'Normed total distance')
-            #axt = ax.twinx()
-            #axt.plot (opt_solution()[0], opt_solution()[2], 'b-', label = 'Diploid distance')
-            ax.set_xlabel ('Covearage')
-            ax.set_ylabel ('Relative distance to the model')
-            #axt.set_ylabel ('Fraction of genome modeled')
-            
-            #for model in colorsCN.keys():
-            #    ax.plot ((),(), lw = 2, color = colorsCN[model], label = model)
-            ax.legend()
-            #ax.legend (bbox_to_anchor = (1.4,1), loc = 'upper center')
             return fig
     
     @reactive.Effect
@@ -657,20 +637,24 @@ def server(input, output, session):
             with ui.Progress (min = ms[0], max = ms[-1]) as p:
                 p.set(message = 'Optimizing solution...', )
                 dts = []
-                fts = []
+                #fts = []
                 st = []
-                
+                dist_bs = []
+                dist_as = []
                 for _, b in tmp.iterrows():
                     st.append (b['size'])
-                sttotal = np.sum(st)
-                            
+                #sttotal = np.sum(st)
+                                            
                 for m in ms:
                     p.set(m, message = 'Calculating')
                     dt = []
                     
+                    res = Models.fit_exp_shift (tmp['ai'].values, 2*tmp['m'].values/m)
+                    dist_as.append (res['a'])
+                    dist_bs.append (res['b'])
                     for _, b in tmp.iterrows():
                         #dt.append (np.sqrt(b['size'])*(np.nanmin([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets().values()])))
-                        dt.append (np.sqrt(b['size'])*(np.min([Models.calculate_distance_new (b['ai'], 2*b['m']/m, model)['d'] for model in model_presets().values()])))                    
+                        dt.append ((b['size'])*(np.min([Models.calculate_distance_new (b['ai'], 2*b['m']/m, model)['d'] for model in model_presets().values()])))                    
                     #index = np.where(np.isfinite(dt))[0]
                     #sts = np.sum(([st[i] for i in index]))
                     #fts.append (sts/sttotal)
@@ -679,7 +663,8 @@ def server(input, output, session):
                 #fraction = np.array (fts)
                 dtsa = np.array(dts)
             
-            opt_solution.set((ms,dtsa))
+            opt_solution.set((ms,dtsa, np.array(dist_as), np.array(dist_bs)))
+            
             try:
                 m0_opt.set (ms[np.where(dts == np.nanmin(dtsa))[0][0]])
                 #print ()
@@ -688,7 +673,41 @@ def server(input, output, session):
             except:
                 m0_opt.set(m0())
             
-           
+    @output
+    @render.plot (alt = 'Total distance to the model')
+    def opt_plot ():
+        
+        if len(opt_solution()[0]):
+            opt = opt_solution()
+            fig, ax = plt.subplots(1,1, figsize = (6,6))
+            ax.plot (opt_solution()[0], opt_solution()[1], 'k-', label = 'Total distance')
+            #ax.plot (opt_solution()[0], opt_solution()[1]/opt_solution()[2], 'r-', label = 'Normed total distance')
+            axt = ax.twinx()
+            axt.plot (opt_solution()[0], opt_solution()[2], 'b:', label = 'Diploid distance')
+            
+            axtt = ax.twinx()
+            axtt.spines.right.set_position(("axes", 1.1))
+
+            axt.plot (opt_solution()[0], opt_solution()[3], 'r:', label = 'Diploid shift')
+            
+            ax.set_xlabel ('Covearage')
+            ax.set_ylabel ('Relative distance to the model')
+            axt.set_ylabel ('Diploid distance')
+            axt.yaxis.label.set_color ('b')
+            axtt.set_ylabel ('Diploid shift')
+            axtt.yaxis.label.set_color ('b')
+            
+            ax.yaxis.label.set_color('k')
+            axt.yaxis.label.set_color('b')
+            axtt.yaxis.label.set_color('r')
+
+            
+            #for model in colorsCN.keys():
+            #    ax.plot ((),(), lw = 2, color = colorsCN[model], label = model)
+            ax.legend()
+            #ax.legend (bbox_to_anchor = (1.4,1), loc = 'upper center')
+            return fig
+               
     @reactive.Effect
     @reactive.event (input.m0_cov)
     def _():

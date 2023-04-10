@@ -128,3 +128,15 @@ def dist (k, ai, ci, model):
 
 def dist_diploid (ai, ci):
     return np.sqrt (ai**2+(ci-2)**2)
+
+def exp_shift (x,a = -1,b = 0):
+    return np.exp (a*(x-b)) 
+
+def fit_exp_shift (ai,ci):
+    
+    d = dist_diploid (ai, ci)
+    popt, pcov = opt.curve_fit (exp_shift, np.sort(d), np.linspace(0,1,len(d)), p0 = [-1,0],
+                                bounds = ((-np.inf,0),(0, np.inf)))
+    a,b = popt
+    da, db = np.sqrt (np.diag(pcov))
+    return {'a': a, 'da': da,'b': b, 'db' : db}
