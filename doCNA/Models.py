@@ -135,7 +135,7 @@ def exp_shift (x,a = -1,b = 0):
 def fit_exp_shift (ai,ci):
     
     d = dist_diploid (ai, ci)
-    popt, pcov = opt.curve_fit (exp_shift, np.sort(d), np.linspace(0,1,len(d)), p0 = [-1,0],
+    popt, pcov = opt.curve_fit (exp_shift, np.sort(d), np.linspace(0,1,len(d)), p0 = [-1,1e-4],
                                 bounds = ((-np.inf,0),(0, np.inf)))
     a,b = popt
     da, db = np.sqrt (np.diag(pcov))

@@ -686,9 +686,9 @@ def server(input, output, session):
             axt.plot (opt_solution()[0], opt_solution()[2], 'b:', label = 'Diploid distance')
             
             axtt = ax.twinx()
-            axtt.spines.right.set_position(("axes", 1.1))
+            axtt.spines.right.set_position(("axes", 1.15))
 
-            axt.plot (opt_solution()[0], opt_solution()[3], 'r:', label = 'Diploid shift')
+            axtt.plot (opt_solution()[0], opt_solution()[3], 'r:', label = 'Diploid shift')
             
             ax.set_xlabel ('Covearage')
             ax.set_ylabel ('Relative distance to the model')
@@ -697,10 +697,11 @@ def server(input, output, session):
             axtt.set_ylabel ('Diploid shift')
             axtt.yaxis.label.set_color ('b')
             
-            ax.yaxis.label.set_color('k')
             axt.yaxis.label.set_color('b')
             axtt.yaxis.label.set_color('r')
 
+            axt.tick_params(axis='y', colors = 'b')
+            axtt.tick_params(axis='r', colors = 'b')
             
             #for model in colorsCN.keys():
             #    ax.plot ((),(), lw = 2, color = colorsCN[model], label = model)
