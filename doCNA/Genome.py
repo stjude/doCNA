@@ -18,10 +18,11 @@ from doCNA import Run
 
 class Genome:
     """Class to run genome wide tests of HE and create chromosomes."""
-    def __init__(self, sample_name, logger, config, CB_file, no_processes = 1):
+    def __init__(self, sample_name, logger, config, CB_file, model_dic, no_processes = 1):
         self.sample_name = sample_name
         self.no_processes = no_processes
         self.config = config
+        self.model_dic = model_dic
         self.CB = pd.read_csv (CB_file, sep = '\t')
         self.logger = logger.getChild (f'{self.__class__.__name__}')
         self.genome_medians = {}
@@ -63,12 +64,14 @@ class Genome:
                 self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
                                                              self.config, self.logger,
                                                              self.genome_medians, 
-                                                             self.CB.loc[self.CB['chrom'] == chrom])
+                                                             self.CB.loc[self.CB['chrom'] == chrom],
+                                                             model_dic = self.model_dic)
             else:
                 self.sex_chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
                                                              self.config, self.logger,
                                                              self.genome_medians, 
-                                                             self.CB.loc[self.CB['chrom'] == chrom])
+                                                             self.CB.loc[self.CB['chrom'] == chrom],
+                                                             model_dic = self.model_dic)
             self.logger.debug (f"Chromosome {chrom} has {len(data)} markers.")
          
     def segment_genome (self, m0 = 0, fb_alpha = Consts.FB_ALPHA):

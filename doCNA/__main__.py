@@ -70,19 +70,16 @@ def analyze(args):
     """ runs the analysis """
     ini = configparser.ConfigParser ()
     ini.read (args.config)
-    sample = WGS.WGS (args.input_file,  sample_name = args.sample_name, parameters = ini,
-                      no_processes = args.no_processes,
-                      verbosity = args.level)
-
-    sample.analyze (m0 = args.coverage_diploid)
-
+    
     model_presets = {}
-    model_presets.update (Models.model_presets_2)
-    model_presets.update (Models.model_presets_4)
-
     for model in args.models:
         model_presets[model] = Models.model_presets[model]    
     
+    sample = WGS.WGS (args.input_file,  sample_name = args.sample_name, parameters = ini,
+                      no_processes = args.no_processes, models_dic = model_presets,
+                      verbosity = args.level)
+
+    sample.analyze (m0 = args.coverage_diploid)
 
     with open (args.sample_name + '.bed', 'w') as bed:
         bed.writelines (sample.report(report_type = 'bed'))

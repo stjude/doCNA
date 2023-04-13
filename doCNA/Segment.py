@@ -15,10 +15,11 @@ from doCNA.Report import Report
 class Segment:
     """Class to calculate clonality and find the model."""
     def __init__ (self, data, config, logger, genome_medians, segmentation_score,
-                  segmentation_symbol, centromere_fraction, cytobands) -> None:
+                  segmentation_symbol, centromere_fraction, cytobands, model_dic) -> None:
         self.data = data
         self.config = config
         self.genome_medians = genome_medians
+        self.model_presets = model_dic
         self.segmentation_score = segmentation_score
         self.segmentation_symbol = segmentation_symbol
         self.centromere_fraction = centromere_fraction
@@ -74,7 +75,7 @@ class Segment:
             v = self.parameters['ai']
             m0 = self.genome_medians['m0']
         
-            self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
+            self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in self.model_presets.values()])
             self.logger.debug (f"Segment distances {self.distances}")
             if all (np.isnan(self.distances)):
                 picked = np.nan
@@ -85,8 +86,8 @@ class Segment:
             else:
                 picked = np.where(self.distances == np.nanmin(self.distances))[0][0]
                 self.parameters['d'] = np.nanmin(self.distances)
-                self.parameters['model'] = list(model_presets.keys())[picked]
-                k = model_presets[self.parameters['model']].k(m,v,m0) 
+                self.parameters['model'] = list(self.model_presets.keys())[picked]
+                k = self.model_presets[self.parameters['model']].k(m,v,m0) 
                 self.parameters['k'] = k if k < Consts.K_MAX else np.nan
                 self.logger.info (f"Segment kariotyped as {self.parameters['model']}, d = {self.parameters['d']}")
                 

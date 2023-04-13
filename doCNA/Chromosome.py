@@ -211,7 +211,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
                                                        segmentation_score = best_solution.p_norm,
                                                        segmentation_symbol = run.symbol,
                                                        centromere_fraction = 0 if (centromere_fraction < 0) | (centromere_fraction > 1) else centromere_fraction,
-                                                       cytobands = cytobands_str))
+                                                       cytobands = cytobands_str, model_dic = self.model_dic))
     
     def find_Nruns (self):
         vaf_thr = (self.genome_medians['m0'] - 1)/self.genome_medians['m0']
