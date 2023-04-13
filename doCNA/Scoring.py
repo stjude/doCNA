@@ -17,11 +17,42 @@ class Scoring:
         self.logger.info ('')
         self.dipl_dist = {}
         self.logger.info ('')
+    
+    def get_ai_dist (self):
+        return self.ai_param
+    
+    def get_cn_dist (self):
+        return self.cn_param
+
+    def get_d_dist (self):
+        return self.dipl_dist
+    
+    def get_d_thr (self):
+        return self.dipl_dist['thr']
+    
+    def score_dipl (self, ai, m, m0, models):
+        cn = 2*m/m0
+        s_ai = self.ai_param['s']
+        s_cn = self.cn_param['s']
+        d = np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
+        p_d = sts.norm.sf (d, self.dipl_dist['m'], self.dipl_dist['s'])
+        isHE = d < self.dipl_dist['thr']
         
-    def score_n_ktype (self, segments) -> None:
-        pass
+        if isHE:
+            #it is diploid
+            model_param = {'model' : 'AB', 'd_model' : d, 'p_model' : self.dipl_dist['dist'].sf(d), 'k': 0}
+        else:
+            model_param = Models.pick_model (ai, s_ai, cn, s_cn, models)        
+            model_param['p_model'] = self.dipl_dist['dist'].sf(model_param['d_model'])
+        return model_param
     
-    
+    def analyze_segment (self, segment, models):
+        """Convenience wrapper for Segment"""
+        ai = segment.params['ai']
+        m = segment.params['m']
+        m0 = self.genome_medians['m0']      
+        segment.params.update (self.score_dipl(ai,m,m0,models))
+
     
 def fit_QQgauss (values, fit_intercept = True):
     x = sts.norm.ppf (np.linspace (0,1,len(values)+2)[1:-1])

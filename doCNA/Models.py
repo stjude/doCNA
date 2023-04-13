@@ -13,7 +13,7 @@ import scipy.optimize as opt
 Preset = namedtuple ('Preset', ['A', 'B', 'C', 'D', 'k','m', 'ai'])
 
 #Presets of models with 2 +/- 1 copies
-model_presets_2 = {'(AB)n' : Preset(A = lambda m,dv,m0: 0,
+model_presets = {'(AB)n' : Preset(A = lambda m,dv,m0: 0,
                                     B = lambda m,dv,m0: 1/2,
                                     C = lambda m,dv,m0: dv,
                                     D = lambda m,dv,m0: 0,
@@ -69,7 +69,7 @@ model_presets_2 = {'(AB)n' : Preset(A = lambda m,dv,m0: 0,
                                      k = lambda m,dv,m0 : dv/(1-dv) if (m/m0 > 1.9/2) & (m/m0 < 4.1/2) else np.nan,
                                      m = lambda k,m0 : (1+k)*m0,
                                      ai = lambda k,m0 : k/(1+k)),
-                   
+#more crazy models
                    'AAB+AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
                                         B = lambda m,dv,m0 : -1,
                                         C = lambda m,dv,m0 : 3*m0/2,
@@ -94,6 +94,7 @@ model_presets_2 = {'(AB)n' : Preset(A = lambda m,dv,m0: 0,
                                         m = lambda k,m0 : (3+k)*m0/2,
                                         ai = lambda k,m0 : (1-k)/(6+2*k))}
 
+#the ABCD is to be not needed with new scoring
 def calculate_distance (preset, m, ai, m0):
     
     try:
@@ -112,7 +113,13 @@ def calculate_distance (preset, m, ai, m0):
     
     return d
 
-def calculate_distance_new (ai, ci, model):
+def pick_model (ai, s_ai, cn, s_cn, models):
+    model_labels = models.keys()
+    ds = np.array([calculate_distance_minim(ai, s_ai, cn, s_cn, model_presets[model]) for model in model_labels])
+
+    return {'model' : 'AB', 'd_model' : d, 'p_model' : self.dipl_dist['dist'].sf(d), 'k': 0}
+
+def calculate_distance_minim (ai, ci, model):
     
     res = opt.minimize_scalar (dist, bounds = (0,1), args = ((ai, ci, model)), 
                                method = 'bounded', tol = 1e-2)
@@ -124,18 +131,3 @@ def dist (k, ai, ci, model):
     da = ai - model.ai(k,2)
     dc = ci - model.m(k,2)
     return np.sqrt(da**2+dc**2)
-
-#def dist_diploid (ai, ci):
-#    return np.sqrt (ai**2+(ci-2)**2)
-
-#def exp_shift (x,a = -1,b = 0):
-#    return np.exp (a*(x-b)) 
-
-#def fit_exp_shift (ai,ci):
-    
-#    d = dist_diploid (ai, ci)
-#    popt, pcov = opt.curve_fit (exp_shift, np.sort(d), np.linspace(0,1,len(d)), p0 = [-1,1e-4],
-#                                bounds = ((-np.inf,0),(0, np.inf)))
-#    a,b = popt
-#    da, db = np.sqrt (np.diag(pcov))
-#    return {'a': a, 'da': da,'b': b, 'db' : db}
