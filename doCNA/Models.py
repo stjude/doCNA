@@ -43,10 +43,10 @@ model_presets_2 = {'(AB)n' : Preset(A = lambda m,dv,m0: 0,
                                   D = lambda m,dv,m0: -m0*(2*dv/(0.5-dv))/2+m,
                                   k = lambda m,dv,m0: 2*dv/(0.5-dv) if (m/m0 > 1.9/2) & (m/m0 < 3.1/2) else np.nan,
                                   m = lambda k,m0: (2+k)*m0/2,
-                                  ai = lambda k,m0: k/(2*(2+k)))} 
+                                  ai = lambda k,m0: k/(2*(2+k))),
     
 #models of more copies, not a strict classification 
-model_presets_4 = {'AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
+                   'AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
                                     B = lambda m,dv,m0 : -1,
                                     C = lambda m,dv,m0 : m0,
                                     D = lambda m,dv,m0 : m - 2*m0*dv/(1-2*dv),
@@ -54,7 +54,7 @@ model_presets_4 = {'AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
                                     m = lambda k,m0 : (1+k)*m0,
                                     ai = lambda k,m0 : k/(2+2*k)),
                    
-                    'AAA' : Preset (A = lambda m,dv,m0 : m0/2,
+                   'AAA' : Preset (A = lambda m,dv,m0 : m0/2,
                                     B = lambda m,dv,m0 : -1,
                                     C = lambda m,dv,m0 : m0,
                                     D = lambda m,dv,m0 : m - 2*dv*m0/(3-2*dv),
@@ -62,38 +62,37 @@ model_presets_4 = {'AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
                                     m = lambda k,m0 : (2+k)*m0/2,
                                     ai = lambda k,m0 : 3*k/(4+2*k)),
                     
-                    'AAAA' : Preset (A = lambda m,dv,m0 : m0/2,
+                   'AAAA' : Preset (A = lambda m,dv,m0 : m0/2,
                                      B = lambda m,dv,m0 : -1,
                                      C = lambda m,dv,m0 : m0,
                                      D = lambda m,dv,m0 : m - dv*m0/(1-dv),
                                      k = lambda m,dv,m0 : dv/(1-dv) if (m/m0 > 1.9/2) & (m/m0 < 4.1/2) else np.nan,
                                      m = lambda k,m0 : (1+k)*m0,
-                                     ai = lambda k,m0 : k/(1+k))}
-
-
-model_presets_extra = {'AAB+AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
-                                            B = lambda m,dv,m0 : -1,
-                                            C = lambda m,dv,m0 : 3*m0/2,
-                                            D = lambda m,dv,m0 : m- m0/((6*dv-1)/(2-4*dv)),
-                                            k = lambda m,dv,m0 : (6*dv-1)/(1-2*dv) if (m/m0 > 2.9/2) & (m/m0 < 4.1/2) else np.nan,
-                                            m = lambda k,m0 : (3+k)*m0/2,
-                                            ai = lambda k,m0 : (1+k)/(6+2*k)),
+                                     ai = lambda k,m0 : k/(1+k)),
                    
-                        'AA+AAB' : Preset (A = lambda m,dv,m0 : m0/2,
-                                           B = lambda m,dv,m0 : -1,
-                                           C = lambda m,dv,m0 : m0,
-                                           D = lambda m,dv,m0 : m- m0*(1-2*dv)/(2*dv+1),
-                                           k = lambda m,dv,m0 : 2*(1-2*dv)/(2*dv+1) if (m/m0 > 1.9/2) & (m/m0 < 3.1/2) else np.nan,
-                                           m = lambda k,m0 : (2+k)*m0/2,
-                                           ai = lambda k,m0 : (2-k)/(4+2*k)),
+                   'AAB+AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
+                                        B = lambda m,dv,m0 : -1,
+                                        C = lambda m,dv,m0 : 3*m0/2,
+                                        D = lambda m,dv,m0 : m- m0/((6*dv-1)/(2-4*dv)),
+                                        k = lambda m,dv,m0 : (6*dv-1)/(1-2*dv) if (m/m0 > 2.9/2) & (m/m0 < 4.1/2) else np.nan,
+                                        m = lambda k,m0 : (3+k)*m0/2,
+                                        ai = lambda k,m0 : (1+k)/(6+2*k)),
                    
-                        'AAB+AABB' : Preset (A = lambda m,dv,m0 : m0/2,
-                                             B = lambda m,dv,m0 : -1,
-                                             C = lambda m,dv,m0 : 3*m0/2,
-                                             D = lambda m,dv,m0 : m- m0*(1-6*dv)/(4*dv+1),
-                                             k = lambda m,dv,m0 : (1-6*dv)/(2*dv+1) if (m/m0 > 2.9/2) & (m/m0 < 4.1/2) else np.nan,
-                                             m = lambda k,m0 : (3+k)*m0/2,
-                                             ai = lambda k,m0 : (1-k)/(6+2*k))}
+                   'AA+AAB' : Preset (A = lambda m,dv,m0 : m0/2,
+                                      B = lambda m,dv,m0 : -1,
+                                      C = lambda m,dv,m0 : m0,
+                                      D = lambda m,dv,m0 : m- m0*(1-2*dv)/(2*dv+1),
+                                      k = lambda m,dv,m0 : 2*(1-2*dv)/(2*dv+1) if (m/m0 > 1.9/2) & (m/m0 < 3.1/2) else np.nan,
+                                      m = lambda k,m0 : (2+k)*m0/2,
+                                      ai = lambda k,m0 : (2-k)/(4+2*k)),
+                   
+                   'AAB+AABB' : Preset (A = lambda m,dv,m0 : m0/2,
+                                        B = lambda m,dv,m0 : -1,
+                                        C = lambda m,dv,m0 : 3*m0/2,
+                                        D = lambda m,dv,m0 : m- m0*(1-6*dv)/(4*dv+1),
+                                        k = lambda m,dv,m0 : (1-6*dv)/(2*dv+1) if (m/m0 > 2.9/2) & (m/m0 < 4.1/2) else np.nan,
+                                        m = lambda k,m0 : (3+k)*m0/2,
+                                        ai = lambda k,m0 : (1-k)/(6+2*k))}
 
 def calculate_distance (preset, m, ai, m0):
     
@@ -126,17 +125,17 @@ def dist (k, ai, ci, model):
     dc = ci - model.m(k,2)
     return np.sqrt(da**2+dc**2)
 
-def dist_diploid (ai, ci):
-    return np.sqrt (ai**2+(ci-2)**2)
+#def dist_diploid (ai, ci):
+#    return np.sqrt (ai**2+(ci-2)**2)
 
-def exp_shift (x,a = -1,b = 0):
-    return np.exp (a*(x-b)) 
+#def exp_shift (x,a = -1,b = 0):
+#    return np.exp (a*(x-b)) 
 
-def fit_exp_shift (ai,ci):
+#def fit_exp_shift (ai,ci):
     
-    d = dist_diploid (ai, ci)
-    popt, pcov = opt.curve_fit (exp_shift, np.sort(d), np.linspace(0,1,len(d)), p0 = [-1,1e-4],
-                                bounds = ((-np.inf,0),(0, np.inf)))
-    a,b = popt
-    da, db = np.sqrt (np.diag(pcov))
-    return {'a': a, 'da': da,'b': b, 'db' : db}
+#    d = dist_diploid (ai, ci)
+#    popt, pcov = opt.curve_fit (exp_shift, np.sort(d), np.linspace(0,1,len(d)), p0 = [-1,1e-4],
+#                                bounds = ((-np.inf,0),(0, np.inf)))
+#    a,b = popt
+#    da, db = np.sqrt (np.diag(pcov))
+#    return {'a': a, 'da': da,'b': b, 'db' : db}

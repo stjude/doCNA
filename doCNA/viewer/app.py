@@ -293,7 +293,7 @@ def server(input, output, session):
         if not file_input:
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
-                   names = ['chrom', 'start', 'end', 'ai', 'm', 'cn','model', 'd', 'model_score',
+                   names = ['chrom', 'start', 'end', 'ai','p_ai', 'm', 'cn','model', 'd', 'model_score',
                             'k', 'k_score','dd', 'cyto', 'cent', 'status_d', 'status'])
         
         df['size'] = (df['end'] - df['start'])/1e6

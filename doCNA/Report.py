@@ -60,12 +60,14 @@ class Report:
             k = segment.parameters['k']
 
             report = '\t'.join([str(p) for p in [segment.chrom, segment.start, segment.end,
-                                                 segment.parameters['ai'], segment.parameters['m'],
+                                                 segment.parameters['ai'], segment.parameters['p_ai'],
+                                                 segment.parameters['m'],
                                                  2*segment.parameters['m']/segment.genome_medians['m0'],
                                                  segment.parameters['model'], segment.parameters['d'], 
                                                  segment.parameters['model_score'],
                                                  k, segment.parameters['clonality_score'],
                                                  segment.parameters['k_d'], 
+                                                 segment.segmentation_symbol, 
                                                  segment.cytobands,
                                                  segment.centromere_fraction, 
                                                  segment.parameters['call'], segment.parameters['call_FDR']]])
