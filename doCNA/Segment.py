@@ -112,13 +112,12 @@ class Segment:
             self.logger.info ('No model for this segment.')
                         
 
-
 def get_sensitive (data, fb, mG, z_thr = 1.5):
     
     vafs = data['vaf'].values
     
-    def ai (v, dv, a):
-        v0 = 0.5
+    def ai (v, dv, a, v0):
+        #v0 = 0.5
         return a*sts.norm.cdf (v, v0 - dv, smin) + (1-a)*sts.norm.cdf (v, v0 + dv, smin)
     
     m, dm, l, dl = Testing.COV_test (data)
@@ -126,18 +125,21 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
            
     v,c = np.unique (vafs, return_counts = True)
     try:
-        popt, pcov = opt.curve_fit (ai, v, np.cumsum(c)/np.sum(c), p0 = [0.02, 0.5],
-                                    bounds = ((0.0, 0.1),
-                                              (0.3, 0.9)), check_finite = False)
-        dv, a = popt
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
+        popt, pcov = opt.curve_fit (ai, v, np.cumsum(c)/np.sum(c), p0 = [0.02, 0.5, 0.5],
+                                    bounds = ((0.0, 0.1, 0.45),
+                                              (0.3, 0.9, 0.55)), check_finite = False)
+        dv, a, v0 = popt
+        p_ai = sts.ks_1samp (vafs, ai, args = popt).pvalue
+        
+        parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'v0' : v0, 'p_ai' : p_ai,
+                      'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'status' : 'valid', 'fraction_1' : np.nan}
         
     except (RuntimeError, ValueError):
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : v0, 'p_ai' : p_ai,
+                      'success' : False, 'n' : np.nan,
                       'status' : 'valid', 'fraction_1' : np.nan}
         
-    
     return parameters 
 
 def get_full (data, b = 1.01):
@@ -159,31 +161,36 @@ def get_full (data, b = 1.01):
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
                                               (0.499, 0.95, 5, 1, 0.55, 10)))
-        dv, a, lerr, f, vaf, b = popt      
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
-                      'fraction_1' : ones0/c.sum(), 'n' : len (data)/Consts.SNPS_IN_WINDOW,
-                      'status' : 'valid'}
+        dv, a, lerr, f, v0, b = popt
+        p_ai = sts.ks_1samp (vafs[~np.isnan(vafs)], vaf_cdf, args = popt).pvalue
+              
+        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'p_ai' : p_ai,
+                      'success' : True, 'fraction_1' : ones0/c.sum(),
+                      'n' : len (data)/Consts.SNPS_IN_WINDOW, 'status' : 'valid'}
     except RuntimeError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,
-                       'fraction_1' : ones0/c.sum(), 'status' : 'Fit failed'}
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : v0, 'p_ai' : p_ai,
+                      'success' : False, 'n' :  len (data)/Consts.SNPS_IN_WINDOW,
+                      'fraction_1' : ones0/c.sum(), 'status' : 'Fit failed'}
     except ValueError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,  
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : v0, 'p_ai' : p_ai,
+                      'success' : False, 'n' : len (data)/Consts.SNPS_IN_WINDOW,  
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters failed'}    
     if ones0/c.sum() > 0.9:
-        parameters = {'m': m, 'l': l, 'ai' : 0.5, 'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
+        parameters = {'m': m, 'l': l, 'ai' : 0.5, 'v0' : v0, 'p_ai' : p_ai,
+                      'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters guessed'}    
         
     return parameters
 
-def vaf_cnai (v, dv, a, vaf,b, cov):
-    s = np.sqrt((vaf - dv)*(vaf + dv)/(b*cov))
-    return a*sts.norm.cdf (v, vaf - dv, s) + (1-a)*sts.norm.cdf (v, vaf + dv, s)
+def vaf_cnai (v, dv, a, v0,b, cov):
+    s = np.sqrt((v0 - dv)*(v0 + dv)/(b*cov))
+    return a*sts.norm.cdf (v, v0 - dv, s) + (1-a)*sts.norm.cdf (v, v0 + dv, s)
 
 def vaf_HO (v, lerr):
     err = 10**lerr
     return np.exp ((v-1)*err)
 
-def vaf_cdf_c (v, dv, a, lerr, f, vaf, b, cov):
-    cnai = vaf_cnai (v, dv, f, vaf, b, cov)
+def vaf_cdf_c (v, dv, a, lerr, f, v0, b, cov):
+    cnai = vaf_cnai (v, dv, f, v0, b, cov)
     cnHO = vaf_HO (v, lerr)
     return a*cnHO + (1 - a)*cnai
