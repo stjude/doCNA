@@ -1,6 +1,5 @@
 import scipy.stats as sts
 import numpy as np
-
 import scipy.optimize as opt
 
 from doCNA import Testing
@@ -129,7 +128,7 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
                                     bounds = ((0.0, 0.1, 0.45),
                                               (0.3, 0.9, 0.55)), check_finite = False)
         dv, a, v0 = popt
-        p_ai = sts.ks_1samp (vafs, ai, args = popt).pvalue
+        p_ai = sts.kstest (vafs, ai, args = popt).pvalue
         
         parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'v0' : v0, 'p_ai' : p_ai,
                       'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
@@ -162,8 +161,8 @@ def get_full (data, b = 1.01):
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
                                               (0.499, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, v0, b = popt
-        p_ai = sts.ks_1samp (vafs[~np.isnan(vafs)], vaf_cdf, args = popt).pvalue
-              
+        p_ai = sts.kstest (vafs[~np.isnan(vafs)], vaf_cdf, args = popt).pvalue
+                     
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'p_ai' : p_ai,
                       'success' : True, 'fraction_1' : ones0/c.sum(),
                       'n' : len (data)/Consts.SNPS_IN_WINDOW, 'status' : 'valid'}

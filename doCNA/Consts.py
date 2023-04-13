@@ -4,7 +4,8 @@ MALE_CHROM = 'chrY'
 SEX_CHROMS = [FEMALE_CHROM, MALE_CHROM]
 
 #Scoring
-SIZE_THR = 1 #in Mb
+##Many may be from older version
+SIZE_THR = 5 #in Mb
 K_THR = 0.11
 MIN_LEN_K_BALANCED = 6
 MODEL_THR = 3
@@ -12,6 +13,8 @@ MODEL_THR = 3
 FB_ALPHA = 0.1
 DSCORE_ALPHA = 0.05
 KSCORE_ALPHA = 0.05
+DIPLOID_AI_THR = 0.1
+
 
 ##Chromosome
 N_SYMBOL = 'N'
