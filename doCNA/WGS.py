@@ -11,6 +11,7 @@ class WGS:
         self.wgs_file = open (wgs_file_name, 'r')
         self.config = parameters
         self.models = models
+        print (self.models)
         try:
             self.SG_file = open (self.config['Input']['SuperGood_filepath'], 'rb')
         except FileNotFoundError:
