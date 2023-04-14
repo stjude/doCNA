@@ -65,14 +65,12 @@ class Genome:
                 self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
                                                              self.config, self.logger,
                                                              self.genome_medians, 
-                                                             self.CB.loc[self.CB['chrom'] == chrom],
-                                                             model_dic = self.model_dic)
+                                                             self.CB.loc[self.CB['chrom'] == chrom])
             else:
                 self.sex_chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
                                                              self.config, self.logger,
                                                              self.genome_medians, 
-                                                             self.CB.loc[self.CB['chrom'] == chrom],
-                                                             model_dic = self.model_dic)
+                                                             self.CB.loc[self.CB['chrom'] == chrom])
             self.logger.debug (f"Chromosome {chrom} has {len(data)} markers.")
          
     def segment_genome (self, m0 = 0, fb_alpha = Consts.FB_ALPHA):
