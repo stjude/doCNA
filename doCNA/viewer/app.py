@@ -10,30 +10,6 @@ import pandas as pd
 import scipy.signal as sig
 from collections import defaultdict
 
-#mp = Models.model_presets
-
-#only useful to read in previous version models. TBR in release
-fix_model = {}
-fix_model ['AB+A'] = 'A'
-fix_model ['AB+AA'] = 'AA'
-fix_model ['AB+AAB'] = 'AAB'
-fix_model ['A(AB)B'] = '(AB)n'
-fix_model ['AB+AAAB'] = 'AAAB'
-fix_model ['AB+AAA'] = 'AAA'
-fix_model ['AB+AAAA'] = 'AAAA'
-fix_model ['A'] = 'A'
-fix_model ['AA'] = 'AA'
-fix_model ['AAB'] = 'AAB'
-fix_model ['(AB)n'] = '(AB)n'
-fix_model ['AAAB'] = 'AAAB'
-fix_model ['AAA'] = 'AAA'
-fix_model ['AAAA'] = 'AAAA'
-fix_model [np.nan] = np.nan
-fix_model ['nan'] = 'nan'
-
-
-
-#chromlist = ['chr' + str (i) for i in range (1,23)]
 chromdic = {}
 for c in Consts.CHROM_ORDER:
     chromdic[c] = c
@@ -138,9 +114,6 @@ app_ui = ui.page_fluid(
                                                           ui.row(ui.column(12,
                                                                  ui.input_file ('log_file', "Choose LOG file to screen:",
                                                                                 multiple = False, accept = '.log'),
-                                                                 #ui.output_text ('log_text'),
-                                                                 
-                                                                 #ui.tags.textarea(id = 'log', name = 'log_text', rows = '30', cols = '200',   )
                                                                  ui.output_ui("dyn_log_ui")))),
  
                                                    ui.nav("CNVs",
@@ -166,7 +139,7 @@ app_ui = ui.page_fluid(
                                                                                                    ),    
                                                                                              ui.h6("Coverage range:"),
                                                                                              ui.output_text_verbatim ("coverage_range"),
-                                                                                             ui.input_checkbox ('extra_models', 'Include extra models?',
+                                                                                             ui.input_checkbox ('all_models', 'Show all models?',
                                                                                                                 value = False),
                                                                                              ui.input_action_button ('opt',
                                                                                                                      "Optimize solution"),
@@ -222,17 +195,16 @@ def server(input, output, session):
     model_presets = reactive.Value (Models.model_presets)
     
     @reactive.Effect
-    @reactive.event (input.extra_models)
+    @reactive.event (input.all_models)
     def _():
-        #mp = 
-        #mp.update (Models.model_presets_2)
-        #mp.update (Models.model_presets_4)
-        #if input.extra_models():
-        #    mp.update (Models.model_presets_extra)
-            
-        model_presets.set(Models.model_presets)
+        if input.all_models():
+            model_presets.set(Models.model_presets)
+        else:
+            mp = {}
+            for m in par()['models']:
+                mp[m] = Models.model_presets[m]
+            model_presets.set (mp)
         
-    
     @output
     @render.text
     def solutions ():

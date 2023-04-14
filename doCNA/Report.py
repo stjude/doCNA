@@ -24,7 +24,8 @@ class Report:
                            'm_cn\t'+str(self.scorer.cn_param['m']),
                            's_ai\t'+str(self.scorer.ai_param['s']),
                            'm_d\t' +str(self.scorer.dipl_dist['m']),
-                           's_d\t' +str(self.scorer.dipl_dist['s'])]
+                           's_d\t' +str(self.scorer.dipl_dist['s']),
+                           'models\t'+str(self.models)]
                         
             report = '\n'.join(report_list)
         else:
