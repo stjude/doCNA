@@ -295,8 +295,7 @@ class Genome:
         imbalanced_index = np.where ([(~ba)&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
         ed = {'A' : np.nan, 'B' : np.nan, 'C' : np.nan, 'down' : np.nan, 
                   'up' : np.nan, 'm' : np.nan, 's' : np.nan, 'score_FDR' : np.inf}
-                  'up' : np.nan, 'm' : np.nan, 's' : np.nan, 'score_FDR' : np.inf}
-            
+                 
         try:            
             self.genome_medians['clonality_imbalanced'] = fit_huber (all_data[imbalanced_index,:],
                                                                      dalpha)
