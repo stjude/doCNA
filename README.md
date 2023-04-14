@@ -15,6 +15,29 @@ source ./docna_install/bin/activate
 pip3 install ./doCNA
 ```
 
+# download the appropriate reference files from Zenodo (hg19 and hg38 available)
+[Zenodo Refs](https://sandbox.zenodo.org/record/1181478#.ZDhvH7qZNPY)
+```
+# hg19 example
+wget https://sandbox.zenodo.org/record/1181478/files/hg19_cytoBand.dat && echo 4036fc07b0b87ef28b46b1229141abb1 hg19_cytoBand.dat | md5sum --check
+...
+hg19_cytoBand.dat: OK
+
+wget https://sandbox.zenodo.org/record/1181478/files/hg19_SuperGood.dat.gz && echo 8e3058f18c502a91b466d779a59a35f0 hg19_SuperGood.dat.gz | md5sum --check
+...
+hg19_SuperGood.dat.gz: OK
+
+# hg38 example
+wget https://sandbox.zenodo.org/record/1181478/files/hg38_cytoBand.dat && echo 5c957c934461320fdf6211df3d68bdd3 hg38_cytoBand.dat | md5sum --check
+...
+hg38_cytoBand.dat: OK
+
+
+wget https://sandbox.zenodo.org/record/1181478/files/hg38_SuperGood.dat.gz && echo 1c32772977772ee1bab65f4be3a7acf2 hg38_SuperGood.dat.gz | md5sum --check
+...
+hg38_SuperGood.dat.gz: OK
+```
+
 ## Workflow for running doCNA
 
 1. Get a local copy of the config:

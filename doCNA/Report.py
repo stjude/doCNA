@@ -4,7 +4,7 @@ import warnings as warn
 import scipy.stats as sts
 
 from doCNA import Run
-
+from doCNA import Consts
 
 class Report:
     """ Class that holds reports used by other objects in the program """
@@ -15,7 +15,8 @@ class Report:
         """ Generates a report for Genome objects """
         if self._report_type == 'bed':
             keys = list(genome.chromosomes.keys())
-            keys.sort(key = lambda x: int(x[3:]))
+            #keys.sort(key = lambda x: int(x[3:]))
+            keys.sort (key = Consts.CHROM_ORDER.index)
             report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
         elif self._report_type == 'params':
             shift_i = genome.genome_medians['clonality_imbalanced']['up']
@@ -46,18 +47,17 @@ class Report:
             data = '\n'.join([s.report(report_type='solution') for s in runs])
         return data
 
-    
     def segment_report (self, segment):
 
         """ Generates a report for Segment objects """
         if self._report_type == 'bed':    
-            if np.isnan (segment.parameters['k']):
-                if segment.parameters['fraction_1'] > 0.95:
-                    k = 1
-                else:
-                    k = np.nan
-            else:
-                k = segment.parameters['k']
+            #if np.isnan (segment.parameters['k']):
+            #    if segment.parameters['fraction_1'] > 0.95:
+            #        k = 1
+            #    else:
+            #        k = np.nan
+            #else:
+            k = segment.parameters['k']
 
             report = '\t'.join([str(p) for p in [segment.chrom, segment.start, segment.end,
                                                  segment.parameters['ai'], segment.parameters['m'],

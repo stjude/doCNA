@@ -7,7 +7,7 @@ import numpy as np
 import argparse as agp
 
 from doCNA import Models
-#import Models
+from doCNA import Consts
 
 #colorsCN = {}
 colorsCN = defaultdict (lambda: 'purple')
@@ -26,8 +26,8 @@ colorsCN['NA'] = 'lightskyblue'
 
 def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
     chrs = chrom_sizes.index.values.tolist()
-    chrs.sort (key = lambda x: int(x[3:]))
-    
+    #chrs.sort (key = lambda x: int(x[3:]))
+    chrs.sort (key = Consts.CHROM_ORDER.index)
     start = 0
     axs[1].plot ((start, start), (0, 4), 'k:', lw = 0.5)
     axs[0].plot ((start, start), (0, 0.95), 'k:', lw = 0.5)
@@ -97,8 +97,8 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
 
 def reporting_plot (bed_df, axs, chrom_sizes):
     chrs = chrom_sizes.index.values.tolist()
-    chrs.sort (key = lambda x: int(x[3:]))
-    
+
+    chrs.sort(key = Consts.CHROM_ORDER.index)
     start = 0
     axs[1].plot ((start, start), (0, 4), 'k:', lw = 0.5)
     axs[0].plot ((start, start), (0, 0.95), 'k:', lw = 0.5)
@@ -130,6 +130,7 @@ def reporting_plot (bed_df, axs, chrom_sizes):
     ranges = bed_df.loc[~(bed_df['k'].isnull()), ['k','m']].agg ([min, max])
     maxk = max (bed_df.loc[~(bed_df['k'].isnull()), 'k'].max(), -bed_df.loc[~(bed_df['k'].isnull()), 'k'].min())
     
+
     #axs[0].set_ylim ((-0.009, 1.01))
     axs[0].set_ylim ((-0.009,  maxk *1.1))
     axs[0].set_xlim ((-3e7, start + 3e7))
@@ -223,9 +224,7 @@ def chicken_feet_plot (bed_df, ax, highlight = '', k_score_column = 'k_score',
     ax.set_xlabel ('copy number')
     ax.set_ylabel ('clonality')
 
-def earth_worm_plot (data_df, bed_df, params, chrom, axs, k_score_column = 'k_score',
-                     max_k_score = 10, markersize = 2, centromere_column = 'cent',
-                     centromere_thr = 0.3, size_thr = 1):
+def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2, max_k_score = 10):
     chromdata = data_df.loc[data_df.chrom == chrom]
 
     chromdata.loc[chromdata['symbol'] == 'E'].plot(x = 'position', y = 'vaf', lw = 0, alpha = 0.3, color = 'orange', marker = '.', 
@@ -248,7 +247,7 @@ def earth_worm_plot (data_df, bed_df, params, chrom, axs, k_score_column = 'k_sc
     axs[0].set_ylabel ('BAF')
     axs[1].set_ylabel ('cn')
     
-    chrombed = bed_df.loc[(bed_df.chrom == chrom)&(bed_df[centromere_column] < centromere_thr)&(bed_df['size'] > size_thr)]
+    chrombed = bed_df.loc[(bed_df.chrom == chrom)]
     for _, seg in chrombed.loc[(chrombed.cent < 0.5)&(chrombed['size'] > 1)].iterrows():
     
         if (seg['k_score'] <= 0) | (np.isnan(seg['k_score'])):
@@ -267,7 +266,9 @@ def earth_worm_plot (data_df, bed_df, params, chrom, axs, k_score_column = 'k_sc
             axs[2].plot ((seg.start, seg.end), (seg.k, seg.k), c = 'magenta', lw = 1.5, marker = 'o', ls = ':')
             axs[3].plot ((seg.start, seg.end), (seg.cn, seg.cn), c = 'magenta', ls = ':')
 
-    axs[3].set_ylim (chrombed['cn'].agg([min, max])*np.array ((0.95,1.05)))
+    if len(chrombed) > 0:
+        axs[3].set_ylim (chrombed['cn'].agg([min, max])*np.array ((0.95,1.05)))
+        
     axs[3].plot ((0, chromdata.position.max()), (2, 2), 'k:')
     
     axs[2].set_ylabel ('clonality')
@@ -278,11 +279,19 @@ def check_solution_plot_opt (bed_df, params, ax, cent_thr = 0.3, size_thr = 1,
     bed = bed_df.loc[(bed_df['cent'] < cent_thr)&(bed_df['size'] > size_thr)]
     
     for _, b in bed.loc[bed['model'].notna(),:].iterrows():
-        ax.scatter (b['m'],b['ai'], c = colorsCN[b['model']], s = b['size'])
+
+        if b['chrom'] == 'chrX':
+            ax.scatter (b['m'],b['ai'], c = colorsCN[b['model']], s = b['size'], edgecolor = 'w', marker = 'X')
+        elif b['chrom'] == 'chrY':
+            ax.scatter (b['m'],b['ai'], c = colorsCN[b['model']], s = b['size'], edgecolor = 'w', marker = 'v')
+        else:
+            ax.scatter (b['m'],b['ai'], c = colorsCN[b['model']], s = b['size'], edgecolor = 'w', marker = 'o')
+
 
     highlight_filter = [c in highlight for c in bed_df.chrom.tolist()]
     x = bed_df.loc[(highlight_filter), 'm'].values
     y = bed_df.loc[(highlight_filter), 'ai'].values
+    
     ax.plot (x, y, marker = 's', c = 'darkorange', lw = 0, alpha = 1, fillstyle = 'none')
     
     ax.set_xlabel ('Coverage')

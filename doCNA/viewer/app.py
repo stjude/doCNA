@@ -3,41 +3,23 @@ from .Plots import * #need a dot
 #import Models
 from doCNA import Models
 
+from doCNA import Consts
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.signal as sig
 from collections import defaultdict
 
+
 mp = {}
 mp.update (Models.model_presets_2)
 mp.update (Models.model_presets_4)
 
 
-#only useful to read in previous version models. TBR in release
-fix_model = {}
-fix_model ['AB+A'] = 'A'
-fix_model ['AB+AA'] = 'AA'
-fix_model ['AB+AAB'] = 'AAB'
-fix_model ['A(AB)B'] = '(AB)n'
-fix_model ['AB+AAAB'] = 'AAAB'
-fix_model ['AB+AAA'] = 'AAA'
-fix_model ['AB+AAAA'] = 'AAAA'
-fix_model ['A'] = 'A'
-fix_model ['AA'] = 'AA'
-fix_model ['AAB'] = 'AAB'
-fix_model ['(AB)n'] = '(AB)n'
-fix_model ['AAAB'] = 'AAAB'
-fix_model ['AAA'] = 'AAA'
-fix_model ['AAAA'] = 'AAAA'
-fix_model [np.nan] = np.nan
-fix_model ['nan'] = 'nan'
-
-
-
-chromlist = ['chr' + str (i) for i in range (1,23)]
 chromdic = {}
-for c in chromlist:
+for c in Consts.CHROM_ORDER:
     chromdic[c] = c
 
 def merge_records (all_records, chrom):
@@ -210,6 +192,7 @@ app_ui = ui.page_fluid(
         ) 
 
 def server(input, output, session):
+    
     bed_full = reactive.Value(pd.DataFrame())
     bed = reactive.Value(pd.DataFrame())
     data = reactive.Value(pd.DataFrame())
@@ -324,7 +307,9 @@ def server(input, output, session):
         b = bed()
         if (len(bf) != 0) & (len(b) != 0):
             chrs = chrom_sizes().index.values.tolist()
-            chrs.sort (key = lambda x: int(x[3:]))
+
+            chrs.sort (key = Consts.CHROM_ORDER.index)
+
             merged_segments = []
             for chrom in chrs: #
                 segments = bf.loc[bf.chrom == chrom] #, segments in bf.groupby (by = 'chrom'):
@@ -680,7 +665,14 @@ def server(input, output, session):
                 dtsa = np.array(dts)
             
             opt_solution.set((ms,dtsa, fraction))
-            m0_opt.set (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
+
+            try:
+                m0_opt.set (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
+                print ()
+                print (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
+                print ()
+            except:
+                m0_opt.set(m0())
             
            
     @reactive.Effect

@@ -109,20 +109,23 @@ class Testing:
         return test_results
     
     def get_status (self, chromosome):
-        try:
-            status = (self.status.T[chromosome] == 'inlier').T
-        except KeyError:
-            status = False
-        return status
+        #try:
+        #    status = (self.status.T[chromosome] == 'inlier').T
+        #except KeyError:
+        #    status = False
+        if chromosome not in self.status.index.values.tolist():
+            #self.status.T[chromosome] = 'outlier'
+            self.status.loc[chromosome] = 'outlier' 
+        return (self.status.T[chromosome] == 'inlier').T
     
     def get_genome_medians (self):
         return self.medians
     
     def get_inliers (self):
-        return self.status[(self.status == 'inlier').all(axis = 1)].index.values
+        return self.status[(self.status == 'inlier').all(axis = 1)].index.values.tolist()
     
     def get_outliers (self):
-        return self.status[(self.status == 'outlier').all(axis = 1)].index.values
+        return self.status[(self.status == 'outlier').all(axis = 1)].index.values.tolist()
     
     def report_results (self) -> pd.DataFrame:
         """Method to report only test results without status."""
@@ -212,9 +215,19 @@ def HE_test (data, *args, **kwargs):
     aN = sum (data['vaf'] < 0.1)/len(data)
     
     res = opt.minimize (chi2, x0 = (0.5, fcov, 0.5,0.75, aN, 1.3, 6, 6), args = (counts, N),
-                    bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds))    
-    vaf, fcov, fN, a, a1, b, le, lf = res.x    
-    cov = cov_min + fcov*(cov_max-cov_min)    
+                        bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
+                        options = {'maxiter' : 2000})    
+     
+    if res.success:
+        chi2 = res.fun
+        vaf, fcov, fN, a, a1, b, le, lf = res.x    
+        cov = cov_min + fcov*(cov_max-cov_min)    
+    else:
+        chi2 = np.nan
+        vaf = np.nan
+        cov = np.nan
+        b = np.nan
+ 
     return HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
 
 

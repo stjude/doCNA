@@ -4,6 +4,8 @@ import numpy as np
 import multiprocessing as mpl
 import scipy.stats as sts
 import scipy.optimize as opt
+import sys
+import copy
 from sklearn.linear_model import HuberRegressor
 
 from doCNA import Testing
@@ -49,6 +51,7 @@ class Genome:
         self.data['vaf'] = self.data['alt_count']/self.data['cov']
         
         self.chromosomes = {}
+        self.sex_chromosomes = {}
         
         if len(self.data.loc[~self.data['vaf'].isna()]) == 0:
             sys.exit (f'No data read in. Please cross check column names: {columns} with input file.')
@@ -58,13 +61,16 @@ class Genome:
         for chrom, data in self.data.loc[~self.data['vaf'].isna()].groupby (by = 'chrom'):
             if chrom not in Consts.SEX_CHROMS:
                 self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
-                                                                 self.config, self.logger,
-                                                                 self.genome_medians, 
-                                                                 self.CB.loc[self.CB['chrom'] == chrom])
-                self.logger.debug (f"Chromosome {chrom} has {len(data)} markers.")
+                                                             self.config, self.logger,
+                                                             self.genome_medians, 
+                                                             self.CB.loc[self.CB['chrom'] == chrom])
+            else:
+                self.sex_chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
+                                                             self.config, self.logger,
+                                                             self.genome_medians, 
+                                                             self.CB.loc[self.CB['chrom'] == chrom])
+            self.logger.debug (f"Chromosome {chrom} has {len(data)} markers.")
          
-
-            
     def segment_genome (self, m0 = 0, fb_alpha = Consts.FB_ALPHA):
         
         self.logger.debug ('Starting testing ...')
@@ -94,6 +100,7 @@ class Genome:
         
         self.logger.debug ('Running N/E marking.')
         
+        
         for chrom in self.chromosomes.keys():
             status = self.HE.get_status (chrom)
             params = self.HE.get_parameters(chrom).copy()
@@ -102,10 +109,21 @@ class Genome:
                     params[par] = self.HE.get_genome_medians()[par]  
             
             self.chromosomes[chrom].markE_onHE (params, float(self.config['HE']['z_thr']))
-                    
+            
+        #for formatting
+        for  par in status.index.values:
+            params[par] = self.HE.get_genome_medians()[par]  
+            
+        self.sex_chromosomes[Consts.FEMALE_CHROM].markE_onHE (params, float(self.config['HE']['z_thr']))
+        #self.sex_chromosomes[Consts.MALE_CHROM].data['symbol'] = 'N'
+        self.sex_chromosomes[Consts.MALE_CHROM].markE_onHE (params, float(self.config['HE']['z_thr']))
+        
         self.logger.debug ('Testing N/E marking.')    
         
-        self.VAF = Testing.Testing ('VAF', self.chromosomes, self.logger)
+        self.VAF = Testing.Testing ('VAF', 
+                                    self.chromosomes,
+                                    self.logger)
+        
         self.VAF.run_test (self.HE.medians['cov'], no_processes = self.no_processes)
         
         self.logger.debug ("Genomewide VAF: " + f"\n" + str(self.VAF.report_results()))
@@ -135,17 +153,56 @@ class Genome:
                 params = self.VAF.get_parameters (chrom)
                 self.logger.debug (f'Chromosome {chrom} marked on full model.')
                 self.chromosomes[chrom].mark_on_full_model (self.HE.medians['cov']) 
+        
+        self.logger.info (f'Analyzing {Consts.FEMALE_CHROM}: ...')
+        female_chrom_vaf_results = Testing.VAF_test (self.sex_chromosomes[Consts.FEMALE_CHROM].data,
+                                                     self.HE.medians['cov'])
+        self.logger.info (f'VAF test results: {female_chrom_vaf_results}')
+        self.VAF.results.append(pd.DataFrame.from_records ([female_chrom_vaf_results],
+                                                     columns = female_chrom_vaf_results._fields, 
+                                                     index = [Consts.FEMALE_CHROM]))
+        
+        self.logger.info (f'Analyzing {Consts.MALE_CHROM}: ...')
+        male_chrom_vaf_results = Testing.VAF_test (self.sex_chromosomes[Consts.MALE_CHROM].data,
+                                                     self.HE.medians['cov'])
+        self.logger.info (f'VAF test results: {male_chrom_vaf_results}')
+        self.VAF.results.append(pd.DataFrame.from_records ([male_chrom_vaf_results],
+                                                     columns = male_chrom_vaf_results._fields,
+                                                     index = [Consts.MALE_CHROM]))
+        
+
+        #self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
+        #self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
+        #male_markers = len (self.sex_chromosomes[Consts.MALE_CHROM].data)
+        #if male_markers > Consts.SNPS_IN_WINDOW:
+        #    self.chromosomes[Consts.MALE_CHROM] = self.sex_chromosomes[Consts.MALE_CHROM]
+        #    self.logger.info(f'Chromosome {Consts.MALE_CHROM} added.')
+        #else:
+        #    self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, only {male_markers} markers.')
+        
+        self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
+        self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
+        male_markers = len (self.sex_chromosomes[Consts.MALE_CHROM].data)
+        if male_markers > 0: #Consts.SNPS_IN_WINDOW:
+            self.chromosomes[Consts.MALE_CHROM] = self.sex_chromosomes[Consts.MALE_CHROM]
+            self.logger.info(f'Chromosome {Consts.MALE_CHROM} added.')
+        else:
+            self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, no markers.')                
                 
-        self.COV = Testing.Testing ('COV', self.chromosomes, self.logger)
+        
+        self.COV = Testing.Testing ('COV', 
+                                    self.chromosomes,
+                                    self.logger)
         self.COV.run_test(no_processes = self.no_processes,
                           exclude_symbol = [Consts.N_SYMBOL, Consts.U_SYMBOL])
         self.logger.debug ('Genomewide COV: ' + f"\n" + str(self.COV.report_results()))
         
-        self.COV.analyze (parameters = self.config['COV'], outliers = self.VAF.get_outliers())
+        self.COV.analyze (parameters = self.config['COV'], outliers = self.VAF.get_outliers()+Consts.SEX_CHROMS)
         
         self.logger.info ("Genome COV reference: " + f"\n" + str(self.COV.get_genome_medians()))
         self.genome_medians['COV'] = self.COV.get_genome_medians()
 
+        
         inliers = self.VAF.get_inliers()
         inliers_fb = self.VAF.results.loc[inliers,'fb'].values
         
@@ -195,7 +252,6 @@ class Genome:
         self.score_clonality (size_thr = Consts.SIZE_THR, model_thr = Consts.MODEL_THR,
                               dalpha = Consts.DSCORE_ALPHA, kalpha = Consts.KSCORE_ALPHA,
                               k_thr = Consts.K_THR)
-
         
     def score_model_distance (self):
     
@@ -353,11 +409,6 @@ class Genome:
                 seg.parameters['clonality_score'] = -np.log10(p)
                 seg.parameters['call'] = 'norm' if (k < params['thr'][1]) & (k > params['thr'][0]) else 'CNVb'
                 seg.parameters['call_FDR'] = 'CNVb' if seg.parameters['clonality_score'] > self.genome_medians['clonality_balanced']['score_FDR'] else 'norm'
-    
-    
-        
-    
-    
             
     def report (self, report_type = 'bed'):
         return Report.Report(report_type).genome_report(self)
