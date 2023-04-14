@@ -14,16 +14,16 @@ from doCNA import Distribution
 from doCNA import Distribution
 from doCNA import Consts
 from doCNA import Report
-from doCNA import Run
+from doCNA import Scoring
 
 
 class Genome:
     """Class to run genome wide tests of HE and create chromosomes."""
-    def __init__(self, sample_name, logger, config, CB_file, model_dic, no_processes = 1):
+    def __init__(self, sample_name, logger, config, CB_file, models, no_processes = 1):
         self.sample_name = sample_name
         self.no_processes = no_processes
         self.config = config
-        self.model_dic = model_dic
+        self.models = models
         self.CB = pd.read_csv (CB_file, sep = '\t')
         self.logger = logger.getChild (f'{self.__class__.__name__}')
         self.genome_medians = {}
@@ -252,11 +252,16 @@ class Genome:
                 self.all_segments.append (seg)
                 
         
-        self.score_model_distance ()
-        self.score_clonality (size_thr = Consts.SIZE_THR, model_thr = Consts.MODEL_THR,
-                              dalpha = Consts.DSCORE_ALPHA, kalpha = Consts.KSCORE_ALPHA,
-                              k_thr = Consts.K_THR)
-        
+        #Now it works different way
+        #self.score_model_distance ()
+        #self.score_clonality (size_thr = Consts.SIZE_THR, model_thr = Consts.MODEL_THR,
+        #                      dalpha = Consts.DSCORE_ALPHA, kalpha = Consts.KSCORE_ALPHA,
+        #                      k_thr = Consts.K_THR)
+        data_for_scoring = np.array([(s.params['ai'], s.params['cn']) for s in self.all_segments])
+        self.scorer = Scoring.Scoring (data_for_scoring, self.logger, diploid_ai_thr = Consts.DIPLOID_AI_THR)
+        for seg in self.all_segments():
+            self.scorer.analyze_segment(seg, self.models)
+
     def score_model_distance (self):
     
         zs_ns = [(seg.parameters['d'], seg.parameters['n']) for seg in self.all_segments]

@@ -76,7 +76,7 @@ def analyze(args):
         model_presets[model] = Models.model_presets[model]    
     
     sample = WGS.WGS (args.input_file,  sample_name = args.sample_name, parameters = ini,
-                      no_processes = args.no_processes, models_dic = model_presets,
+                      no_processes = args.no_processes, models = args.models,
                       verbosity = args.level)
 
     sample.analyze (m0 = args.coverage_diploid)
