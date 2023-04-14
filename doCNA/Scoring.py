@@ -14,13 +14,13 @@ class Scoring:
         
         data_indexes = initial_data[:,0] < diploid_ai_thr
         self.ai_param = fit_QQgauss(initial_data[: ,0][data_indexes])
-        self.logger.info ('')
+        self.logger.info (f"Distribution of diploid allelic imbalance: m = {self.ai_param['m']}, s = {self.ai_param['s']}")
         self.cn_param = fit_QQgauss(initial_data[: ,1][data_indexes])
-        self.logger.info ('')
+        self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
         
         ds =  ((initial_data[data_indexes,:] - np.array([self.ai_param['m'],self.cn_param['m']])/np.array([self.ai_param['s'],self.cn_param['s']]))**2)
         self.dipl_dist = fit_smalles_gauss (np.sqrt(ds.sum(axis = 1)))
-        self.logger.info ('')
+        self.logger.info (f"Distribution of distance to : m = {self.dipl_dist['m']}, s = {self.dipl_dist['s']}")
     
     def get_ai_dist (self):
         return self.ai_param
