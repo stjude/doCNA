@@ -11,6 +11,7 @@ from sklearn.linear_model import HuberRegressor
 from doCNA import Testing
 from doCNA import Chromosome
 from doCNA import Distribution
+from doCNA import Distribution
 from doCNA import Consts
 from doCNA import Report
 from doCNA import Run
@@ -285,8 +286,10 @@ class Genome:
         all_data = np.array([(seg.parameters['k'], (seg.end - seg.start)/1e6, seg.parameters['m']) for seg in self.all_segments])
                 
         balanced_index = np.where ([ba&bi&fi for ba,bi,fi in zip(balanced, big, fit_model)])[0]
+        balanced_index = np.where ([ba&bi&fi for ba,bi,fi in zip(balanced, big, fit_model)])[0]
         imbalanced_index = np.where ([(~ba)&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
         ed = {'A' : np.nan, 'B' : np.nan, 'C' : np.nan, 'down' : np.nan, 
+                  'up' : np.nan, 'm' : np.nan, 's' : np.nan, 'score_FDR' : np.inf}
                   'up' : np.nan, 'm' : np.nan, 's' : np.nan, 'score_FDR' : np.inf}
             
         try:            
@@ -296,10 +299,18 @@ class Genome:
             if self.genome_medians['clonality_imbalanced']['A'] < 0:
                 self.logger.warning ("Scoring of imbalanced segments seems to fail. Check before you yell!")
             
+            
         except:
             self.logger.warning ("Scoring of imbalanced segments failed. None of the scoring makes sense.")    
             self.genome_medians['clonality_imbalanced'] = ed
             
+        A = self.genome_medians['clonality_imbalanced']['A']
+        B = self.genome_medians['clonality_imbalanced']['B']
+        C = self.genome_medians['clonality_imbalanced']['C']
+        m = self.genome_medians['clonality_imbalanced']['m']
+        s = self.genome_medians['clonality_imbalanced']['s']
+        up = self.genome_medians['clonality_imbalanced']['up']
+        down = self.genome_medians['clonality_imbalanced']['down']
         A = self.genome_medians['clonality_imbalanced']['A']
         B = self.genome_medians['clonality_imbalanced']['B']
         C = self.genome_medians['clonality_imbalanced']['C']
@@ -432,6 +443,7 @@ def fit_huber (data, alpha):
     B = 1
     C = -huber.intercept_
     d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
+    
     
     down, up = Testing.get_outliers_thrdist (d, alpha = alpha)
     inlier_ds = d[(d > down)&(d < up)]

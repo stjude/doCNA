@@ -120,11 +120,15 @@ def fit_single_G (values, alpha = 0.01, r = 0.5):
     
     Returns dictionary with parameters.
     """
+<<<<<<< HEAD
     try:
         thr = get_outliers_thrdist (np.sort(values), alpha, r)
     except: 
         thr = (min(values), max(values))
 
+=======
+    thr = get_outliers_thrdist (np.sort(values), alpha, r)
+>>>>>>> main
     a = np.sort(values[(values >= thr[0])&(values <= thr[1])])
     popt, pcov = opt.curve_fit (sts.norm.cdf, a, np.linspace(0,1, len(a)), 
                                 p0 = [np.mean(a), np.std (a)])
@@ -138,18 +142,26 @@ def fit_single_G (values, alpha = 0.01, r = 0.5):
                    's': np.array([popt[1], popt[1]])},
             'thr' : thr, 'a' : np.ones(1)}
 
+<<<<<<< HEAD
 def fit_double_G (values_all, alpha, r = 0.5, initial_bounds = None, initial_p0 = None):
+=======
+def fit_double_G (values_all, alpha, r = 0.5):
+>>>>>>> main
     """
     Function to fit two Gauss' to _values_
     
     Returns dictionary with parameters.
     """
     
+<<<<<<< HEAD
     try:
         thr0 = get_outliers_thrdist (np.sort(values_all), alpha, r)   
     except:
         thr0 = (min(values_all),max(values_all))
  
+=======
+    thr0 = get_outliers_thrdist (np.sort(values_all), alpha, r)   
+>>>>>>> main
     values = values_all[(values_all >= thr0[0]) & (values_all <= thr0[1])]
     
     if initial_p0 is None:
