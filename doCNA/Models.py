@@ -118,12 +118,12 @@ def pick_model (ai, s_ai, cn, s_cn, models):
     ds = np.array ([dk['d'] for dk in dsks])
     ks = np.array ([dk['k'] for dk in dsks])
     model_index = np.where(ds == ds.min())[0]
-
-    ##what if more than one? 
     
+    if (ks[model_index] >= 0) & (ks[model_index] <= 1.05):
+        return {'model' : models[model_index], 'd_model' : ds[model_index], 'k': ks[model_index]}
+    else:
+        return {'model' : 'UN', 'd_model' : ds[model_index], 'k': np.nan}
     
-    return {'model' : 'AB', 'd_model' : d, 'p_model' : self.dipl_dist['dist'].sf(d), 'k': 0}
-
 def calculate_distance_minim (ai, s_ai, cn, s_cn, model):
     
     res = opt.minimize_scalar (dist, bounds = (0,1), args = ((ai, s_ai, cn, s_cn, model)), 

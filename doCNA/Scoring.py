@@ -11,11 +11,15 @@ class Scoring:
     def __init__(self, initial_data, logger, diploid_ai_thr = 0.1) -> None:
         
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.name}')
-        self.ai_param = {}
+        
+        data_indexes = initial_data[:,0] < diploid_ai_thr
+        self.ai_param = fit_QQgauss(initial_data[: ,0][data_indexes])
         self.logger.info ('')
-        self.cn_param = {}
+        self.cn_param = fit_QQgauss(initial_data[: ,1][data_indexes])
         self.logger.info ('')
-        self.dipl_dist = {}
+        
+        ds =  ((initial_data[data_indexes,:] - np.array([m,m])/np.array([s,s]))**2).sum(axis = 1)
+        self.dipl_dist = fit_smalles_gauss (np.sqrt(ds))
         self.logger.info ('')
     
     def get_ai_dist (self):
@@ -40,7 +44,7 @@ class Scoring:
         
         if isHE:
             #it is diploid
-            model_param = {'model' : 'AB', 'd_model' : d, 'p_model' : self.dipl_dist['dist'].sf(d), 'k': 0}
+            model_param = {'model' : 'AB', 'd_model' : d, 'p_model' : self.dipl_dist['dist'].sf(d), 'k': cn/2-1}
         else:
             model_param = Models.pick_model (ai, s_ai, cn, s_cn, models)        
             model_param['p_model'] = self.dipl_dist['dist'].sf(model_param['d_model'])
