@@ -219,12 +219,10 @@ def HE_test (data, *args, **kwargs):
                         options = {'maxiter' : 2000})    
      
     if res.success:
-        #print('success', res.message)
         chi2 = res.fun
         vaf, fcov, fN, a, a1, b, le, lf = res.x    
         cov = cov_min + fcov*(cov_max-cov_min)    
     else:
-        #print('fail', res.message)
         chi2 = np.nan
         vaf = np.nan
         cov = np.nan

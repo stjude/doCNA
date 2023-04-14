@@ -97,9 +97,8 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
 
 def reporting_plot (bed_df, axs, chrom_sizes):
     chrs = chrom_sizes.index.values.tolist()
-    #chrs.sort (key = lambda x: int(x[3:]))
+
     chrs.sort(key = Consts.CHROM_ORDER.index)
-    
     start = 0
     axs[1].plot ((start, start), (0, 4), 'k:', lw = 0.5)
     axs[0].plot ((start, start), (0, 0.95), 'k:', lw = 0.5)
@@ -131,6 +130,7 @@ def reporting_plot (bed_df, axs, chrom_sizes):
     ranges = bed_df.loc[~(bed_df['k'].isnull()), ['k','m']].agg ([min, max])
     maxk = max (bed_df.loc[~(bed_df['k'].isnull()), 'k'].max(), -bed_df.loc[~(bed_df['k'].isnull()), 'k'].min())
     
+
     #axs[0].set_ylim ((-0.009, 1.01))
     axs[0].set_ylim ((-0.009,  maxk *1.1))
     axs[0].set_xlim ((-3e7, start + 3e7))
@@ -279,12 +279,14 @@ def check_solution_plot_opt (bed_df, params, ax, cent_thr = 0.3, size_thr = 1,
     bed = bed_df.loc[(bed_df['cent'] < cent_thr)&(bed_df['size'] > size_thr)]
     
     for _, b in bed.loc[bed['model'].notna(),:].iterrows():
+
         if b['chrom'] == 'chrX':
             ax.scatter (b['m'],b['ai'], c = colorsCN[b['model']], s = b['size'], edgecolor = 'w', marker = 'X')
         elif b['chrom'] == 'chrY':
             ax.scatter (b['m'],b['ai'], c = colorsCN[b['model']], s = b['size'], edgecolor = 'w', marker = 'v')
         else:
             ax.scatter (b['m'],b['ai'], c = colorsCN[b['model']], s = b['size'], edgecolor = 'w', marker = 'o')
+
 
     highlight_filter = [c in highlight for c in bed_df.chrom.tolist()]
     x = bed_df.loc[(highlight_filter), 'm'].values
