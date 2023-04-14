@@ -10,10 +10,7 @@ import pandas as pd
 import scipy.signal as sig
 from collections import defaultdict
 
-mp = {}
-mp.update (Models.model_presets_2)
-mp.update (Models.model_presets_4)
-
+mp = Models.model_presets
 
 #only useful to read in previous version models. TBR in release
 fix_model = {}
