@@ -10,7 +10,7 @@ import pandas as pd
 import scipy.signal as sig
 from collections import defaultdict
 
-mp = Models.model_presets
+#mp = Models.model_presets
 
 #only useful to read in previous version models. TBR in release
 fix_model = {}
@@ -219,18 +219,18 @@ def server(input, output, session):
     m0_opt = reactive.Value(np.nan)
     log_file = reactive.Value ([])
     bed_report = reactive.Value(pd.DataFrame())
-    model_presets = reactive.Value (mp)
+    model_presets = reactive.Value (Models.model_presets)
     
     @reactive.Effect
     @reactive.event (input.extra_models)
     def _():
-        mp = {}
-        mp.update (Models.model_presets_2)
-        mp.update (Models.model_presets_4)
-        if input.extra_models():
-            mp.update (Models.model_presets_extra)
+        #mp = 
+        #mp.update (Models.model_presets_2)
+        #mp.update (Models.model_presets_4)
+        #if input.extra_models():
+        #    mp.update (Models.model_presets_extra)
             
-        model_presets.set(mp)
+        model_presets.set(Models.model_presets)
         
     
     @output
