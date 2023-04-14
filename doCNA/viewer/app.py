@@ -429,7 +429,17 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, axs = plt.subplots (3, 1, figsize = (6,9))
                         
-            #plot_cdf (bed_data[].values, axs[0])
+            plot_cdf (bed_data['d'].values, axs[0], par = ((par_d['m_d'],),(par_d['s_d']),(1,)))
+            axs[0].set_xlabel ('distance do diploid')
+            axs[0].set_ylabel ('cdf')
+            
+            plot_cdf (bed_data['ai'].values, axs[1], par = ((par_d['m_ai'],),(par_d['s_ai']),(1,)))
+            axs[1].set_xlabel ('allelic imbalance')
+            axs[1].set_ylabel ('cdf')
+            
+            plot_cdf (bed_data['cn'].values, axs[2], par = ((par_d['m_cn'],),(par_d['s_cn']),(1,)))
+            axs[2].set_xlabel ('copy number')
+            axs[2].set_ylabel ('cdf')
             #leopard_plot (bed_data.loc[bed_data['model'] != '(AB)n'], 
             #              (par_d['A_i'][0], par_d['C_i'][0], par_d['C_i'][0]-par_d['up_i'][0]),
             #              ax, highlight = input.chroms_selected(),
