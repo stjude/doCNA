@@ -385,7 +385,7 @@ def server(input, output, session):
     @reactive.event(input.par_file)
     def _():
         file_input = input.par_file()
-        
+       
         if not file_input:
             return
         pard = {}
@@ -405,6 +405,8 @@ def server(input, output, session):
         opt_solution.set ((np.array([]), np.array([]), np.array([])))
         m0.set(float(pard['m0'][0]))
         m0_opt.set(float(pard['m0'][0]))
+    
+    
         
     @reactive.Effect
     @reactive.event(input.data_file)

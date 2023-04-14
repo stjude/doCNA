@@ -11,7 +11,28 @@ class Report:
     def __init__(self, report_t):
         self._report_type = report_t
 
-    def genome_report(self, genome):
+    def genome_report (self, genome):
+        """ Generates a report for Genome objects """
+        if self._report_type == 'bed':
+            keys = list(genome.chromosomes.keys())
+            keys.sort (key = Consts.CHROM_ORDER.index)
+            report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
+        elif self._report_type == 'params':
+            report_list = ['m0\t'+ str(genome.genome_medians['m']),
+                           'm_ai\t'+str(self.scorer.ai_param['m']),
+                           's_ai\t'+str(self.scorer.ai_param['s']),
+                           'm_cn\t'+str(self.scorer.cn_param['m']),
+                           's_ai\t'+str(self.scorer.ai_param['s']),
+                           'm_d\t' +str(self.scorer.dipl_dist['m']),
+                           's_d\t' +str(self.scorer.dipl_dist['s'])]
+                        
+            report = '\n'.join(report_list)
+        else:
+            report = ""
+        return report
+    
+    ##Remove in release
+    def genome_report_old(self, genome):
         """ Generates a report for Genome objects """
         if self._report_type == 'bed':
             keys = list(genome.chromosomes.keys())
@@ -51,6 +72,7 @@ class Report:
         else:
             report = ""     
         return report
+    ##end of remove in release
 
     def chromosome_report(self, segments, runs):
         """ Generates a report for Chromosome objects """

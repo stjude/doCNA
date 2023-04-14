@@ -18,8 +18,8 @@ class Scoring:
         self.cn_param = fit_QQgauss(initial_data[: ,1][data_indexes])
         self.logger.info ('')
         
-        ds =  ((initial_data[data_indexes,:] - np.array([m,m])/np.array([s,s]))**2).sum(axis = 1)
-        self.dipl_dist = fit_smalles_gauss (np.sqrt(ds))
+        ds =  ((initial_data[data_indexes,:] - np.array([self.ai_param['m'],self.cn_param['m']])/np.array([self.ai_param['s'],self.cn_param['s']]))**2)
+        self.dipl_dist = fit_smalles_gauss (np.sqrt(ds.sum(axis = 1)))
         self.logger.info ('')
     
     def get_ai_dist (self):
