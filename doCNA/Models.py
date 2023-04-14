@@ -114,20 +114,25 @@ def calculate_distance (preset, m, ai, m0):
     return d
 
 def pick_model (ai, s_ai, cn, s_cn, models):
-    model_labels = models.keys()
-    ds = np.array([calculate_distance_minim(ai, s_ai, cn, s_cn, model_presets[model]) for model in model_labels])
+    dsks = [calculate_distance_minim(ai, s_ai, cn, s_cn, model_presets[model]) for model in models]
+    ds = np.array ([dk['d'] for dk in dsks])
+    ks = np.array ([dk['k'] for dk in dsks])
+    model_index = np.where(ds == ds.min())[0]
 
+    ##what if more than one? 
+    
+    
     return {'model' : 'AB', 'd_model' : d, 'p_model' : self.dipl_dist['dist'].sf(d), 'k': 0}
 
-def calculate_distance_minim (ai, ci, model):
+def calculate_distance_minim (ai, s_ai, cn, s_cn, model):
     
-    res = opt.minimize_scalar (dist, bounds = (0,1), args = ((ai, ci, model)), 
+    res = opt.minimize_scalar (dist, bounds = (0,1), args = ((ai, s_ai, cn, s_cn, model)), 
                                method = 'bounded', tol = 1e-2)
     
     return {'d' : res.fun,
             'k' : res.x}
 
-def dist (k, ai, ci, model):
-    da = ai - model.ai(k,2)
-    dc = ci - model.m(k,2)
+def dist (k, ai, s_ai, cn, s_cn, model):
+    da = (ai - model.ai(k,2))/s_ai
+    dc = (cn - model.m(k,2))/s_cn
     return np.sqrt(da**2+dc**2)

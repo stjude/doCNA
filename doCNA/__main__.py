@@ -71,9 +71,6 @@ def analyze(args):
     ini = configparser.ConfigParser ()
     ini.read (args.config)
     
-    model_presets = {}
-    for model in args.models:
-        model_presets[model] = Models.model_presets[model]    
     
     sample = WGS.WGS (args.input_file,  sample_name = args.sample_name, parameters = ini,
                       no_processes = args.no_processes, models = args.models,
