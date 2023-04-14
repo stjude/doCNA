@@ -1,6 +1,6 @@
 from shiny import *
-from .Plots import * #need a dot
-#import Models
+from .Plots import * #need a dot before Plots, like this: .Plots
+
 from doCNA import Models
 from doCNA import Consts
 
@@ -104,7 +104,7 @@ app_ui = ui.page_fluid(
                                                                  ui.column(6,
                                                                            ui.row(
                                                                                   ui.h5 ('Scoring review:'),
-                                                                                  ui.output_plot ('CNV_plot'),),
+                                                                                  ui.output_plot ('scoring_plots'),),
                                                                            ui.row(
                                                                                   ui.output_plot('scoring_dists')),
                                                                            )),
@@ -422,25 +422,27 @@ def server(input, output, session):
     
     @output
     @render.plot (alt = "Scoring view")
-    def CNV_plot ():
+    def scoring_plots ():
         bed_data = bed()
         par_d = par()
         
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
-            fig, ax = plt.subplots (1, 1, figsize = (6,3))
+            fig, axs = plt.subplots (3, 1, figsize = (6,9))
+                        
+            #plot_cdf (bed_data[].values, axs[0])
+            #leopard_plot (bed_data.loc[bed_data['model'] != '(AB)n'], 
+            #              (par_d['A_i'][0], par_d['C_i'][0], par_d['C_i'][0]-par_d['up_i'][0]),
+            #              ax, highlight = input.chroms_selected(),
+            #              color_norm = 'black', color_hit = 'darkred')
+            #leopard_plot (bed_data.loc[bed_data['model'] == '(AB)n'], 
+            #              (np.nan, np.nan, np.nan),
+            #              ax, highlight = input.chroms_selected(), 
+            #              color_norm = 'gray', color_hit = 'darkorange', alpha = 0.3)
+            #ax.set_xlim ((np.log10(0.95*input.size_thr()), 
+            #              np.log10(1.05*bed_data['size'].max())))
+            #k_pos = bed_data.loc[bed_data['k'] > 0, 'k'].values
+            #ax.set_ylim ((np.log10(k_pos.min()), 0.1))  
             
-            leopard_plot (bed_data.loc[bed_data['model'] != '(AB)n'], 
-                          (par_d['A_i'][0], par_d['C_i'][0], par_d['C_i'][0]-par_d['up_i'][0]),
-                          ax, highlight = input.chroms_selected(),
-                          color_norm = 'black', color_hit = 'darkred')
-            leopard_plot (bed_data.loc[bed_data['model'] == '(AB)n'], 
-                          (np.nan, np.nan, np.nan),
-                          ax, highlight = input.chroms_selected(), 
-                          color_norm = 'gray', color_hit = 'darkorange', alpha = 0.3)
-            ax.set_xlim ((np.log10(0.95*input.size_thr()), 
-                          np.log10(1.05*bed_data['size'].max())))
-            k_pos = bed_data.loc[bed_data['k'] > 0, 'k'].values
-            ax.set_ylim ((np.log10(k_pos.min()), 0.1))  
             return fig
     
     @output

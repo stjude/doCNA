@@ -35,7 +35,7 @@ class Segment:
         self.symbol = self.symbols.index[0]
         self.logger.debug (f'Segment symbol: {self.symbol}')
         self.estimate_parameters ()
-        self.select_model ()
+        #self.select_model ()
         self.logger.debug ('Segment analyzed.')
         
     def tostring(self) -> str:

@@ -138,7 +138,6 @@ def reporting_plot (bed_df, axs, chrom_sizes):
         
     axs[0].set_ylabel ('clonality')
     axs[1].set_ylabel ('copy number')
-    
 
 def leopard_plot (bed_df, params, ax, highlight = '', color_norm = 'black', color_hit = 'darkred', alpha = 1):
     
@@ -176,53 +175,6 @@ def plot_cdf (values, ax, par = ((0,),(1,),(1,)), n = 100, a0 = 0):
     for m, s, a in zip (par[0], par[1], par[2]):
         y += a*sts.norm.cdf (x, m, s)
     ax.plot (x, a0 + y, 'r-')
-
-def chicken_feet_plot (bed_df, ax, highlight = '', k_score_column = 'k_score',
-                       max_k_score = 10, model_thr = 5,
-                       centromere_column = 'cent', centromere_thr = 0.3, size_thr = 1):
-    ks = []
-    ms = []
-    bed_tmp = bed_df.loc[(bed_df[centromere_column] < centromere_thr)&(bed_df['size'] > size_thr)]
-    for _,b in bed_tmp.loc[(~bed_tmp['k_score'].isna())].iterrows():
-        if b['k_score'] <= 0:
-            a = 0.1
-        elif b['k_score'] > max_k_score:
-            a = 1
-        else:
-            a = max(0, b[k_score_column]/max_k_score)
-            
-        s = 20+(b['end'] - b['start'])*3e-6
-        
-        if b['chrom'] == highlight:
-            ax.scatter (b['cn'], b['k'], 
-                        s = s, lw = 1.5,
-                        marker = 's',
-                        c = 'darkorange',
-                        facecolor = None)
-            
-        ax.scatter (b['cn'], b['k'], 
-                    s = s,
-                    facecolor = mcl.to_rgba(colorsCN[b['model']] , alpha = a),
-                    marker = 'o',
-                    edgecolor = mcl.to_rgba(colorsCN[b['model']]),
-                    lw = 0.5)
-        
-        
-        
-        ks.append (b['k'])
-        ms.append (b['cn'])
-        
-    
-    kmax = np.max(ks)
-    ax.plot ((2, 2), (0,kmax), 'b:')
-    k = np.linspace (0, kmax, 2)
-    ax.plot ((2+k), k, 'r:')
-    ax.plot ((2-k), k, 'g:')
-    ax.plot ((2+2*k), k, 'k:')
-    ax.plot ((2-2*k), k, 'k:')
-    
-    ax.set_xlabel ('copy number')
-    ax.set_ylabel ('clonality')
 
 def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2, max_k_score = 10):
     chromdata = data_df.loc[data_df.chrom == chrom]
