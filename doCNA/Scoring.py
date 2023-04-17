@@ -18,9 +18,10 @@ class Scoring:
         self.cn_param = fit_QQgauss(initial_data[: ,1][data_indexes])
         self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
         
-        ds =  ((initial_data[data_indexes,:] - np.array([self.ai_param['m'],self.cn_param['m']][np.newaxis, :])/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :])**2)
-        print (ds)
-        self.dipl_dist = fit_smallest_gauss (np.sqrt(ds.sum(axis = 1)))
+        dds =  initial_data[data_indexes,:] - np.array([self.ai_param['m'],self.cn_param['m']+2][np.newaxis, :])
+        ds = dds/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :]
+        
+        self.dipl_dist = fit_smallest_gauss (np.sqrt((ds**2).sum(axis = 1)))
         self.logger.info (f"Distribution of distance to : m = {self.dipl_dist['m']}, s = {self.dipl_dist['s']}")
     
     def get_ai_dist (self):
@@ -68,14 +69,15 @@ def fit_QQgauss (values, fit_intercept = True):
 def fit_smallest_gauss (values):
     current_values = np.sort(values)
     thr = current_values.max()+1
-    #previous_thr = thr + 1    
+    previous_thr = thr + 1    
     
     
     while (previous_thr > thr):
         current_values = current_values[current_values < thr]
+        
         popt, pcov = opt.curve_fit (sts.norm.cdf, current_values, np.linspace (0,1,len(current_values)),
-                                    p0 = [0,0.01])
+                                    p0 = [np.mean (current_values), np.std (current_values)])
         previous_thr = thr
         thr = sts.norm.ppf (1-1/(5*len(current_values)), *popt)
-    
+        
     return {'m': popt[0], 's' : popt[1], 'thr' : thr, 'alpha' : 1/(5*len(current_values))}

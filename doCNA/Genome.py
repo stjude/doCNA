@@ -255,7 +255,14 @@ class Genome:
         #self.score_clonality (size_thr = Consts.SIZE_THR, model_thr = Consts.MODEL_THR,
         #                      dalpha = Consts.DSCORE_ALPHA, kalpha = Consts.KSCORE_ALPHA,
         #                      k_thr = Consts.K_THR)
-        data_for_scoring = np.array([(s.parameters['ai'], 2*s.parameters['m']/self.genome_medians['m0']-2) for s in self.all_segments])
+        
+        self.segment_filter = [((s.end - s.start)/1e6 > Consts.SIZE_THR) &\
+                                (s.cent < Consts.CENTROMERE_THR) &\
+                                (s.ai < Consts.DIPLOID_AI_THR)    for s in self.all_segments] 
+        
+        self.segments = [self.all_segments[i] for i in np.where(self.segment_filter)[0]]
+        
+        data_for_scoring = np.array([(s.parameters['ai'], 2*s.parameters['m']/self.genome_medians['m0']-2) for s in self.segments])
         self.scorer = Scoring.Scoring (data_for_scoring, self.logger, diploid_ai_thr = Consts.DIPLOID_AI_THR)
         for seg in self.all_segments():
             self.scorer.analyze_segment(seg, self.models)
