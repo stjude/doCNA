@@ -84,14 +84,16 @@ class Run:
                           z_thr = Consts.AI_SENSITIVE_Z):
         
         s0 = np.sqrt (0.25/self.genome_medians['m0'])
-
+        fB = cov_mult
+        
         vafs = []
         wides = []
         for window in self.windows:
             vafs.append (np.sort(window['vaf'].values))
-            wides.append (get_wide (vafs[-1], s0)[0])  
+            wides.append (get_wide (vafs[-1], s0, fB, zero_thr)[0])  
+            fB = wides[-1]
             
-        fB = np.percentile (wides, 100*zero_thr)
+        #fB = np.percentile (wides, 100*zero_thr)
         s = s0/np.sqrt(fB)
         
         dvl = []
@@ -297,10 +299,15 @@ class Run:
     def __repr__(self) -> str:
         return self.tostring()
         
-def get_wide (vafs, s, fB):
-    dv,  = get_shift (vafs, s)
-    
-    return #fB, ai
+def get_wide (vafs, s0, fB, zero_thr):
+    s = s0/np.sqrt (fB)
+    dv, _ = get_shift (vafs, s)
+    while dv < zero_thr:
+        fB += 0.01
+        s = s0/np.sqrt (fB)
+        dv, _ = get_shift (vafs, s)
+        
+    return fB, dv
 
 def get_shift (v, s):
     
