@@ -20,7 +20,7 @@ class Scoring:
         self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
         
         print (initial_data[data_indexes,:])
-        dds =  initial_data[data_indexes,:] - np.array([self.ai_param['m'], self.cn_param['m']+2])[np.newaxis, :]
+        dds =  initial_data[data_indexes,:] - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
         ds = dds/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :]
         
         self.dipl_dist = fit_smallest_gauss (np.sqrt((ds**2).sum(axis = 1)))
