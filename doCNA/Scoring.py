@@ -72,7 +72,8 @@ def fit_smallest_gauss (values):
     
     while (previous_thr > thr):
         current_values = current_values[current_values < thr]
-        popt, pcov = opt.curve_fit (sts.norm.cdf, current_values, np.linspace (0,1,len(current_values)))
+        popt, pcov = opt.curve_fit (sts.norm.cdf, current_values, np.linspace (0,1,len(current_values)),
+                                    p0 = [0,0.01])
         previous_thr = thr
         thr = sts.norm.ppf (1-1/(5*len(current_values)), *popt)
     

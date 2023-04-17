@@ -8,7 +8,7 @@ from doCNA import Distribution
 from doCNA import Segment
 from doCNA import Run
 from doCNA import Consts
-from doCNA.Report import Report
+from doCNA import Report
 
 Run_treshold =  namedtuple('Run_treshold', [Consts.N_SYMBOL, Consts.E_SYMBOL])
 
