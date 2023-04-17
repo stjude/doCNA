@@ -30,7 +30,7 @@ class Testing:
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.test.__name__}')
         self.logger.debug (f'Object {self.test.__name__} created.')
         
-    def run_test (self, *args, no_processes = 1, exclude_symbol = []):
+    def run_test (self, *args, no_processes = 1, exclude_symbol = [], **kwargs):
         """
         Method that runs test
         """        
@@ -169,6 +169,23 @@ def Q (p,l):
 def lambda_cdf (p, m, lam):
     return Q (p, lam)*np.sqrt(m)+m
 
+
+def HE_test_new (data, *args, **kwargs):
+    cov_perc_bounds = Consts.HE_COV_PERC_BOUNDS if 'cov_perc_bounds' not in kwargs else kwargs['cov_perc_bounds']
+    vaf_bounds = Consts.HE_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds']
+    fcov_bounds = Consts.HE_FCOV_BOUNDS if 'fcov_bounds' not in kwargs else kwargs['fcov_bounds']
+    fN_bounds = Consts.HE_FN_BOUNDS if 'fN_bounds' not in kwargs else kwargs['fN_bounds']
+    a_bounds = Consts.HE_A_BOUNDS if 'a_bounds' not in kwargs else kwargs['a_bounds']
+    aN_bounds = Consts.HE_AN_BOUNDS if 'aN_bounds' not in kwargs else kwargs['aN_bounds']
+    b_bounds = Consts.HE_B_BOUNDS if 'b_bounds' not in kwargs else kwargs['b_bounds']
+    lerr_bounds = Consts.HE_LERR_BOUNDS if 'lerr_bounds' not in kwargs else kwargs['lerr_bounds']   
+    
+    cov_min, cov_max = np.percentile (data['cov'].values, q = cov_perc_bounds)
+    
+    
+    return #HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
+
+
 def HE_test (data, *args, **kwargs):
     
     cov_perc_bounds = Consts.HE_COV_PERC_BOUNDS if 'cov_perc_bounds' not in kwargs else kwargs['cov_perc_bounds']
@@ -201,7 +218,7 @@ def HE_test (data, *args, **kwargs):
         return chi2/len(counts)
 
     cov_min, cov_max = np.percentile (data['cov'].values, q = cov_perc_bounds)
-   
+    
     counts = []
     for c in np.arange (int(cov_min), int(cov_max+1)):
         d = data.loc[data['cov'] == c]
