@@ -10,7 +10,7 @@ from doCNA import Models
 class Scoring:
     def __init__(self, initial_data, logger, diploid_ai_thr = 0.1) -> None:
         
-        self.logger = logger.getChild (f'{self.__class__.__name__}-{self.name}')
+        self.logger = logger.getChild (f'{self.__class__.__name__}')
         
         data_indexes = initial_data[:,0] < diploid_ai_thr
         self.ai_param = fit_QQgauss(initial_data[: ,0][data_indexes])
