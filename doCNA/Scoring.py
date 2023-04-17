@@ -24,7 +24,7 @@ class Scoring:
         ds = dds/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :]
         
         self.dipl_dist = fit_smallest_gauss (np.sqrt((ds**2).sum(axis = 1)))
-        self.logger.info (f"Distribution of distance to : m = {self.dipl_dist['m']}, s = {self.dipl_dist['s']}")
+        self.logger.info (f"Distribution of distance to diploid (0,2): m = {self.dipl_dist['m']}, s = {self.dipl_dist['s']}")
     
     def get_ai_dist (self):
         return self.ai_param

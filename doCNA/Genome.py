@@ -264,7 +264,7 @@ class Genome:
         
         data_for_scoring = np.array([(s.parameters['ai'], 2*s.parameters['m']/self.genome_medians['m0']-2) for s in self.segments])
         self.scorer = Scoring.Scoring (data_for_scoring, self.logger, diploid_ai_thr = Consts.DIPLOID_AI_THR)
-        for seg in self.all_segments():
+        for seg in self.all_segments:
             self.scorer.analyze_segment(seg, self.models)
 
     def score_model_distance (self):
