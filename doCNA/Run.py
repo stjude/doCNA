@@ -80,7 +80,33 @@ class Run:
         else:
             self.get_ai_full()
     
-      
+    def get_ai_sensitive_new (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
+                          z_thr = Consts.AI_SENSITIVE_Z):
+        
+        s0 = np.sqrt (0.25/self.genome_medians['m0'])
+
+        vafs = []
+        wides = []
+        for window in self.windows:
+            vafs.append (np.sort(window['vaf'].values))
+            wides.append (get_wide (vafs[-1], s0)[0])  
+            
+        fB = np.percentile (wides, 100*zero_thr)
+        s = s0/np.sqrt(fB)
+        
+        dvl = []
+        v0l = []
+        for v in vafs:
+            popt, _ = get_shift (v, s)
+            dvl.append (popt[0])
+            v0l.append (popt[1])
+                        
+        self.dv = np.array(dvl)
+        self.v0 = np.array (v0l)
+        self.dv_dist = Distribution.Distribution (self.dv, p_thr = p_thr, thr_z = z_thr)
+        self.logger.debug ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult-0.01))
+        self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: {self.dv_dist.parameters['m']}.")  
+    
     def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
                           z_thr = Consts.AI_SENSITIVE_Z):
         tmpf = 1
@@ -271,8 +297,21 @@ class Run:
     def __repr__(self) -> str:
         return self.tostring()
         
-def get_wide (vafs, s0):
+def get_wide (vafs, s, fB):
+    dv,  = get_shift (vafs, s)
+    
     return #fB, ai
+
+def get_shift (v, s):
+    
+    def two_gauss (v, dv, v0, a):
+        return a*sts.norm.cdf (v, v0 - dv, s) + (1-a)*sts.norm.cdf (v, v0 + dv, s)
+
+    popt, _ = opt.curve_fit (two_gauss, np.sort(v), np.linspace (0,1,len(v)),
+                             p0 = [0.01,0.5, 0.5],
+                             bounds = ((0, 0.4, 0.3),(0.5, 0.6, 0.7)))
+            
+    return popt[0], popt[1]
 
 def get_norm_p (values, sinit = 0.05):
     """Tests if normally distributed around zero."""
