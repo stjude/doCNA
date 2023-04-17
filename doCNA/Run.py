@@ -80,6 +80,53 @@ class Run:
         else:
             self.get_ai_full()
         
+    def get_ai_sensitive_new (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
+                          z_thr = Consts.AI_SENSITIVE_Z):
+        tmpf = 1
+        s0 = np.sqrt (0.25/self.genome_medians['m0'])
+        
+        vafs = []
+        dvl = []
+        v0l = []
+        
+        def make_two_gauss (v, dv, v0, a):
+            return a*sts.norm.cdf (v, v0 - dv, s) + (1-a)*sts.norm.cdf (v, v0 + dv, s)
+        
+        for window in self.windows:
+            #vafs.append(np.sort(window['vaf'].values))
+            v,c = np.unique(window['vaf'].values, return_counts = True)
+            
+        
+        
+        while tmpf > zero_thr:
+            dvl = []
+            v0l = []
+            s = s0/np.sqrt(cov_mult)
+            def make_two_gauss (v, dv, v0, a):
+                #a = 0.5
+                return a*sts.norm.cdf (v, v0 - dv, s) + (1-a)*sts.norm.cdf (v, v0 + dv, s)
+            
+            for vaf in vafs:
+                
+                popt, pcov = opt.curve_fit (make_two_gauss, np.sort(vaf), np.linspace (0,1, len(vaf)),
+                                            p0 = [0.05, 0.5, 0.5],
+                                            bounds = ((0, 0.4, 0.3),(0.5, 0.6, 0.7)))
+                
+                dvl.append (popt[0])
+                v0l.append (popt[1])
+        
+            tmpf = sum ([d < zero_thr for d in dvl])/len (dvl)
+            cov_mult += 0.01
+            
+        self.dv = np.array(dvl)
+        self.v0 = np.array (v0l)
+        self.dv_dist = Distribution.Distribution (self.dv, p_thr = p_thr, thr_z = z_thr)
+        self.logger.debug ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult-0.01))
+        self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: {self.dv_dist.parameters['m']}.")        
+    
+    
+    
+    
     def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
                           z_thr = Consts.AI_SENSITIVE_Z):
         tmpf = 1

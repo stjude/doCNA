@@ -18,7 +18,8 @@ class Scoring:
         self.cn_param = fit_QQgauss(initial_data[: ,1][data_indexes])
         self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
         
-        ds =  ((initial_data[data_indexes,:] - np.array([self.ai_param['m'],self.cn_param['m']])/np.array([self.ai_param['s'],self.cn_param['s']]))**2)
+        ds =  ((initial_data[data_indexes,:] - np.array([self.ai_param['m'],self.cn_param['m']][np.newaxis, :])/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :])**2)
+        print (ds)
         self.dipl_dist = fit_smallest_gauss (np.sqrt(ds.sum(axis = 1)))
         self.logger.info (f"Distribution of distance to : m = {self.dipl_dist['m']}, s = {self.dipl_dist['s']}")
     
@@ -60,14 +61,14 @@ class Scoring:
     
 def fit_QQgauss (values, fit_intercept = True):
     x = sts.norm.ppf (np.linspace (0,1,len(values)+2)[1:-1])
-    huber = slm.HuberRegressor (fit_intercept = True)
+    huber = slm.HuberRegressor (fit_intercept = fit_intercept)
     huber.fit (x[:, np.newaxis], np.sort(values))
     return {'m' : huber.intercept_, 's' : huber.coef_[0]}
     
 def fit_smallest_gauss (values):
     current_values = np.sort(values)
     thr = current_values.max()+1
-    previous_thr = thr + 1    
+    #previous_thr = thr + 1    
     
     
     while (previous_thr > thr):
