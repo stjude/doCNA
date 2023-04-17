@@ -183,13 +183,45 @@ def HE_test_new (data, *args, **kwargs):
     cov_min, cov_max = np.percentile (data['cov'].values, q = cov_perc_bounds)
     n = np.concatenate ([np.repeat(c, c+1) for c in np.arange (cov_min, cov_max +1)])
     a = np.concatenate ([np.arange(0, c+1) for c in np.arange (cov_min, cov_max +1)])
+    c = np.zeros_like (a)
     
     data_of_interest = data.loc[(data['cov'] >= cov_min)&(data['cov'] <= cov_max)]
     counts = data_of_interest.groupby (by = ['cov', 'alt_count'])['chrom'].count()
     #this should run one time, so much quicker
-    #for i in 
+    for i in np.arange(len(n)):
+        try:
+            c[i] = counts[(n[i],a[i])]
+        except IndexError:
+            pass
+        
+    res = opt.minimize (chi2_new, x0 = (0.5, fcov, 0.5,0.75, aN, 1.3, 6, 6), args = (counts, N),
+                        bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
+                        options = {'maxiter' : 2000})
     
     return #HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
+
+def chi2_new (params, n, a, c, N):
+        vaf, fcov, fN, a, aN, b, le, lf = params
+        fe = 10**(-le)
+        ff = 10**(-lf)
+        cs = np.arange (0, cov_max +1)
+        cov = cov_min + fcov*(cov_max-cov_min)
+        ns = 2*fN*N*cn2_cov_pdf (cs, cov, b)
+        
+        #ct = np.concatenete ()
+        
+        chi2 = ((c - ct)**2/np.sqrt(c*c+1)).sum()/len(n)
+        
+        #for c, cnt, in counts:
+        #    i = np.arange(0,c+1)
+        #    nhe = ns[c]*cn2_vaf_pdf (i/c,vaf,c)
+        #    nho = ns[c]*HO_vaf_pdf (i, c, fe ,b)
+        #    nno = ns[c]*NO_vaf_pdf (i, c, ff, b)
+            
+        #    na = a*nhe + (1-a -aN)*nho+ aN*nno
+            
+        #    chi2 += sum((cnt - na)**2/np.sqrt(na*na+1))/c 
+        return chi2#/len(counts)
 
 
 def HE_test (data, *args, **kwargs):
