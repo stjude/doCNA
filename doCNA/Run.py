@@ -80,7 +80,7 @@ class Run:
         else:
             self.get_ai_full()
     
-    def get_ai_sensitive_new (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
+    def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
                           z_thr = Consts.AI_SENSITIVE_Z):
         
         s0 = np.sqrt (0.25/self.genome_medians['m0'])
@@ -109,7 +109,7 @@ class Run:
         self.logger.debug ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult-0.01))
         self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: {self.dv_dist.parameters['m']}.")  
     
-    def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
+    def get_ai_sensitive_old (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
                           z_thr = Consts.AI_SENSITIVE_Z):
         tmpf = 1
         s0 = np.sqrt (0.25/self.genome_medians['m0'])
