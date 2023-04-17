@@ -19,7 +19,7 @@ class Scoring:
         self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
         
         ds =  ((initial_data[data_indexes,:] - np.array([self.ai_param['m'],self.cn_param['m']])/np.array([self.ai_param['s'],self.cn_param['s']]))**2)
-        self.dipl_dist = fit_smalles_gauss (np.sqrt(ds.sum(axis = 1)))
+        self.dipl_dist = fit_smallest_gauss (np.sqrt(ds.sum(axis = 1)))
         self.logger.info (f"Distribution of distance to : m = {self.dipl_dist['m']}, s = {self.dipl_dist['s']}")
     
     def get_ai_dist (self):
@@ -64,11 +64,13 @@ def fit_QQgauss (values, fit_intercept = True):
     huber.fit (x[:, np.newaxis], np.sort(values))
     return {'m' : huber.intercept_, 's' : huber.coef_[0]}
     
-def fit_smalles_gauss (values):
+def fit_smallest_gauss (values):
     current_values = np.sort(values)
     thr = current_values.max()+1
     previous_thr = thr + 1    
-    while (previous_thr > thr) | ():
+    
+    
+    while (previous_thr > thr):
         current_values = current_values[current_values < thr]
         popt, pcov = opt.curve_fit (sts.norm.cdf, current_values, np.linspace (0,1,len(current_values)))
         previous_thr = thr
