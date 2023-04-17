@@ -257,7 +257,7 @@ class Genome:
         #                      k_thr = Consts.K_THR)
         
         self.segment_filter = [((s.end - s.start)/1e6 > Consts.SIZE_THR) &\
-                                (s.cent < Consts.CENTROMERE_THR) &\
+                                (s.centromere_fraction < Consts.CENTROMERE_THR) &\
                                 (s.ai < Consts.DIPLOID_AI_THR)    for s in self.all_segments] 
         
         self.segments = [self.all_segments[i] for i in np.where(self.segment_filter)[0]]

@@ -79,8 +79,8 @@ class Run:
             self.get_ai_sensitive()
         else:
             self.get_ai_full()
-        
     
+      
     def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
                           z_thr = Consts.AI_SENSITIVE_Z):
         tmpf = 1
@@ -271,6 +271,9 @@ class Run:
     def __repr__(self) -> str:
         return self.tostring()
         
+def get_wide (vafs, s0):
+    return #fB, ai
+
 def get_norm_p (values, sinit = 0.05):
     """Tests if normally distributed around zero."""
     def cdf(x,s):
