@@ -56,10 +56,10 @@ class Scoring:
     
     def analyze_segment (self, segment, models):
         """Convenience wrapper for Segment"""
-        ai = segment.params['ai']
-        m = segment.params['m']
+        ai = segment.parameters['ai']
+        m = segment.parameters['m']
         m0 = self.genome_medians['m0']      
-        segment.params.update (self.score_dipl(ai,m,m0,models))
+        segment.parameterss.update (self.score_dipl(ai,m,m0,models))
 
     
 def fit_QQgauss (values, fit_intercept = True):
