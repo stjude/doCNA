@@ -41,15 +41,17 @@ class Scoring:
         s_ai = self.ai_param['s']
         s_cn = self.cn_param['s']
         d = np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
-        p_d = sts.norm.sf (d, self.dipl_dist['m'], self.dipl_dist['s'])
+        #p_d = sts.norm.sf (d, self.dipl_dist['m'], self.dipl_dist['s'])
         isHE = d < self.dipl_dist['thr']
         
         if isHE:
             #it is diploid
-            model_param = {'model' : 'AB', 'd_model' : d, 'p_model' : self.dipl_dist['dist'].sf(d), 'k': cn/2-1}
+            model_param = {'model' : 'AB', 'd_model' : d, 
+                           'p_model' : sts.norm.sf(d, self.dipl_dist['m'], self.dipl_dist['s']),
+                           'k': cn/2-1}
         else:
             model_param = Models.pick_model (ai, s_ai, cn, s_cn, models)        
-            model_param['p_model'] = self.dipl_dist['dist'].sf(model_param['d_model'])
+            model_param['p_model'] = sts.norm.sf(model_param['d_model'], self.dipl_dist['m'], self.dipl_dist['s'])
         return model_param
     
     def analyze_segment (self, segment, models):

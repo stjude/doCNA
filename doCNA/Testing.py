@@ -194,9 +194,9 @@ def HE_test_new (data, *args, **kwargs):
         except IndexError:
             pass
         
-    res = opt.minimize (chi2_new, x0 = (0.5, fcov, 0.5,0.75, aN, 1.3, 6, 6), args = (counts, N),
-                        bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
-                        options = {'maxiter' : 2000})
+    #res = opt.minimize (chi2_new, x0 = (0.5, fcov, 0.5,0.75, aN, 1.3, 6, 6), args = (counts, N),
+    #                    bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
+    #                    options = {'maxiter' : 2000})
     
     return #HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
 
@@ -204,11 +204,11 @@ def chi2_new (params, n, a, c, N):
         vaf, fcov, fN, a, aN, b, le, lf = params
         fe = 10**(-le)
         ff = 10**(-lf)
-        cs = np.arange (0, cov_max +1)
-        cov = cov_min + fcov*(cov_max-cov_min)
-        ns = 2*fN*N*cn2_cov_pdf (cs, cov, b)
+        #cs = np.arange (0, cov_max +1)
+        #cov = cov_min + fcov*(cov_max-cov_min)
+        #ns = 2*fN*N*cn2_cov_pdf (cs, cov, b)
         
-        #ct = np.concatenete ()
+        ct = np.concatenete ()
         
         chi2 = ((c - ct)**2/np.sqrt(c*c+1)).sum()/len(n)
         
