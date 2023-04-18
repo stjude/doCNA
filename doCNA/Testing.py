@@ -198,7 +198,7 @@ def HE_test_new (data, *args, **kwargs):
     aH = len(data.loc[(data['vaf'] > 0.1)&(data['vaf'] < 0.9)])/len(data)
     aN = len(data.loc[(data['vaf'] > 0.9)])/len(data)
     
-    res = opt.minimize (chi2_new, x0 = (0.5, fcov, 1.0, aH, aN, 1.3, 6, 6), args = (n,a,c,N),
+    res = opt.minimize (chi2_new, x0 = (0.5, fcov, 1.0, aH, aN, 1.3, 6, 6), args = (n,a,c, c.sum()),
                         bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
                         options = {'maxiter' : 2000})
     

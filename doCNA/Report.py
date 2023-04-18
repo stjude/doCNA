@@ -94,11 +94,15 @@ class Report:
             #        k = np.nan
             #else:
             
-            report = '\t'.join([str(p) for p in [segment.chrom, segment.start, segment.end,
-                                                 segment.parameters['ai'], segment.parameters['p_ai'],
+            report = '\t'.join([str(p) for p in [segment.chrom, 
+                                                 segment.start,
+                                                 segment.end,
+                                                 segment.parameters['ai'], 
+                                                 segment.parameters['p_ai'],
                                                  segment.parameters['m'],
                                                  2*segment.parameters['m']/segment.genome_medians['m0'],
-                                                 segment.parameters['model'], segment.parameters['d_model'], 
+                                                 segment.parameters['model'], 
+                                                 segment.parameters['d_model'], 
                                                  segment.parameters['p_model'],
                                                  segment.parameters['k'], 
                                                  segment.segmentation_symbol, 

@@ -194,16 +194,16 @@ def server(input, output, session):
     bed_report = reactive.Value(pd.DataFrame())
     model_presets = reactive.Value (Models.model_presets)
     
-    @reactive.Effect
-    @reactive.event (input.all_models)
-    def _():
-        if input.all_models():
-            model_presets.set(Models.model_presets)
-        else:
-            mp = {}
-            for m in par()['models']:
-                mp[m] = Models.model_presets[m]
-            model_presets.set (mp)
+    #@reactive.Effect
+    #@reactive.event (input.all_models)
+    #def _():
+    #    if input.all_models():
+    #        model_presets.set(Models.model_presets)
+    #    else:
+    #        mp = {}
+    #        for m in par()['models']:
+    #            mp[m] = Models.model_presets[m]
+    #        model_presets.set (mp)
         
     @output
     @render.text
@@ -262,8 +262,9 @@ def server(input, output, session):
         if not file_input:
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
-                   names = ['chrom', 'start', 'end', 'ai','p_ai', 'm', 'cn','model', 'd', 'model_score',
-                            'k', 'k_score','dd', 'cyto', 'cent', 'status_d', 'status'])
+                   names = ['chrom', 'start', 'end', 'ai','p_ai', 'm', 'cn',
+                            'model', 'd_model', 'p_model',
+                            'k', 'symbol', 'cyto', 'cent'])
         
         df['size'] = (df['end'] - df['start'])/1e6
         
@@ -285,70 +286,66 @@ def server(input, output, session):
             #bed_full.set(tmp)
             bed.set (tmp.loc[tmp.filt])
     
-    @reactive.Effect
-    @reactive.Calc
-    def _():
-        bf = bed_full()    
-        b = bed()
-        if (len(bf) != 0) & (len(b) != 0):
-            chrs = chrom_sizes().index.values.tolist()
-            #chrs.sort (key = lambda x: int(x[3:]))
-            chrs.sort (key = Consts.CHROM_ORDER.index)
-            merged_segments = []
-            for chrom in chrs: #
-                segments = bf.loc[bf.chrom == chrom] #, segments in bf.groupby (by = 'chrom'):
-                data = segments.sort_values (by = 'start', ignore_index = True)
-                
-                seg_iter = data.itertuples()
-                
-                to_merge = [next(seg_iter)]
-                
-                try:
-                    while not to_merge[-1].filt:
-                        to_merge.append (next(seg_iter))
-                except:
-                    pass
-                current_record = to_merge[-1]
-                
-                last_action = 'merge' 
-                while True:
-                    try:
-                        
-                        next_record = next(seg_iter)
-                        while not next_record.filt:
-                            
-                            to_merge.append (next_record)
-                            next_record = next(seg_iter)
-                        
-                        if (current_record.status == next_record.status)&\
-                                 (current_record.model == next_record.model):
-                            if (current_record.status == 'norm'):
-                           
-                                to_merge.append(next_record)
-                                last_action = 'merge'
-                            elif (current_record.model == next_record.model)&\
-                                 np.abs(((current_record.k-next_record.k)/current_record.k) < 0.1):
-                                to_merge.append(next_record)
-                                last_action = 'merge'
-                        
-                        else: 
-                            
-                            merged_segments.append(merge_records(to_merge, chrom))
-                            to_merge = [next_record]
-                            current_record = next_record
-                            last_action = 'no merge'
-                    except StopIteration:
-                        break
-                
-               
-                
-                     
-                if last_action == 'no merge':
-                    merged_segments.append(merge_records(to_merge, chrom))
-                
-                
-            bed_report.set(pd.DataFrame.from_records (merged_segments,
-                                                      columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto', 'score']))
+    #@reactive.Effect
+    #@reactive.Calc
+    #def _():
+    #    bf = bed_full()    
+    #    b = bed()
+    #    if (len(bf) != 0) & (len(b) != 0):
+    #        chrs = chrom_sizes().index.values.tolist()
+    #        #chrs.sort (key = lambda x: int(x[3:]))
+    #        chrs.sort (key = Consts.CHROM_ORDER.index)
+    #        merged_segments = []
+    #        for chrom in chrs: #
+    #            segments = bf.loc[bf.chrom == chrom] #, segments in bf.groupby (by = 'chrom'):
+    #            data = segments.sort_values (by = 'start', ignore_index = True)
+    #            
+    #            seg_iter = data.itertuples()
+    #            
+    #            to_merge = [next(seg_iter)]
+    #            
+    #            try:
+    #                while not to_merge[-1].filt:
+    #                    to_merge.append (next(seg_iter))
+    #            except:
+    #                pass
+    #            current_record = to_merge[-1]
+    #            
+    #            last_action = 'merge' 
+    #            while True:
+    #                try:
+    #                    
+    #                    next_record = next(seg_iter)
+    #                    while not next_record.filt:
+    #                        
+    #                        to_merge.append (next_record)
+    #                        next_record = next(seg_iter)
+    #                    
+    #                    if (current_record.status == next_record.status)&\
+    #                             (current_record.model == next_record.model):
+    #                        if (current_record.status == 'norm'):
+    #                       
+    #                            to_merge.append(next_record)
+    #                            last_action = 'merge'
+    #                        elif (current_record.model == next_record.model)&\
+    #                             np.abs(((current_record.k-next_record.k)/current_record.k) < 0.1):
+    #                            to_merge.append(next_record)
+    #                            last_action = 'merge'
+    #                    
+    #                    else: 
+    #                        
+    #                        merged_segments.append(merge_records(to_merge, chrom))
+    #                        to_merge = [next_record]
+    #                        current_record = next_record
+    #                        last_action = 'no merge'
+    #                except StopIteration:
+    #                    break
+    #                 
+    #            if last_action == 'no merge':
+    #                merged_segments.append(merge_records(to_merge, chrom))
+    #            
+    #        bed_report.set(pd.DataFrame.from_records (merged_segments,
+    #                                                  columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto', 'score']))
     
     @reactive.Effect
     @reactive.event(input.par_file)
@@ -394,7 +391,6 @@ def server(input, output, session):
         if  len(bed_data):
             fig, axs = plt.subplots (3, 1, figsize = (16,6), sharex = True)
             meerkat_plot (bed_data, axs, chrom_sizes(),
-                          max_k_score = input.k_max(),
                           model_thr = input.model_thr())
             
             for model in model_presets().keys():

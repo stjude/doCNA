@@ -24,9 +24,8 @@ colorsCN['NA'] = 'lightskyblue'
     
     
 
-def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
+def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5):
     chrs = chrom_sizes.index.values.tolist()
-    #chrs.sort (key = lambda x: int(x[3:]))
     chrs.sort (key = Consts.CHROM_ORDER.index)
     start = 0
     axs[1].plot ((start, start), (0, 4), 'k:', lw = 0.5)
@@ -36,36 +35,18 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
    
     for chrom in chrs:
         for _, b in bed_df.loc[bed_df['chrom'] == chrom].iterrows():
-            try:
-                if b['k_score'] <= 0:
-                    a = 0.1
-                elif b['k_score'] > max_k_score:
-                    a = 1
-                else:
-                    a = 0.1 + 0.9*b['k_score']/max_k_score
-                    
-                if b['model_score'] < model_thr:
-                    color = colorsCN[b['model']]
-                else:
-                    color = 'yellow'
-                k = np.abs(b['k'])
-            except:
-                color = 'lightskyblue'
-                a = 0.1
-                k = 1.1
-            
-            if np.isnan (b['k'])|np.isnan(a):
-                a = 1
-                k = 1.1
-                color = 'red' #colorsCN[b['model']]
-                
-            axs[0].fill_between ((start + b['start'], start + b['end']), (k, k), color = color, alpha = a)
-            axs[1].fill_between (x = (start + b['start'], start + b['end']), y1 = (b['cn'], b['cn']), y2 = (2, 2), color = color, alpha = a)
-            if b['model'] != '(AB)n':
-                axs[2].fill_between ((start + b['start'], start + b['end']), (b['k_score'], b['k_score']), color = color, alpha = a)
+            if b['p_model'] < model_thr:
+                color = colorsCN[b['model']]
             else:
-                axst.fill_between ((start + b['start'], start + b['end']), (b['k_score'], b['k_score']), color = color, alpha = a)
+                color = 'yellow'
+                
+            axs[0].fill_between ((start + b['start'], start + b['end']),
+                                 (b['k'], b['k']), color = color)
+            axs[1].fill_between (x = (start + b['start'], start + b['end']),
+                                 y1 = (b['cn'], b['cn']), y2 = (2, 2), color = color)
             
+            axs[2].fill_between ((start + b['start'], start + b['end']), 
+                                     (b['score_HE'], b['score_HE']), color = color)
                 
                 
         end = chrom_sizes[chrom]#bed_df.loc[bed_df['chrom'] == chrom, 'end'].max()
@@ -80,7 +61,7 @@ def meerkat_plot (bed_df, axs, chrom_sizes, max_k_score = 10, model_thr = 5):
         
     axs[1].plot ((0, start), (2, 2), 'k--', lw = 1)        
     
-    ranges = bed_df.loc[~(bed_df['k'].isnull()), ['k','m']].agg ([min, max])
+    #ranges = bed_df.loc[~(bed_df['k'].isnull()), ['k','m']].agg ([min, max])
     maxk = max (bed_df.loc[~(bed_df['k'].isnull()), 'k'].max(), -bed_df.loc[~(bed_df['k'].isnull()), 'k'].min())
     
     #axs[0].set_ylim ((-0.009, 1.01))
