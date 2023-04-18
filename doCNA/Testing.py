@@ -193,6 +193,8 @@ def HE_test_new (data, *args, **kwargs):
             c[i] = counts[(n[i],a[i])]
         except IndexError:
             pass
+    
+    c = c/c.sum()
         
     #res = opt.minimize (chi2_new, x0 = (0.5, fcov, 0.5,0.75, aN, 1.3, 6, 6), args = (counts, N),
     #                    bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),

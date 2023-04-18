@@ -234,7 +234,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         self.logger.info (f'N runs: {self.Nruns}')
     
     def report (self, report_type = 'bed'):
-        return Report(report_type).chromosome_report(self.segments, self.runs)
+        return Report.Report(report_type).chromosome_report(self.segments, self.runs)
 
 def vaf_cnai (v, dv, a, vaf,b, cov):
     s = np.sqrt((vaf - dv)*(vaf + dv)/(b*cov))

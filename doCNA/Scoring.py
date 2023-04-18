@@ -59,7 +59,11 @@ class Scoring:
         ai = segment.parameters['ai']
         m = segment.parameters['m']
         m0 = segment.genome_medians['m0']      
-        segment.parameters.update (self.score_dipl(ai,m,m0,models))
+        try:
+            segment.parameters.update (self.score_dipl(ai,m,m0,models))
+        except IndexError:
+            segment.parameters.update ({'model' : 'UN', 'd_model' : np.nan,
+                                        'k': np.nan, 'p_model' : np.nan})
 
     
 def fit_QQgauss (values, fit_intercept = True):
