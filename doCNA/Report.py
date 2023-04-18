@@ -22,7 +22,7 @@ class Report:
                            'm_ai\t'+str(genome.scorer.ai_param['m']),
                            's_ai\t'+str(genome.scorer.ai_param['s']),
                            'm_cn\t'+str(genome.scorer.cn_param['m']),
-                           's_ai\t'+str(genome.scorer.ai_param['s']),
+                           's_ai\t'+str(genome.scorer.cn_param['s']),
                            'm_d\t' +str(genome.scorer.dipl_dist['m']),
                            's_d\t' +str(genome.scorer.dipl_dist['s']),
                            'models\t'+str(genome.models)]

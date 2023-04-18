@@ -50,7 +50,7 @@ class Scoring:
                            'score_HE' : -np.log10(p_d), 'p_model' : p_d,
                            'k': cn/2-1}
         else:
-            model_param = Models.pick_model (ai, s_ai, cn, s_cn, models)        
+            model_param = Models.pick_model (ai, 1, cn, 1, models)        
             model_param['p_model'] = sts.norm.sf(model_param['d_model'], self.dipl_dist['m'], self.dipl_dist['s'])
             model_param['score_HE'] = -np.log10(p_d)
         return model_param
