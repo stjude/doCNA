@@ -47,7 +47,7 @@ class Scoring:
         if isHE:
             #it is diploid
             model_param = {'model' : 'AB', 'd_model' : d, 
-                           'p_HE' : -np.log10(p_d), 'p_model' : p_d,
+                           'score_HE' : -np.log10(p_d), 'p_model' : p_d,
                            'k': cn/2-1}
         else:
             model_param = Models.pick_model (ai, s_ai, cn, s_cn, models)        
