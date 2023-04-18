@@ -117,6 +117,9 @@ def pick_model (ai, s_ai, cn, s_cn, models):
     dsks = [calculate_distance_minim(ai, s_ai, cn, s_cn, model_presets[model]) for model in models]
     ds = np.array ([dk['d'] for dk in dsks])
     ks = np.array ([dk['k'] for dk in dsks])
+    
+    print (ds)
+    print (ks)
     model_index = np.where(ds == ds.min())[0][0]
     
     if (ks[model_index] >= 0) & (ks[model_index] <= 1.05):

@@ -287,7 +287,6 @@ def HE_test (data, *args, **kwargs):
  
     return HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
 
-
 def cn2_vaf_pdf (x,v,c):
     p = sts.norm.pdf (x, v, np.sqrt((v*(1-v))/c))
     return p/sum(p)
