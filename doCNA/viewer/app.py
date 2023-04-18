@@ -222,7 +222,7 @@ def server(input, output, session):
     @render.ui
     def dyn_log_ui():
         return ui.TagList (ui.tags.textarea ([l.strip() for l in log_file()], 
-                                             cols = "200", rows = "30"))
+                                             cols = "150", rows = "30"))
     
     @output
     @render.text
@@ -263,7 +263,7 @@ def server(input, output, session):
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
                    names = ['chrom', 'start', 'end', 'ai','p_ai', 'm', 'cn',
-                            'model', 'd_model', 'p_model',
+                            'model', 'score_HE', 'd_model', 'p_model',
                             'k', 'symbol', 'cyto', 'cent'])
         
         df['size'] = (df['end'] - df['start'])/1e6
