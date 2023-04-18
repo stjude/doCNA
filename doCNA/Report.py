@@ -18,7 +18,7 @@ class Report:
             keys.sort (key = Consts.CHROM_ORDER.index)
             report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
         elif self._report_type == 'params':
-            report_list = ['m0\t'+ str(genome.genome_medians['m']),
+            report_list = ['m0\t'+ str(genome.genome_medians['m0']),
                            'm_ai\t'+str(self.scorer.ai_param['m']),
                            's_ai\t'+str(self.scorer.ai_param['s']),
                            'm_cn\t'+str(self.scorer.cn_param['m']),

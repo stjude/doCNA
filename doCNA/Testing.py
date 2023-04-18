@@ -206,24 +206,19 @@ def chi2_new (params, n, a, c, N):
         vaf, fcov, fN, a, aN, b, le, lf = params
         fe = 10**(-le)
         ff = 10**(-lf)
-        #cs = np.arange (0, cov_max +1)
-        #cov = cov_min + fcov*(cov_max-cov_min)
-        #ns = 2*fN*N*cn2_cov_pdf (cs, cov, b)
         
-        ct = np.concatenete ()
+        cov = n.min() + fcov*(n.max()-n.min())
+        ns = 2*fN*N*cn2_cov_pdf (n, cov, b)
         
-        chi2 = ((c - ct)**2/np.sqrt(c*c+1)).sum()/len(n)
+        nhe = cn2_vaf_pdf (a/c,vaf,c)
+        nho = HO_vaf_pdf (a, c, fe ,b)
+        nno = NO_vaf_pdf (a, c, ff, b)
         
-        #for c, cnt, in counts:
-        #    i = np.arange(0,c+1)
-        #    nhe = ns[c]*cn2_vaf_pdf (i/c,vaf,c)
-        #    nho = ns[c]*HO_vaf_pdf (i, c, fe ,b)
-        #    nno = ns[c]*NO_vaf_pdf (i, c, ff, b)
-            
-        #    na = a*nhe + (1-a -aN)*nho+ aN*nno
-            
-        #    chi2 += sum((cnt - na)**2/np.sqrt(na*na+1))/c 
-        return chi2#/len(counts)
+        ct = ns*(a*nhe + (1-a -aN)*nho+ aN*nno)
+        
+        chi2 = ((c - ct)**2/c).sum()/len(n)
+        
+        return chi2
 
 
 def HE_test (data, *args, **kwargs):
