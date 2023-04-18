@@ -99,12 +99,12 @@ class Genome:
         self.logger.info ("Genome heterozygosity reference: "+ f"\n" + str(self.HE.get_genome_medians()))
         
         ####
-        self.HEn = Testing.Testing ('HEn',
-                                    self.chromosomes,
-                                    self.logger)
-        self.HEn.run_test(no_processes = self.no_processes)
+        #self.HEn = Testing.Testing ('HEn',
+        #                            self.chromosomes,
+        #                            self.logger)
+        #self.HEn.run_test(no_processes = self.no_processes)
 
-        self.logger.debug ("Genomewide heterozygosity: " + f"\n" + str(self.HEn.report_results()))
+        #self.logger.debug ("Genomewide heterozygosity: " + f"\n" + str(self.HEn.report_results()))
         ####
         
         self.logger.debug ('Running N/E marking.')
