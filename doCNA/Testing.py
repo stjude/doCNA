@@ -198,11 +198,23 @@ def HE_test_new (data, *args, **kwargs):
     aH = len(data.loc[(data['vaf'] > 0.1)&(data['vaf'] < 0.9)])/len(data)
     aN = len(data.loc[(data['vaf'] > 0.9)])/len(data)
     
+    print (fcov, aH, aN)
+    
     res = opt.minimize (chi2_new, x0 = (0.5, fcov, 1.0, aH, aN, 1.3, 6, 6), args = (n,a,c, c.sum()),
                         bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
                         options = {'maxiter' : 2000})
     
-    return #HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
+    if res.success:
+        chi2 = res.fun
+        vaf, fcov, fN, a, a1, b, le, lf = res.x    
+        cov = cov_min + fcov*(cov_max-cov_min)    
+    else:
+        chi2 = np.nan
+        vaf = np.nan
+        cov = np.nan
+        b = np.nan
+    
+    return HE_results(chi2 = chi2, vaf = vaf, cov = cov, b = b)
 
 def chi2_new (params, n, a, c, N):
         vaf, fcov, fN, aH, aN, b, le, lf = params

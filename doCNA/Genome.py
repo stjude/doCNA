@@ -97,6 +97,7 @@ class Genome:
                
         self.HE.analyze (parameters = self.config['HE'], outliers = outliers, skip_par = ['cov'])
         self.logger.info ("Genome heterozygosity reference: "+ f"\n" + str(self.HE.get_genome_medians()))
+        self.genome_medians['HE'] = self.HE.get_genome_medians()
         
         ####
         #self.HEn = Testing.Testing ('HEn',
