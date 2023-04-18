@@ -194,16 +194,18 @@ def HE_test_new (data, *args, **kwargs):
         except IndexError:
             pass
     
-    c = c/c.sum()
-        
-    #res = opt.minimize (chi2_new, x0 = (0.5, fcov, 0.5,0.75, aN, 1.3, 6, 6), args = (counts, N),
-    #                    bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
-    #                    options = {'maxiter' : 2000})
+    fcov = (data['cov'].median() - cov_min) /  (cov_max - cov_min)
+    aH = len(data.loc[(data['vaf'] > 0.1)&(data['vaf'] < 0.9)])/len(data)
+    aN = len(data.loc[(data['vaf'] > 0.9)])/len(data)
+    
+    res = opt.minimize (chi2_new, x0 = (0.5, fcov, 1.0, aH, aN, 1.3, 6, 6), args = (n,a,c,N),
+                        bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
+                        options = {'maxiter' : 2000})
     
     return #HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
 
 def chi2_new (params, n, a, c, N):
-        vaf, fcov, fN, a, aN, b, le, lf = params
+        vaf, fcov, fN, aH, aN, b, le, lf = params
         fe = 10**(-le)
         ff = 10**(-lf)
         
@@ -214,7 +216,7 @@ def chi2_new (params, n, a, c, N):
         nho = HO_vaf_pdf (a, c, fe ,b)
         nno = NO_vaf_pdf (a, c, ff, b)
         
-        ct = ns*(a*nhe + (1-a -aN)*nho+ aN*nno)
+        ct = ns*(aH*nhe + aN*nho+ (1-aH -aN)*nno)
         
         chi2 = ((c - ct)**2/c).sum()/len(n)
         
