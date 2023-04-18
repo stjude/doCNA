@@ -105,8 +105,8 @@ app_ui = ui.page_fluid(
                                                                            ui.row(
                                                                                   ui.h5 ('Scoring review:'),
                                                                                   ui.output_plot ('scoring_plots'),),
-                                                                           ui.row(
-                                                                                  ui.output_plot('scoring_dists')),
+                                                                           #ui.row(
+                                                                           #       ui.output_plot('scoring_dists')),
                                                                            )),
                                                          ),
                                                    
@@ -359,18 +359,20 @@ def server(input, output, session):
             for line in f.readlines():
                 try:
                     key, value = line.split('\t')
-                    pard[key] = (float(value),)
+                    pard[key] = float(value)
                 except:
                     try:
-                        value0, value1 = value.split(' ')
-                        pard[key] = (float(value0),float(value1))
+                        key, values = line.split('\t')
+                        pard[key] = [v.strip("',[]") for v in values.split(' ')]
                     except:
                         print ('Line: ' + line + 'not parsed.')
         par.set(pard)
-        
+        print ('')
+        print(pard)
+        print('')
         opt_solution.set ((np.array([]), np.array([]), np.array([])))
-        m0.set(float(pard['m0'][0]))
-        m0_opt.set(float(pard['m0'][0]))
+        m0.set(pard['m0'])
+        m0_opt.set(pard['m0'])
     
     
         
@@ -425,15 +427,15 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, axs = plt.subplots (3, 1, figsize = (6,9))
                         
-            plot_cdf (bed_data['d'].values, axs[0], par = ((par_d['m_d'],),(par_d['s_d']),(1,)))
+            plot_cdf (bed_data['d_model'].values, axs[0], par = (par_d['m_d'],par_d['s_d']))
             axs[0].set_xlabel ('distance do diploid')
             axs[0].set_ylabel ('cdf')
             
-            plot_cdf (bed_data['ai'].values, axs[1], par = ((par_d['m_ai'],),(par_d['s_ai']),(1,)))
+            plot_cdf (bed_data['ai'].values, axs[1], par = (par_d['m_ai'],par_d['s_ai']))
             axs[1].set_xlabel ('allelic imbalance')
             axs[1].set_ylabel ('cdf')
             
-            plot_cdf (bed_data['cn'].values, axs[2], par = ((par_d['m_cn'],),(par_d['s_cn']),(1,)))
+            plot_cdf (bed_data['cn'].values, axs[2], par = (par_d['m_cn'],par_d['s_cn']))
             axs[2].set_xlabel ('copy number')
             axs[2].set_ylabel ('cdf')
             #leopard_plot (bed_data.loc[bed_data['model'] != '(AB)n'], 

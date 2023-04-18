@@ -31,7 +31,7 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5):
     axs[1].plot ((start, start), (0, 4), 'k:', lw = 0.5)
     axs[0].plot ((start, start), (0, 0.95), 'k:', lw = 0.5)
     mids = []
-    axst = axs[2].twinx() 
+    #axst = axs[2].twinx() 
    
     for chrom in chrs:
         for _, b in bed_df.loc[bed_df['chrom'] == chrom].iterrows():
@@ -71,9 +71,9 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5):
         
     axs[0].set_ylabel ('clonality')
     axs[1].set_ylabel ('copy number')
-    axs[2].set_ylabel ('score imbalanced')
-    axst.set_ylabel ('score balanced') 
-    axst.set_ylim (0, axst.get_ylim()[1])
+    axs[2].set_ylabel ('HE score')
+    #axst.set_ylabel ('score balanced') 
+    #axst.set_ylim (0, axst.get_ylim()[1])
     axs[2].set_ylim (0, axs[2].get_ylim()[1])
 
 def reporting_plot (bed_df, axs, chrom_sizes):
@@ -147,15 +147,12 @@ def leopard_plot (bed_df, params, ax, highlight = '', color_norm = 'black', colo
     ax.set_xlabel ('size (MB) / log')
     ax.set_ylabel ('clonality / log')
 
-def plot_cdf (values, ax, par = ((0,),(1,),(1,)), n = 100, a0 = 0):
+def plot_cdf (values, ax, par = (1,1), n = 100):
     ax.scatter (np.sort(values), np.linspace (0,1, len(values)))
     l = 0.6*(max(values) - min(values))
     x = np.linspace ((max(values) + min(values))/2 - l, (max(values) + min(values))/2 + l, n)
-    y = np.zeros (n)
-    print (par)
-    for m, s, a in zip (par[0], par[1], par[2]):
-        y += a*sts.norm.cdf (x, m, s)
-    ax.plot (x, a0 + y, 'r-')
+    y = sts.norm.cdf (x, par[0], par[1])
+    ax.plot (x, y, 'r-')
 
 def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2, max_k_score = 10):
     chromdata = data_df.loc[data_df.chrom == chrom]
