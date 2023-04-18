@@ -64,7 +64,7 @@ class Scoring:
             segment.parameters.update (self.score_dipl(ai,m,m0,models))
         except IndexError:
             segment.parameters.update ({'model' : 'UN', 'd_model' : np.nan,
-                                        'k': np.nan, 'p_model' : np.nan})
+                                        'k': np.nan, 'p_model' : np.nan, 'score_HE' : np.nan})
 
     
 def fit_QQgauss (values, fit_intercept = True):
