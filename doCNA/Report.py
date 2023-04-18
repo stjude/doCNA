@@ -93,20 +93,18 @@ class Report:
             #    else:
             #        k = np.nan
             #else:
-            k = segment.parameters['k']
-
+            
             report = '\t'.join([str(p) for p in [segment.chrom, segment.start, segment.end,
                                                  segment.parameters['ai'], segment.parameters['p_ai'],
                                                  segment.parameters['m'],
                                                  2*segment.parameters['m']/segment.genome_medians['m0'],
-                                                 segment.parameters['model'], segment.parameters['d'], 
-                                                 segment.parameters['model_score'],
-                                                 k, segment.parameters['clonality_score'],
-                                                 segment.parameters['k_d'], 
+                                                 segment.parameters['model'], segment.parameters['d_model'], 
+                                                 segment.parameters['p_model'],
+                                                 segment.parameters['k'], 
                                                  segment.segmentation_symbol, 
                                                  segment.cytobands,
-                                                 segment.centromere_fraction, 
-                                                 segment.parameters['call'], segment.parameters['call_FDR']]])
+                                                 segment.centromere_fraction]])
+                                                 #segment.parameters['call'], segment.parameters['call_FDR']]])
         else:
             report = ''
         return report
