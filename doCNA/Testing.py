@@ -191,7 +191,7 @@ def HE_test_new (data, *args, **kwargs):
     for i in np.arange(len(n)):
         try:
             c[i] = counts[(n[i],a[i])]
-        except IndexError:
+        except KeyError:
             pass
     
     fcov = (data['cov'].median() - cov_min) /  (cov_max - cov_min)

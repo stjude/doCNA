@@ -79,7 +79,7 @@ app_ui = ui.page_fluid(
                                        ui.h4 ("Display settings:"),
                                        ui.input_slider ('model_thr', "Model score threshold",
                                                         value = 3, min = 0, max = 10),
-                                       ui.input_slider ('k_max', "Max clonality score:",
+                                       ui.input_slider ('k_max', "Max HE score:",
                                                         value = 2, min = 0, max = 10),
                                        
                                        width = 2),
