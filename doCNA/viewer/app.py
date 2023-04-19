@@ -433,19 +433,19 @@ def server(input, output, session):
             plot_cdf (bed_data['d_HE'].values, axs[0], par = (par_d['m_d'],par_d['s_d']),
                       colors = [colorsCN[m] for m in bed_data['model']])
             axs[0].set_xlabel ('distance do diploid')
-            axs[0].set_ylabel ('cdf')
+            axs[0].set_ylabel ('cdf - HE distance')
             #axs[0].set_xscale ('log')
             
             plot_cdf (bed_data['ai'].values, axs[1], par = (par_d['m_ai'],par_d['s_ai']),
                       colors = [colorsCN[m] for m in bed_data['model']])
             axs[1].set_xlabel ('allelic imbalance')
-            axs[1].set_ylabel ('cdf')
+            axs[1].set_ylabel ('cdf - ai')
             #axs[1].set_xscale ('log')
             
             plot_cdf (bed_data['cn'].values, axs[2], par = (par_d['m_cn']+2,par_d['s_cn']),
                       colors = [colorsCN[m] for m in bed_data['model']])
             axs[2].set_xlabel ('copy number')
-            axs[2].set_ylabel ('cdf')
+            axs[2].set_ylabel ('cdf - cn')
             
             #leopard_plot (bed_data.loc[bed_data['model'] != '(AB)n'], 
             #              (par_d['A_i'][0], par_d['C_i'][0], par_d['C_i'][0]-par_d['up_i'][0]),
@@ -471,8 +471,9 @@ def server(input, output, session):
         par_d = par()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
-            check_solution_plot_opt (bed_data, par_d, ax, 
-                                          highlight = input.chroms_selected())
+            check_solution_plot_opt (bed_data, ax, 
+                                     highlight = input.chroms_selected(),
+                                     model_thr = input.model_thr())
             k = np.linspace (0,1,100)
             m0 = par_d['m0']
             for model in model_presets().keys():
@@ -531,7 +532,7 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
            
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
-            check_solution_plot_opt (bed_data, par_d, ax, 
+            check_solution_plot_opt (bed_data, ax, 
                                           highlight = [], xcol = 'm')
             k = np.linspace (0,1,100)
             #m0 = m0_opt()

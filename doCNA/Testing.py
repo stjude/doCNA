@@ -181,15 +181,12 @@ def HE_test_new (data, *args, **kwargs):
     lerr_bounds = Consts.HE_LERR_BOUNDS if 'lerr_bounds' not in kwargs else kwargs['lerr_bounds']   
     
     cov_min, cov_max = np.percentile (data['cov'].values, q = cov_perc_bounds)
-    print (cov_min, cov_max)
+    cov_min = int(cov_min)
+    cov_max = int(cov_max)
+    
     n = np.concatenate ([np.repeat(c, c+1) for c in np.arange (cov_min, cov_max +1)])
-    print (cov_min, cov_max, len (n))
     a = np.concatenate ([np.arange(0, c+1) for c in np.arange (cov_min, cov_max +1)])
-    print (cov_min, cov_max, len (a))
     c = np.zeros_like (a)
-    print (cov_min, cov_max, len (c))
-        
-    print (len(n), len(a), len(c))
     
     data_of_interest = data.loc[(data['cov'] >= cov_min)&(data['cov'] <= cov_max)]
     counts = data_of_interest.groupby (by = ['cov', 'alt_count'])['chrom'].count()

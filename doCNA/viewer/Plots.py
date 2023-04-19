@@ -207,21 +207,27 @@ def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2, max_k_
     axs[2].set_ylabel ('clonality')
     axs[3].set_ylabel ('cn')
 
-def check_solution_plot_opt (bed_df, params, ax, cent_thr = 0.3, size_thr = 1,
+def check_solution_plot_opt (bed, ax, model_thr,
                              highlight = [], xcol = 'cn'):
-    bed = bed_df.loc[(bed_df['cent'] < cent_thr)&(bed_df['size'] > size_thr)]
+    
     
     for _, b in bed.loc[bed['model'].notna(),:].iterrows():
         if b['chrom'] == 'chrX':
-            ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size'], edgecolor = 'w', marker = 'X')
+            ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size'],
+                        edgecolor = 'w', marker = 'X')
         elif b['chrom'] == 'chrY':
-            ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size'], edgecolor = 'w', marker = 'v')
+            ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size'],
+                        edgecolor = 'w', marker = 'v')
         else:
-            ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size'], edgecolor = 'w', marker = 'o')
+                        ec = 'w' if b['p_model'] > 1/10**model_thr else 'orange'
+                        ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']],
+                                    s = b['size'], 
+                                    edgecolor = ec,
+                                    marker = 'o')
 
-    highlight_filter = [c in highlight for c in bed_df.chrom.tolist()]
-    x = bed_df.loc[(highlight_filter), xcol].values
-    y = bed_df.loc[(highlight_filter), 'ai'].values
+    highlight_filter = [c in highlight for c in bed.chrom.tolist()]
+    x = bed.loc[(highlight_filter), xcol].values
+    y = bed.loc[(highlight_filter), 'ai'].values
     
     ax.plot (x, y, marker = 's', c = 'darkorange', lw = 0, alpha = 1, fillstyle = 'none')
     
