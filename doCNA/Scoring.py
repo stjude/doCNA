@@ -13,7 +13,7 @@ class Scoring:
         self.logger = logger.getChild (f'{self.__class__.__name__}')
         
         data_indexes = initial_data[:,0] < diploid_ai_thr
-        self.ai_param = fit_QQgauss(initial_data[: ,0][data_indexes])
+        self.ai_param = fit_QQgauss(initial_data[: ,0][data_indexes], fit_intercept = False)
         self.logger.info (f"Distribution of diploid allelic imbalance: m = {self.ai_param['m']}, s = {self.ai_param['s']}")
         self.cn_param = fit_QQgauss(initial_data[: ,1][data_indexes])
         self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
@@ -51,7 +51,7 @@ class Scoring:
                            'p_model' : p_d,
                            'k': cn/2-1}
         else:
-            model_param = Models.pick_model (ai, 1, cn, 1, models)        
+            model_param = Models.pick_model (ai, s_ai, cn, s_cn, models)        
             model_param['p_model'] = sts.norm.sf(model_param['d_model'], self.dipl_dist['m'], self.dipl_dist['s'])
             model_param['score_HE'] = -np.log10(p_d)
             model_param['d_HE'] = d

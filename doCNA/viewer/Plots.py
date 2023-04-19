@@ -149,13 +149,27 @@ def leopard_plot (bed_df, params, ax, highlight = '', color_norm = 'black', colo
     ax.set_xlabel ('size (MB) / log')
     ax.set_ylabel ('clonality / log')
 
-def plot_cdf (values, ax,  colors, par = (1,1), n = 100):
-    ax.scatter (np.sort(values), np.linspace (0,1, len(values)),
-                c = [colors[i] for i in np.argsort(values)])
-    l = 0.6*(max(values) - min(values))
-    x = np.linspace ((max(values) + min(values))/2 - l, (max(values) + min(values))/2 + l, n)
+def plot_cdf (all_values, ax,  colors, par = (1,1), n = 100, xscale = 'lin'):
+    #l = 0.6*(max(values) - min(values))
+    #x = np.linspace ((max(values) + min(values))/2 - l, (max(values) + min(values))/2 + l, n)
+    xmin = par[0] - 3*par[1]
+    xmax = par[0] + 3*par[1]
+    values = all_values[(all_values >= xmin)&(all_values <= xmax)]
+    
+    x = np.linspace (xmin, xmax, n)
     y = sts.norm.cdf (x, par[0], par[1])
-    ax.plot (x, y, 'r-')
+    
+    if xscale == 'lin':
+        ax.scatter (np.sort(values), np.linspace (0.01,0.99, len(values)),
+                    c = [colors[i] for i in np.argsort(values)])
+        ax.plot (x, y, 'r-')
+    elif xscale == 'log':
+        ax.scatter (np.log10(np.sort(values)), np.linspace (0.01,0.99, len(values)),
+                    c = [colors[i] for i in np.argsort(values)])
+        ax.plot (np.log10(x), y, 'r-')
+    else:
+        raise ('Unknown scale')
+        
 
 def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2, max_k_score = 10):
     chromdata = data_df.loc[data_df.chrom == chrom]
@@ -216,7 +230,7 @@ def check_solution_plot_opt (bed, ax, model_thr,
             ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size'],
                         edgecolor = 'w', marker = 'X')
         elif b['chrom'] == 'chrY':
-            ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size'],
+            ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size']*2,
                         edgecolor = 'w', marker = 'v')
         else:
                         ec = 'w' if b['p_model'] > 1/10**model_thr else 'orange'
