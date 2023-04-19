@@ -24,7 +24,7 @@ colorsCN['NA'] = 'lightskyblue'
     
     
 
-def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5):
+def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
     chrs = chrom_sizes.index.values.tolist()
     chrs.sort (key = Consts.CHROM_ORDER.index)
     start = 0
@@ -35,18 +35,20 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5):
    
     for chrom in chrs:
         for _, b in bed_df.loc[bed_df['chrom'] == chrom].iterrows():
-            if b['p_model'] < model_thr:
+            if b['p_model'] > 1/10**model_thr:
                 color = colorsCN[b['model']]
             else:
                 color = 'yellow'
+            
+            alpha = 0.1 + 0.9 * (b['score_HE']/HE_thr if b['score_HE'] <= HE_thr else 1)
                 
             axs[0].fill_between ((start + b['start'], start + b['end']),
-                                 (b['k'], b['k']), color = color)
+                                 (b['k'], b['k']), color = color, alpha = alpha)
             axs[1].fill_between (x = (start + b['start'], start + b['end']),
-                                 y1 = (b['cn'], b['cn']), y2 = (2, 2), color = color)
+                                 y1 = (b['cn'], b['cn']), y2 = (2, 2), color = color, alpha = alpha)
             
             axs[2].fill_between ((start + b['start'], start + b['end']), 
-                                     (b['score_HE'], b['score_HE']), color = color)
+                                     (b['score_HE'], b['score_HE']), color = color, alpha = alpha)
                 
                 
         end = chrom_sizes[chrom]#bed_df.loc[bed_df['chrom'] == chrom, 'end'].max()
@@ -147,8 +149,9 @@ def leopard_plot (bed_df, params, ax, highlight = '', color_norm = 'black', colo
     ax.set_xlabel ('size (MB) / log')
     ax.set_ylabel ('clonality / log')
 
-def plot_cdf (values, ax, par = (1,1), n = 100):
-    ax.scatter (np.sort(values), np.linspace (0,1, len(values)))
+def plot_cdf (values, ax, par = (1,1), colors = 'b', n = 100):
+    ax.scatter (np.sort(values), np.linspace (0,1, len(values)),
+                c = colors)
     l = 0.6*(max(values) - min(values))
     x = np.linspace ((max(values) + min(values))/2 - l, (max(values) + min(values))/2 + l, n)
     y = sts.norm.cdf (x, par[0], par[1])

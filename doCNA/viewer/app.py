@@ -79,7 +79,7 @@ app_ui = ui.page_fluid(
                                        ui.h4 ("Display settings:"),
                                        ui.input_slider ('model_thr', "Model score threshold",
                                                         value = 3, min = 0, max = 10),
-                                       ui.input_slider ('k_max', "Max HE score:",
+                                       ui.input_slider ('HE_max', "Max HE score:",
                                                         value = 2, min = 0, max = 10),
                                        
                                        width = 2),
@@ -263,10 +263,13 @@ def server(input, output, session):
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
                    names = ['chrom', 'start', 'end', 'ai','p_ai', 'm', 'cn',
-                            'model', 'score_HE', 'd_model', 'p_model',
+                            'd_HE', 'score_HE', 'model', 'd_model', 'p_model',
                             'k', 'symbol', 'cyto', 'cent'])
         
         df['size'] = (df['end'] - df['start'])/1e6
+        
+        print (df.head())
+        print (df.columns)
         
         data.set(pd.DataFrame())
         par.set({})
@@ -393,7 +396,7 @@ def server(input, output, session):
         if  len(bed_data):
             fig, axs = plt.subplots (3, 1, figsize = (16,6), sharex = True)
             meerkat_plot (bed_data, axs, chrom_sizes(),
-                          model_thr = input.model_thr())
+                          model_thr = input.model_thr(), HE_thr = input.HE_max())
             
             for model in model_presets().keys():
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
@@ -427,15 +430,18 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, axs = plt.subplots (3, 1, figsize = (6,12))
                         
-            plot_cdf (bed_data['d_model'].values, axs[0], par = (par_d['m_d'],par_d['s_d']))
+            plot_cdf (bed_data['d_model'].values, axs[0], par = (par_d['m_d'],par_d['s_d']),
+                      colors = [colorsCN[b['model']] for b in bed_data['model']])
             axs[0].set_xlabel ('distance do diploid')
             axs[0].set_ylabel ('cdf')
             
-            plot_cdf (bed_data['ai'].values, axs[1], par = (par_d['m_ai'],par_d['s_ai']))
+            plot_cdf (bed_data['ai'].values, axs[1], par = (par_d['m_ai'],par_d['s_ai']),
+                      colors = [colorsCN[b['model']] for b in bed_data['model']])
             axs[1].set_xlabel ('allelic imbalance')
             axs[1].set_ylabel ('cdf')
             
-            plot_cdf (bed_data['cn'].values, axs[2], par = (par_d['m_cn']+2,par_d['s_cn']))
+            plot_cdf (bed_data['cn'].values, axs[2], par = (par_d['m_cn']+2,par_d['s_cn']),
+                      colors = [colorsCN[b['model']] for b in bed_data['model']])
             axs[2].set_xlabel ('copy number')
             axs[2].set_ylabel ('cdf')
             #leopard_plot (bed_data.loc[bed_data['model'] != '(AB)n'], 
