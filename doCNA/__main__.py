@@ -44,7 +44,7 @@ def main():
                                  version = 'doCNA v. {version}'.format(version = __version__))
     parser_analyze.add_argument ('-m', '--models', choices=Models.model_presets.keys(),
                                  nargs='+', help = 'Specify which of models should be included.',
-                                 default = ['(AB)n','A','AAB','AA'])
+                                 default = ['(AB)(2+n)','(AB)(2-n)','A','AAB','AA'])
     #parser_analyze.add_argument ('-m', '--models', choices=Models.model_presets_extra.keys(),
     #                             nargs='+', help = 'Specify which of extra models should be included.',
     #                             default = [])
