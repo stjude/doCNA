@@ -13,12 +13,20 @@ import scipy.optimize as opt
 Preset = namedtuple ('Preset', ['A', 'B', 'C', 'D', 'k','m', 'ai'])
 
 #Presets of models with 2 +/- 1 copies
-model_presets = {'(AB)n' : Preset(A = lambda m,dv,m0: 0,
+model_presets = {'(AB)(2+n)' : Preset(A = lambda m,dv,m0: 0,
                                     B = lambda m,dv,m0: 1/2,
                                     C = lambda m,dv,m0: dv,
                                     D = lambda m,dv,m0: 0,
                                     k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > -0.1/2) & (m/m0 < 4.1/2) else np.nan,
                                     m = lambda k,m0: (1+k)*m0,
+                                    ai = lambda k,m0:  np.zeros_like(k)),#np.repeat(0, len(k)) if hasattr(k, "shape") else 0.0),
+                   
+                   '(AB)(2-n)' : Preset(A = lambda m,dv,m0: 0,
+                                    B = lambda m,dv,m0: 1/2,
+                                    C = lambda m,dv,m0: dv,
+                                    D = lambda m,dv,m0: 0,
+                                    k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > -0.1/2) & (m/m0 < 4.1/2) else np.nan,
+                                    m = lambda k,m0: (1-k)*m0,
                                     ai = lambda k,m0:  np.zeros_like(k)),#np.repeat(0, len(k)) if hasattr(k, "shape") else 0.0),
                    
                    'A'   : Preset(A = lambda m,dv,m0: -m0/2,
