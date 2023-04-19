@@ -434,13 +434,13 @@ def server(input, output, session):
                       colors = [colorsCN[m] for m in bed_data['model']])
             axs[0].set_xlabel ('distance do diploid')
             axs[0].set_ylabel ('cdf')
-            axs[0].set_xscale ('log')
+            #axs[0].set_xscale ('log')
             
             plot_cdf (bed_data['ai'].values, axs[1], par = (par_d['m_ai'],par_d['s_ai']),
                       colors = [colorsCN[m] for m in bed_data['model']])
             axs[1].set_xlabel ('allelic imbalance')
             axs[1].set_ylabel ('cdf')
-            axs[1].set_xscale ('log')
+            #axs[1].set_xscale ('log')
             
             plot_cdf (bed_data['cn'].values, axs[2], par = (par_d['m_cn']+2,par_d['s_cn']),
                       colors = [colorsCN[m] for m in bed_data['model']])

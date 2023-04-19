@@ -181,11 +181,15 @@ def HE_test_new (data, *args, **kwargs):
     lerr_bounds = Consts.HE_LERR_BOUNDS if 'lerr_bounds' not in kwargs else kwargs['lerr_bounds']   
     
     cov_min, cov_max = np.percentile (data['cov'].values, q = cov_perc_bounds)
+    print (cov_min, cov_max)
     n = np.concatenate ([np.repeat(c, c+1) for c in np.arange (cov_min, cov_max +1)])
+    print (cov_min, cov_max, len (n))
     a = np.concatenate ([np.arange(0, c+1) for c in np.arange (cov_min, cov_max +1)])
+    print (cov_min, cov_max, len (a))
     c = np.zeros_like (a)
-    
-    print (len(n), len(a))
+    print (cov_min, cov_max, len (c))
+        
+    print (len(n), len(a), len(c))
     
     data_of_interest = data.loc[(data['cov'] >= cov_min)&(data['cov'] <= cov_max)]
     counts = data_of_interest.groupby (by = ['cov', 'alt_count'])['chrom'].count()
@@ -228,7 +232,7 @@ def chi2_new (params, n, a, c, N):
         nho = HO_vaf_pdf (a, n, fe ,b)
         nno = NO_vaf_pdf (a, n, ff, b)
         
-        ct = ns*(aH*nhe + aN*nho+ (1-aH -aN)*nno)
+        ct = ns*(aH*nhe + (1-aH -aN)*nho + aN*nno)
         
         chi2 = ((c - ct)**2/np.sqrt(c*c+1)).sum()/len(n)
         
