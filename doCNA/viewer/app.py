@@ -430,20 +430,23 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, axs = plt.subplots (3, 1, figsize = (6,12))
                         
-            plot_cdf (bed_data['d_model'].values, axs[0], par = (par_d['m_d'],par_d['s_d']),
-                      colors = [colorsCN[b['model']] for b in bed_data['model']])
+            plot_cdf (bed_data['d_HE'].values, axs[0], par = (par_d['m_d'],par_d['s_d']),
+                      colors = [colorsCN[m] for m in bed_data['model']])
             axs[0].set_xlabel ('distance do diploid')
             axs[0].set_ylabel ('cdf')
+            axs[0].set_xscale ('log')
             
             plot_cdf (bed_data['ai'].values, axs[1], par = (par_d['m_ai'],par_d['s_ai']),
-                      colors = [colorsCN[b['model']] for b in bed_data['model']])
+                      colors = [colorsCN[m] for m in bed_data['model']])
             axs[1].set_xlabel ('allelic imbalance')
             axs[1].set_ylabel ('cdf')
+            axs[1].set_xscale ('log')
             
             plot_cdf (bed_data['cn'].values, axs[2], par = (par_d['m_cn']+2,par_d['s_cn']),
-                      colors = [colorsCN[b['model']] for b in bed_data['model']])
+                      colors = [colorsCN[m] for m in bed_data['model']])
             axs[2].set_xlabel ('copy number')
             axs[2].set_ylabel ('cdf')
+            
             #leopard_plot (bed_data.loc[bed_data['model'] != '(AB)n'], 
             #              (par_d['A_i'][0], par_d['C_i'][0], par_d['C_i'][0]-par_d['up_i'][0]),
             #              ax, highlight = input.chroms_selected(),

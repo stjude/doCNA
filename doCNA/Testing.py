@@ -224,13 +224,13 @@ def chi2_new (params, n, a, c, N):
         cov = n.min() + fcov*(n.max()-n.min())
         ns = 2*fN*N*cn2_cov_pdf (n, cov, b)
         
-        nhe = cn2_vaf_pdf (a/c,vaf,c)
-        nho = HO_vaf_pdf (a, c, fe ,b)
-        nno = NO_vaf_pdf (a, c, ff, b)
+        nhe = cn2_vaf_pdf (a/n,vaf,n)
+        nho = HO_vaf_pdf (a, n, fe ,b)
+        nno = NO_vaf_pdf (a, n, ff, b)
         
         ct = ns*(aH*nhe + aN*nho+ (1-aH -aN)*nno)
         
-        chi2 = ((c - ct)**2/c).sum()/len(n)
+        chi2 = ((c - ct)**2/np.sqrt(c*c+1)).sum()/len(n)
         
         return chi2
 
