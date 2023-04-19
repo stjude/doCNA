@@ -23,7 +23,7 @@ class Scoring:
         
         self.dipl_dist = fit_QQgauss (np.sqrt((ds**2).sum(axis = 1)))
         #self.dipl_dist = fit_smallest_gauss (np.sqrt((ds**2).sum(axis = 1)))
-        self.diploid_dist['alpha'] = 1/(5*len(initial_data))
+        self.dipl_dist['alpha'] = 1/(5*len(initial_data))
         self.dipl_dist['thr'] = sts.norm.ppf (1-self.dipl_dist['alpha'], 
                                               self.dipl_dist['m'],
                                               self.dipl_dist['s'])

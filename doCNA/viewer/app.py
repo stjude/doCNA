@@ -78,9 +78,9 @@ app_ui = ui.page_fluid(
                                                         value = 5, min = 0, max = 10),
                                        ui.h4 ("Display settings:"),
                                        ui.input_slider ('model_thr', "Model score threshold",
-                                                        value = 3, min = 0, max = 10),
+                                                        value = 3, min = 0, max = 30),
                                        ui.input_slider ('HE_max', "Max HE score:",
-                                                        value = 2, min = 0, max = 10),
+                                                        value = 2, min = 0, max = 20),
                                        
                                        width = 2),
                       ui.panel_main(
