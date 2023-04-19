@@ -149,13 +149,13 @@ def leopard_plot (bed_df, params, ax, highlight = '', color_norm = 'black', colo
     ax.set_xlabel ('size (MB) / log')
     ax.set_ylabel ('clonality / log')
 
-def plot_cdf (all_values, ax,  colors, par = (1,1), n = 100, xscale = 'lin'):
+def plot_cdf (all_values, ax,  all_colors, par = (1,1), n = 100, xscale = 'lin'):
     #l = 0.6*(max(values) - min(values))
     #x = np.linspace ((max(values) + min(values))/2 - l, (max(values) + min(values))/2 + l, n)
     xmin = par[0] - 3*par[1]
     xmax = par[0] + 3*par[1]
     values = all_values[(all_values >= xmin)&(all_values <= xmax)]
-    
+    colors = all_colors[(all_values >= xmin)&(all_values <= xmax)]
     x = np.linspace (xmin, xmax, n)
     y = sts.norm.cdf (x, par[0], par[1])
     

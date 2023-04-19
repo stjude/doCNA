@@ -431,17 +431,17 @@ def server(input, output, session):
             fig, axs = plt.subplots (3, 1, figsize = (6,12))
                         
             plot_cdf (bed_data['d_HE'].values, axs[0], par = (par_d['m_d'],par_d['s_d']),
-                      colors = [colorsCN[m] for m in bed_data['model']])
+                      all_colors = np.array([colorsCN[m] for m in bed_data['model']]))
             axs[0].set_xlabel ('distance do diploid')
             axs[0].set_ylabel ('cdf - HE distance')
                         
             plot_cdf (bed_data['ai'].values, axs[1], par = (par_d['m_ai'],par_d['s_ai']),
-                      colors = [colorsCN[m] for m in bed_data['model']])
+                      all_colors = np.array([colorsCN[m] for m in bed_data['model']]))
             axs[1].set_xlabel ('allelic imbalance')
             axs[1].set_ylabel ('cdf - ai')
                         
             plot_cdf (bed_data['cn'].values, axs[2], par = (par_d['m_cn']+2,par_d['s_cn']),
-                      colors = [colorsCN[m] for m in bed_data['model']])
+                      all_colors = np.array([colorsCN[m] for m in bed_data['model']]))
             axs[2].set_xlabel ('copy number')
             axs[2].set_ylabel ('cdf - cn')
             
