@@ -267,7 +267,7 @@ class Genome:
         self.segment_filter = [((s.end - s.start)/1e6 > Consts.SIZE_THR) &\
                                 (s.centromere_fraction < Consts.CENTROMERE_THR) &\
                                 (s.parameters['ai'] < Consts.DIPLOID_AI_THR) &\
-                                (np.abs(s.parameters['m']/self.genome_medians['m0']-2) < Consts.DIPLOID_dCN_THR/2)    for s in self.all_segments] 
+                                (np.abs(s.parameters['m']/self.genome_medians['m0']-1) < Consts.DIPLOID_dCN_THR/2)    for s in self.all_segments] 
         
         self.segments = [self.all_segments[i] for i in np.where(self.segment_filter)[0]]
         

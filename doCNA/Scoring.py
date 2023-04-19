@@ -12,13 +12,12 @@ class Scoring:
         
         self.logger = logger.getChild (f'{self.__class__.__name__}')
         
-        data_indexes = (initial_data[:,0] < diploid_ai_thr) & (np.abs(initial_data[:,1]) < 0.5)
-        self.ai_param = fit_QQgauss(initial_data[: ,0][data_indexes])
+        self.ai_param = fit_QQgauss(initial_data[: ,0])
         self.logger.info (f"Distribution of diploid allelic imbalance: m = {self.ai_param['m']}, s = {self.ai_param['s']}")
-        self.cn_param = fit_QQgauss(initial_data[: ,1][data_indexes], fit_intercept = False)
+        self.cn_param = fit_QQgauss(initial_data[: ,1], fit_intercept = False)
         self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
         
-        dds =  initial_data[data_indexes,:] - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
+        dds =  initial_data - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
         ds = dds/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :]
         
         self.dipl_dist = fit_smallest_gauss (np.sqrt((ds**2).sum(axis = 1)))
