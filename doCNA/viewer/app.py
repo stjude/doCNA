@@ -436,7 +436,7 @@ def server(input, output, session):
             axs[0].set_ylabel ('cdf - HE distance')
                         
             plot_cdf (bed_data['ai'].values, axs[1], par = (par_d['m_ai'],par_d['s_ai']),
-                      all_colors = np.array([colorsCN[m] for m in bed_data['model']]))
+                      all_colors = np.array([colorsCN[m] for m in bed_data['model']]), half = True)
             axs[1].set_xlabel ('allelic imbalance')
             axs[1].set_ylabel ('cdf - ai')
                         
