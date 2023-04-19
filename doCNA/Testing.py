@@ -185,6 +185,8 @@ def HE_test_new (data, *args, **kwargs):
     a = np.concatenate ([np.arange(0, c+1) for c in np.arange (cov_min, cov_max +1)])
     c = np.zeros_like (a)
     
+    print (len(n), len(a))
+    
     data_of_interest = data.loc[(data['cov'] >= cov_min)&(data['cov'] <= cov_max)]
     counts = data_of_interest.groupby (by = ['cov', 'alt_count'])['chrom'].count()
     #this should run one time, so much quicker
@@ -197,8 +199,6 @@ def HE_test_new (data, *args, **kwargs):
     fcov = (data['cov'].median() - cov_min) /  (cov_max - cov_min)
     aH = len(data.loc[(data['vaf'] > 0.1)&(data['vaf'] < 0.9)])/len(data)
     aN = len(data.loc[(data['vaf'] > 0.9)])/len(data)
-    
-    print (fcov, aH, aN)
     
     res = opt.minimize (chi2_new, x0 = (0.5, fcov, 1.0, aH, aN, 1.3, 6, 6), args = (n,a,c, c.sum()),
                         bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
@@ -285,12 +285,10 @@ def HE_test (data, *args, **kwargs):
                         options = {'maxiter' : 2000})    
      
     if res.success:
-        #print('success', res.message)
         chi2 = res.fun
         vaf, fcov, fN, a, a1, b, le, lf = res.x    
         cov = cov_min + fcov*(cov_max-cov_min)    
     else:
-        #print('fail', res.message)
         chi2 = np.nan
         vaf = np.nan
         cov = np.nan

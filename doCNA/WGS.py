@@ -41,7 +41,6 @@ class WGS:
             
     def analyze (self, m0 = 0):
         self.logger.debug ('Creating genome.')
-        print (self.models)
         self.genome = Genome.Genome (self.sample_name, self.logger, self.config, self.CB_file, 
                                      self.models, self.no_processes)
         input_columns = [self.config['InputColumns']['chrom'],
