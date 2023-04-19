@@ -425,7 +425,7 @@ def server(input, output, session):
         par_d = par()
         
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
-            fig, axs = plt.subplots (3, 1, figsize = (6,9))
+            fig, axs = plt.subplots (3, 1, figsize = (6,12))
                         
             plot_cdf (bed_data['d_model'].values, axs[0], par = (par_d['m_d'],par_d['s_d']))
             axs[0].set_xlabel ('distance do diploid')
@@ -435,7 +435,7 @@ def server(input, output, session):
             axs[1].set_xlabel ('allelic imbalance')
             axs[1].set_ylabel ('cdf')
             
-            plot_cdf (bed_data['cn'].values, axs[2], par = (par_d['m_cn'],par_d['s_cn']))
+            plot_cdf (bed_data['cn'].values, axs[2], par = (par_d['m_cn']+2,par_d['s_cn']))
             axs[2].set_xlabel ('copy number')
             axs[2].set_ylabel ('cdf')
             #leopard_plot (bed_data.loc[bed_data['model'] != '(AB)n'], 
@@ -450,6 +450,8 @@ def server(input, output, session):
             #              np.log10(1.05*bed_data['size'].max())))
             #k_pos = bed_data.loc[bed_data['k'] > 0, 'k'].values
             #ax.set_ylim ((np.log10(k_pos.min()), 0.1))  
+            
+            fig.tight_layout()
             
             return fig
     
