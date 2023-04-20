@@ -41,7 +41,7 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
             else:
                 color = 'yellow'
             
-            alpha = 0.1 + 0.9 * (b['score_HE']/HE_thr if b['score_HE'] <= HE_thr else 1)
+            alpha = 1#0.1 + 0.9 * (b['score_HE']/HE_thr if b['score_HE'] <= HE_thr else 1)
                 
             axs[0].fill_between ((start + b['start'], start + b['end']),
                                  (b['k'], b['k']), color = color, alpha = alpha)
@@ -52,7 +52,7 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
                                      (b['score_HE'], b['score_HE']), color = color, alpha = alpha)
                 
                 
-        end = chrom_sizes[chrom]#bed_df.loc[bed_df['chrom'] == chrom, 'end'].max()
+        end = chrom_sizes[chrom]
         mids.append (start + end / 2)
         start += end
         axs[2].plot ((start, start), (0, 2.), 'k:', lw = 0.5)
@@ -64,10 +64,8 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
         
     axs[1].plot ((0, start), (2, 2), 'k--', lw = 1)        
     
-    #ranges = bed_df.loc[~(bed_df['k'].isnull()), ['k','m']].agg ([min, max])
     maxk = max (bed_df.loc[~(bed_df['k'].isnull()), 'k'].max(), -bed_df.loc[~(bed_df['k'].isnull()), 'k'].min())
     
-    #axs[0].set_ylim ((-0.009, 1.01))
     axs[0].set_ylim ((-0.009,  maxk *1.1))
     axs[0].set_xlim ((-3e7, start + 3e7))
     axs[1].set_ylim (bed_df.cn.agg([min,max]).values*np.array((0.9,1.1)))
@@ -75,13 +73,10 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
     axs[0].set_ylabel ('clonality')
     axs[1].set_ylabel ('copy number')
     axs[2].set_ylabel ('HE score')
-    #axst.set_ylabel ('score balanced') 
-    #axst.set_ylim (0, axst.get_ylim()[1])
     axs[2].set_ylim (0, axs[2].get_ylim()[1])
 
 def reporting_plot (bed_df, axs, chrom_sizes):
     chrs = chrom_sizes.index.values.tolist()
-    #chrs.sort (key = lambda x: int(x[3:]))
     chrs.sort(key = Consts.CHROM_ORDER.index)
     
     start = 0
@@ -96,11 +91,8 @@ def reporting_plot (bed_df, axs, chrom_sizes):
             k = b['k']
             axs[0].fill_between ((start + b['start'], start + b['end']), (k, k), color = color, alpha = a)
             axs[1].fill_between (x = (start + b['start'], start + b['end']), y1 = (b['cn'], b['cn']), y2 = (2, 2), color = color, alpha = a)
-            #if b['model'] != 'cnB':
-            
-                
-                
-        end = chrom_sizes[chrom]#bed_df.loc[bed_df['chrom'] == chrom, 'end'].max()
+           
+        end = chrom_sizes[chrom]
         mids.append (start + end / 2)
         start += end
         

@@ -515,9 +515,9 @@ def server(input, output, session):
         if (len(bed_data) != 0):
             
             if input.sort_CNV_by() == 'score':
-                tmp_bed = bed_data.loc[bed_data[input.corrected()] != 'norm'].sort_values(by = 'k_score', ascending = False)
+                tmp_bed = bed_data.loc[bed_data['model'] != 'AB'].sort_values(by = 'score_HE', ascending = False)
             else:
-                tmp_bed = bed_data.loc[bed_data[input.corrected()] != 'norm']
+                tmp_bed = bed_data.loc[bed_data['model'] != 'AB']
             return tmp_bed
 
     @output
@@ -525,7 +525,7 @@ def server(input, output, session):
     def number_CNVs():
         bed_data = bed()
         if len(bed_data) > 0: 
-            message = "Number of CNVs found: " + str(len(bed_data.loc[bed_data[input.corrected()] != 'norm']))
+            message = "Number of CNVs found: " + str(len(bed_data.loc[bed_data['model'] != 'AB']))
         else:
             message = ''
         return  message
@@ -553,7 +553,7 @@ def server(input, output, session):
             verification_plot_CNV (data_chrom, CNV_bed, ax, par(), input.f_to_plot())
             return fig
         
-        
+    ###optimalization below    
     @reactive.Effect
     @reactive.event (input.opt)
     def _():

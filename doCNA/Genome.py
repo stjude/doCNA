@@ -287,20 +287,20 @@ class Genome:
                 
         z_n_a = np.array(zs_ns)
         z_n = z_n_a[~np.isnan(z_n_a[:,0]) ,:]
-        try:
-            x = sts.expon.ppf (np.linspace (0,1,len(z_n)+2)[1:-1])
-            huber = slm.HuberRegressor (fit_intercept = False)
-            huber.fit (x[:, np.newaxis], np.sort(z_n))
-            a = huber.coef_
-            self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (a))
+        #try:
+        x = sts.expon.ppf (np.linspace (0,1,len(z_n)+2)[1:-1])
+        huber = slm.HuberRegressor (fit_intercept = False)
+        huber.fit (x[:, np.newaxis], np.sort(z_n))
+        a = huber.coef_
+        self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (a))
             #popt, _ = opt.curve_fit (exp, np.sort (z_n[:,0]), np.linspace (0,1,len(z_n[:,0])),
             #                         p0 = (10), sigma = 1/np.sqrt(z_n[:,1])[np.argsort(z_n[:,0])])
             #self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (popt[0]))
             
-        except ValueError:
-            a = np.nan
-            self.logger.warning ("Scoring of models failed. None of the scoring have any sense.")
-            self.logger.warning ("Consider rerunning with manually set m0.")
+        #except ValueError:
+        #    a = np.nan
+        #    self.logger.warning ("Scoring of models failed. None of the scoring have any sense.")
+        #    self.logger.warning ("Consider rerunning with manually set m0.")
 
         for seg in self.all_segments:
             if seg.parameters['model'] != 'AB':
