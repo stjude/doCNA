@@ -53,7 +53,7 @@ class Scoring:
         
         if isHE:
             #it is diploid
-            model_param = {'model' : 'AB', 'd_model' : d, 
+            model_param = {'model' : 'AB', 'd_model' : d,
                            'score_HE' : -np.log10(p_d), 'd_HE' : d,
                            'p_model' : 0,#p_d,
                            'k': cn/2-1}

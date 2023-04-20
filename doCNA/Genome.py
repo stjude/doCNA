@@ -5,7 +5,7 @@ import multiprocessing as mpl
 import scipy.stats as sts
 import scipy.optimize as opt
 import sys
-import copy
+import sklearn.linear_model as slm
 from sklearn.linear_model import HuberRegressor
 
 from doCNA import Testing
@@ -281,14 +281,21 @@ class Genome:
 
     def score_model_distance (self):
     
-        zs_ns = [(seg.parameters['d_model'], seg.parameters['n']) for seg in self.all_segments]
-        
+        indexes = np.where([seg.parameters['model'] != 'AB'])[0]
+        segments = [self.all_segments[i] for i in indexes]
+        zs_ns = [(seg.parameters['d_model'], seg.parameters['n']) for seg in segments]
+                
         z_n_a = np.array(zs_ns)
         z_n = z_n_a[~np.isnan(z_n_a[:,0]) ,:]
         try:
-            popt, _ = opt.curve_fit (exp, np.sort (z_n[:,0]), np.linspace (0,1,len(z_n[:,0])),
-                                     p0 = (10), sigma = 1/np.sqrt(z_n[:,1])[np.argsort(z_n[:,0])])
-            self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (popt[0]))
+            x = sts.expon.ppf (np.linspace (0,1,len(z_n)+2)[1:-1])
+            huber = slm.HuberRegressor (fit_intercept = False)
+            huber.fit (x[:, np.newaxis], np.sort(z_n))
+            a = huber.coef_
+            self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (a))
+            #popt, _ = opt.curve_fit (exp, np.sort (z_n[:,0]), np.linspace (0,1,len(z_n[:,0])),
+            #                         p0 = (10), sigma = 1/np.sqrt(z_n[:,1])[np.argsort(z_n[:,0])])
+            #self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (popt[0]))
             
         except ValueError:
             popt = [np.nan]
@@ -296,10 +303,14 @@ class Genome:
             self.logger.warning ("Consider rerunning with manually set m0.")
 
         for seg in self.all_segments:
-            seg.parameters['score_model'] = -np.log10 (np.exp (-popt[0]*seg.parameters['d_model']))
+            if seg.parameters['model'] != 'AB':
+                seg.parameters['score_model'] = -np.log10 (np.exp (a*seg.parameters['d_model']))
+            else:
+                seg.parameters['score_model'] = 0
+                
         self.genome_medians['d_model'] = {'a' : popt[0]}
         
-    def score_clonality (self, size_thr = 5e6, model_thr = 3, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
+    def score_clonality (self, size_thr = 5e6, model_thr = 5, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
         balanced = [seg.parameters['model'] == '(AB)n' for seg in self.all_segments]
         big = [(seg.end - seg.start)/1e6 > size_thr for seg in self.all_segments]
         notHO = [seg.parameters['k'] < k_thr for seg in self.all_segments]

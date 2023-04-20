@@ -416,22 +416,24 @@ def server(input, output, session):
         par_d = par()
         
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
-            fig, axs = plt.subplots (3, 1, figsize = (6,12))
+            fig, axs = plt.subplots (2, 1, figsize = (6,6))
                         
             plot_cdf (bed_data['d_HE'].values, axs[0], par = (par_d['m_d'],par_d['s_d']),
-                      all_colors = np.array([colorsCN[m] for m in bed_data['model']]))
-            axs[0].set_xlabel ('distance do diploid')
-            axs[0].set_ylabel ('cdf - HE distance')
-                        
-            plot_cdf (bed_data['ai'].values, axs[1], par = (par_d['m_ai'],par_d['s_ai']),
                       all_colors = np.array([colorsCN[m] for m in bed_data['model']]), half = True)
-            axs[1].set_xlabel ('allelic imbalance')
-            axs[1].set_ylabel ('cdf - ai')
-                        
-            plot_cdf (bed_data['cn'].values, axs[2], par = (par_d['m_cn']+2,par_d['s_cn']),
-                      all_colors = np.array([colorsCN[m] for m in bed_data['model']]))
-            axs[2].set_xlabel ('copy number')
-            axs[2].set_ylabel ('cdf - cn')
+            #axs[0].set_xlabel ('distance do diploid')
+            axs[0].set_ylabel ('cdf - HE distance')
+
+            tmp_bed = bed_data.loc[bed_data['model'] != 'AB'].sort_values (by = 'd_model')
+            axs[1].scatter (tmp_bed['d_model'].values, np.linspace (0,1, len(tmp_bed)),
+                            c = np.array([colorsCN[m] for m in tmp_bed['model']]),
+                            s = np.sqrt(tmp_bed['size']))
+            x = np.linspace (tmp_bed['d_model'].min(), tmp_bed['d_model'].max(), 100)
+            axs[1].plot (x , 1 - np.exp (-par_d['a_d'] * x), 'r-')
+                            #par = (par_d['m_ai'],par_d['s_ai']),
+            #          all_colors = np.array([colorsCN[m] for m in bed_data['model']]), half = True)
+            #axs[1].set_xlabel ('allelic imbalance')
+            #axs[1].set_ylabel ('cdf - ai')
+                       
             
             #leopard_plot (bed_data.loc[bed_data['model'] != '(AB)n'], 
             #              (par_d['A_i'][0], par_d['C_i'][0], par_d['C_i'][0]-par_d['up_i'][0]),
