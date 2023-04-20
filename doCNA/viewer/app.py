@@ -3,6 +3,7 @@ from .Plots import * #need a dot before Plots, like this: .Plots
 
 from doCNA import Models
 from doCNA import Consts
+from doCNA import Scoring
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -561,40 +562,35 @@ def server(input, output, session):
             ms = np.arange (m0()*input.min_cn(), m0()*input.max_cn(), input.step())
             scorers = []
             #tmp = bed_data.loc[(~bed_data['model'].isna())]
+            ai = bed_data['ai'].values
+            m_cov = bed_data['m'].values
+            
+            ai_index = ai < Consts.DIPLOID_AI_THR
             
             with ui.Progress (min = ms[0], max = ms[-1]) as p:
                 p.set(message = 'Optimizing solution...', )
-                dts = []
-                #fts = []
-                st = []
-                dist_bs = []
-                dist_as = []
-                for _, b in bed_data.iterrows():
-                    st.append (b['size'])
-                #sttotal = np.sum(st)
                                             
                 for m in ms:
                     p.set(m, message = 'Calculating')
-                    dt = []
                     
+                    cn_index = (m_cov > (1-Consts.DIPLOID_dCN_THR)*m/2) & (m_cov < (1+Consts.DIPLOID_dCN_THR)*m/2)
+                    #scorers.append (Scoring.Scoring(np.array(ai[], m_cov[]), logger = False))
                     for _, b in bed_data.iterrows ():
                         pass  
                     
                     res = Models.fit_exp_shift (bed_data['ai'].values, 2*bed_data['m'].values/m)
-                    dist_as.append (res['a'])
-                    dist_bs.append (res['b'])
-                    for _, b in bed_data.iterrows():
+                    #for _, b in bed_data.iterrows():
                         #dt.append (np.sqrt(b['size'])*(np.nanmin([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets().values()])))
-                        dt.append ((b['size'])*(np.min([Models.calculate_distance_new (b['ai'], 2*b['m']/m, model)['d'] for model in model_presets().values()])))                    
+                    #    dt.append ((b['size'])*(np.min([Models.calculate_distance_new (b['ai'], 2*b['m']/m, model)['d'] for model in model_presets().values()])))                    
                     #index = np.where(np.isfinite(dt))[0]
                     #sts = np.sum(([st[i] for i in index]))
                     #fts.append (sts/sttotal)
-                    dts.append (np.sum(dt))#/sts)
+                    #dts.append (np.sum(dt))#/sts)
                                         
                 #fraction = np.array (fts)
-                dtsa = np.array(dts)
+                #dtsa = np.array(dts)
             
-            opt_solution.set((ms,dtsa, np.array(dist_as), np.array(dist_bs)))
+            #opt_solution.set((ms,dtsa, np.array(dist_as), np.array(dist_bs)))
             
             try:
                 m0_opt.set (ms[np.where(dts == np.nanmin(dtsa))[0][0]])

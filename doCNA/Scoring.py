@@ -8,9 +8,7 @@ from doCNA import Models
 
 
 class Scoring:
-    def __init__(self, initial_data, logger, diploid_ai_thr = 0.1) -> None:
-        
-        self.logger = logger.getChild (f'{self.__class__.__name__}')
+    def __init__(self, initial_data, logger) -> None:
         
         self.ai_param = fit_QQgauss(initial_data[: ,0])
         self.logger.info (f"Distribution of diploid allelic imbalance: m = {self.ai_param['m']}, s = {self.ai_param['s']}")
@@ -28,8 +26,9 @@ class Scoring:
                                               self.dipl_dist['m'],
                                               self.dipl_dist['s'])
         
-        
-        self.logger.info (f"Distribution of distance to diploid (0,2): m = {self.dipl_dist['m']}, s = {self.dipl_dist['s']}")
+        if logger:
+            self.logger = logger.getChild (f'{self.__class__.__name__}')
+            self.logger.info (f"Distribution of distance to diploid (0,2): m = {self.dipl_dist['m']}, s = {self.dipl_dist['s']}")
     
     def get_ai_dist (self):
         return self.ai_param
