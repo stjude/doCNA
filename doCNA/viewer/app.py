@@ -559,6 +559,7 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
            
             ms = np.arange (m0()*input.min_cn(), m0()*input.max_cn(), input.step())
+            scorers = []
             #tmp = bed_data.loc[(~bed_data['model'].isna())]
             
             with ui.Progress (min = ms[0], max = ms[-1]) as p:
@@ -575,6 +576,9 @@ def server(input, output, session):
                 for m in ms:
                     p.set(m, message = 'Calculating')
                     dt = []
+                    
+                    for _, b in bed_data.iterrows ():
+                        pass  
                     
                     res = Models.fit_exp_shift (bed_data['ai'].values, 2*bed_data['m'].values/m)
                     dist_as.append (res['a'])

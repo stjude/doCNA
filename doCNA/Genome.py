@@ -283,7 +283,7 @@ class Genome:
     
         indexes = np.where([((seg.end - seg.start)/1e6 > Consts.SIZE_THR) &\
                             (seg.centromere_fraction < Consts.CENTROMERE_THR) &\
-                             seg.parameters['model'] != 'AB' &\
+                            (seg.parameters['model'] != 'AB') &\
                              np.isfinite(seg['d_model']) for seg in self.all_segments])[0]
         print (indexes)
         segments = [self.all_segments[i] for i in indexes]
