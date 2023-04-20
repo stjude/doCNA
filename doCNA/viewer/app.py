@@ -420,7 +420,6 @@ def server(input, output, session):
                         
             plot_cdf (bed_data['d_HE'].values, axs[0], par = (par_d['m_d'],par_d['s_d']),
                       all_colors = np.array([colorsCN[m] for m in bed_data['model']]), half = True)
-            #axs[0].set_xlabel ('distance do diploid')
             axs[0].set_ylabel ('cdf - HE distance')
 
             tmp_bed = bed_data.loc[bed_data['model'] != 'AB'].sort_values (by = 'd_model')
@@ -429,24 +428,7 @@ def server(input, output, session):
                             s = np.sqrt(tmp_bed['size']))
             x = np.linspace (tmp_bed['d_model'].min(), tmp_bed['d_model'].max(), 100)
             axs[1].plot (x , 1 - np.exp (-par_d['a_d'] * x), 'r-')
-                            #par = (par_d['m_ai'],par_d['s_ai']),
-            #          all_colors = np.array([colorsCN[m] for m in bed_data['model']]), half = True)
-            #axs[1].set_xlabel ('allelic imbalance')
-            #axs[1].set_ylabel ('cdf - ai')
-                       
-            
-            #leopard_plot (bed_data.loc[bed_data['model'] != '(AB)n'], 
-            #              (par_d['A_i'][0], par_d['C_i'][0], par_d['C_i'][0]-par_d['up_i'][0]),
-            #              ax, highlight = input.chroms_selected(),
-            #              color_norm = 'black', color_hit = 'darkred')
-            #leopard_plot (bed_data.loc[bed_data['model'] == '(AB)n'], 
-            #              (np.nan, np.nan, np.nan),
-            #              ax, highlight = input.chroms_selected(), 
-            #              color_norm = 'gray', color_hit = 'darkorange', alpha = 0.3)
-            #ax.set_xlim ((np.log10(0.95*input.size_thr()), 
-            #              np.log10(1.05*bed_data['size'].max())))
-            #k_pos = bed_data.loc[bed_data['k'] > 0, 'k'].values
-            #ax.set_ylim ((np.log10(k_pos.min()), 0.1))  
+            axs[1].set_ylabel ('cdf - Model distance')  
             
             fig.tight_layout()
             

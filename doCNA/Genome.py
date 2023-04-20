@@ -308,7 +308,7 @@ class Genome:
             else:
                 seg.parameters['score_model'] = 0
                 
-        self.genome_medians['d_model'] = {'a' : popt[0]}
+        self.genome_medians['d_model'] = {'a' : a}
         
     def score_clonality (self, size_thr = 5e6, model_thr = 5, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
         balanced = [seg.parameters['model'] == '(AB)n' for seg in self.all_segments]
