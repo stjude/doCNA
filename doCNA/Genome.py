@@ -298,7 +298,7 @@ class Genome:
             #self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (popt[0]))
             
         except ValueError:
-            popt = [np.nan]
+            a = np.nan
             self.logger.warning ("Scoring of models failed. None of the scoring have any sense.")
             self.logger.warning ("Consider rerunning with manually set m0.")
 
