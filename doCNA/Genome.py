@@ -281,7 +281,7 @@ class Genome:
 
     def score_model_distance (self):
     
-        indexes = np.where([seg.parameters['model'] != 'AB'])[0]
+        indexes = np.where([seg.parameters['model'] != 'AB' for seg in self.all_segments])[0]
         segments = [self.all_segments[i] for i in indexes]
         zs_ns = [(seg.parameters['d_model'], seg.parameters['n']) for seg in segments]
                 
