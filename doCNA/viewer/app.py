@@ -78,9 +78,9 @@ app_ui = ui.page_fluid(
                                                         value = 5, min = 0, max = 10),
                                        ui.h4 ("Display settings:"),
                                        ui.input_slider ('model_thr', "Model score threshold",
-                                                        value = 3, min = 0, max = 30),
+                                                        value = 3, min = 0, max = 10),
                                        ui.input_slider ('HE_max', "Max HE score:",
-                                                        value = 2, min = 0, max = 20),
+                                                        value = 2, min = 0, max = 10),
                                        
                                        width = 2),
                       ui.panel_main(
@@ -131,7 +131,7 @@ app_ui = ui.page_fluid(
                                                                                                               value = 0.7, min = 0.1, max = 1, step = 0.05),
                                                                                              ui.input_slider ('max_cn', "Max cov (relative):",
                                                                                                               value = 1.1, min = 0.5, max = 1.5, step = 0.05),
-                                                                                             ui.row(ui.column(6,ui.input_numeric ("step", 'Step:', 0.1, min = 0.01, max = 1, step = 0.1)),
+                                                                                             ui.row(ui.column(6,ui.input_numeric ("step", 'Step:', 0.5, min = 0.5, max = 5, step = 0.5)),
                                                                                                     ui.column(6,#ui.h6 ("# steps"),
                                                                                                                 ui.input_text ("number_points", '# points')),
                                                                                                    ),    
@@ -218,7 +218,7 @@ def server(input, output, session):
         if np.isnan(m0()):
             text = 'n.a.'
         else:
-            text = '{:.2f}'.format(m0()*input.min_cn()) + ' - ' + '{:.2f}'.format(m0()*input.max_cn())
+            text = '{:.2f}'.format(int(m0()*input.min_cn())) + ' - ' + '{:.2f}'.format(int(m0()*input.max_cn()))
         return text
     
     @reactive.Effect
@@ -240,8 +240,6 @@ def server(input, output, session):
             log = f.readlines()
         log_file.set(log)    
         
-
-    
     @reactive.Effect
     @reactive.event(input.bed_file)
     def _():
@@ -365,8 +363,7 @@ def server(input, output, session):
         m0.set(pard['m0'])
         m0_opt.set(pard['m0'])
     
-    
-        
+            
     @reactive.Effect
     @reactive.event(input.data_file)
     def _():
@@ -469,7 +466,7 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
            
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
-            check_solution_plot_opt (bed_data, ax, 
+            check_solution_plot_opt (bed_data, ax, model_thr = input.model_thr(),
                                           highlight = [], xcol = 'm')
             k = np.linspace (0,1,100)
             #m0 = m0_opt()

@@ -282,16 +282,19 @@ class Genome:
     def score_model_distance (self):
     
         indexes = np.where([seg.parameters['model'] != 'AB' for seg in self.all_segments])[0]
+        print (indexes)
         segments = [self.all_segments[i] for i in indexes]
-        zs_ns = [(seg.parameters['d_model'], seg.parameters['n']) for seg in segments]
-                
-        z_n_a = np.array(zs_ns)
-        z_n = z_n_a[~np.isnan(z_n_a[:,0]) ,:]
+        print (len(segments))
+        zs_ns = [seg.parameters['d_model'] for seg in segments]
+            
+        z_n = np.array(zs_ns)
+        print (z_n)
+        #z_n = z_n_a[~np.isnan(z_n_a[:,0]) ,:]
         #try:
         x = sts.expon.ppf (np.linspace (0,1,len(z_n)+2)[1:-1])
         huber = slm.HuberRegressor (fit_intercept = False)
         huber.fit (x[:, np.newaxis], np.sort(z_n))
-        a = huber.coef_
+        a = -1./huber.coef_
         self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (a))
             #popt, _ = opt.curve_fit (exp, np.sort (z_n[:,0]), np.linspace (0,1,len(z_n[:,0])),
             #                         p0 = (10), sigma = 1/np.sqrt(z_n[:,1])[np.argsort(z_n[:,0])])
