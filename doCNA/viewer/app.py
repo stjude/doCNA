@@ -105,8 +105,6 @@ app_ui = ui.page_fluid(
                                                                            ui.row(
                                                                                   ui.h5 ('Scoring review:'),
                                                                                   ui.output_plot ('scoring_plots'),),
-                                                                           #ui.row(
-                                                                           #       ui.output_plot('scoring_dists')),
                                                                            )),
                                                          ),
                                                    
@@ -194,17 +192,7 @@ def server(input, output, session):
     bed_report = reactive.Value(pd.DataFrame())
     model_presets = reactive.Value (Models.model_presets)
     
-    #@reactive.Effect
-    #@reactive.event (input.all_models)
-    #def _():
-    #    if input.all_models():
-    #        model_presets.set(Models.model_presets)
-    #    else:
-    #        mp = {}
-    #        for m in par()['models']:
-    #            mp[m] = Models.model_presets[m]
-    #        model_presets.set (mp)
-        
+          
     @output
     @render.text
     def solutions ():
@@ -263,7 +251,7 @@ def server(input, output, session):
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
                    names = ['chrom', 'start', 'end', 'ai','p_ai', 'm', 'cn',
-                            'd_HE', 'score_HE', 'model', 'd_model', 'p_model',
+                            'd_HE', 'score_HE', 'model', 'd_model', 'score_model',
                             'k', 'symbol', 'cyto', 'cent'])
         
         df['size'] = (df['end'] - df['start'])/1e6
@@ -475,52 +463,19 @@ def server(input, output, session):
             k = np.linspace (0,1,100)
             m0 = par_d['m0']
             for model in model_presets().keys():
+                if model in par()['models']:
+                    ls = '-'
+                else:
+                    ls = ':'
                 ax.plot (2*model_presets()[model].m(k, m0)/m0, model_presets()[model].ai(k, m0),  
-                         lw = 1, linestyle = ':', color = colorsCN[model], alpha  = 1)
+                         lw = 1, linestyle = ls, color = colorsCN[model], alpha  = 1)
             
             ax.set_xlim (2*0.9*bed_data.m.min()/m0, 2*1.1*bed_data.m.max()/m0)
             ax.set_ylim ((max(-0.02, -0.02*bed_data.ai.max()), bed_data.ai.max()*1.1))
             
             return fig
     
-    @output
-    @render.plot (alt = 'Scoring distribution')
-    def scoring_dists ():
-        bed_data = bed()
-        par_d = par()
-        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
-            fig, axs = plt.subplots (1, 2, figsize = (6,3), sharey = True)
-            tmp = bed_data.loc[bed_data.model != '(AB)n']
-            if len(tmp) > 0:
-                plot_cdf (tmp['dd'].values, ax = axs[0], 
-                          par = ((par_d['m_i'],),(par_d['s_i'],), (sum(tmp.status == 'norm')/len(tmp),)))
-                axs[0].set_title ('Imbalanced')
-                axs[0].set_xlabel ('Distance to usual')
-                axs[0].set_ylabel ('CDF')
-            tmp = bed_data.loc[bed_data.model == '(AB)n']
-            k = tmp['m']/par_d['m0'] - 1
-            
-            if len(tmp) > 0:
-                if len (par_d['a_b']) == 2:
-                    neg_tmp = tmp.loc[tmp.cn < 2.0]
-                    fnnorm = sum(neg_tmp.status_d == 'norm')/len (neg_tmp)
-
-                    pos_tmp = tmp.loc[tmp.cn >= 2.0]
-                    fpnorm = sum(pos_tmp.status_d == 'norm')/len (pos_tmp)
-
-                    plot_cdf (k, ax = axs[1], 
-                              par = (par_d['m_b'],par_d['s_b'], (par_d['a_b'][0]*fnnorm, par_d['a_b'][1]*fpnorm)),
-                              a0 = len(tmp.loc[(tmp.cn < 2)& (tmp.status_d != 'norm')])/len(tmp) )
-
-                elif len(par_d['a_b']) == 1:
-                    plot_cdf (k, ax = axs[1], 
-                              par = ((par_d['m_b'],),(par_d['s_b'],), (sum(tmp.status == 'norm')/len(tmp),)))
-                 
-                axs[1].set_title ('Balanced')
-                axs[1].set_xlabel ('Sign clonality')
-                
-            return fig
-    
+        
     
     @output
     @render.plot (alt = "Solution view")

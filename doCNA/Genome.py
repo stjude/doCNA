@@ -296,7 +296,7 @@ class Genome:
             self.logger.warning ("Consider rerunning with manually set m0.")
 
         for seg in self.all_segments:
-            seg.parameters['score_model'] = -np.log10 (np.exp (-popt[0]*seg.parameters['d']))
+            seg.parameters['score_model'] = -np.log10 (np.exp (-popt[0]*seg.parameters['d_model']))
         self.genome_medians['d_model'] = {'a' : popt[0]}
         
     def score_clonality (self, size_thr = 5e6, model_thr = 3, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):

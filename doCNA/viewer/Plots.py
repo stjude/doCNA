@@ -36,7 +36,7 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
    
     for chrom in chrs:
         for _, b in bed_df.loc[bed_df['chrom'] == chrom].iterrows():
-            if b['p_model'] > 1/10**model_thr:
+            if b['score_model'] < model_thr:
                 color = colorsCN[b['model']]
             else:
                 color = 'yellow'
@@ -241,7 +241,7 @@ def check_solution_plot_opt (bed, ax, model_thr,
             ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size']*2,
                         edgecolor = 'w', marker = 'v')
         else:
-                        ec = 'w' if b['p_model'] > 1/10**model_thr else 'orange'
+                        ec = 'w' if b['score_model'] < model_thr else 'orange'
                         ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']],
                                     s = b['size'], 
                                     edgecolor = ec,
