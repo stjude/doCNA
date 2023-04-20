@@ -559,7 +559,7 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
            
             ms = np.arange (m0()*input.min_cn(), m0()*input.max_cn(), input.step())
-            tmp = bed_data.loc[(~bed_data['model'].isna())]
+            #tmp = bed_data.loc[(~bed_data['model'].isna())]
             
             with ui.Progress (min = ms[0], max = ms[-1]) as p:
                 p.set(message = 'Optimizing solution...', )
@@ -568,7 +568,7 @@ def server(input, output, session):
                 st = []
                 dist_bs = []
                 dist_as = []
-                for _, b in tmp.iterrows():
+                for _, b in bed_data.iterrows():
                     st.append (b['size'])
                 #sttotal = np.sum(st)
                                             
@@ -576,10 +576,10 @@ def server(input, output, session):
                     p.set(m, message = 'Calculating')
                     dt = []
                     
-                    res = Models.fit_exp_shift (tmp['ai'].values, 2*tmp['m'].values/m)
+                    res = Models.fit_exp_shift (bed_data['ai'].values, 2*bed_data['m'].values/m)
                     dist_as.append (res['a'])
                     dist_bs.append (res['b'])
-                    for _, b in tmp.iterrows():
+                    for _, b in bed_data.iterrows():
                         #dt.append (np.sqrt(b['size'])*(np.nanmin([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets().values()])))
                         dt.append ((b['size'])*(np.min([Models.calculate_distance_new (b['ai'], 2*b['m']/m, model)['d'] for model in model_presets().values()])))                    
                     #index = np.where(np.isfinite(dt))[0]
