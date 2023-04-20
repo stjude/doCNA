@@ -297,7 +297,7 @@ class Genome:
         x = sts.expon.ppf (np.linspace (0,1,len(z_n)+2)[1:-1])
         huber = slm.HuberRegressor (fit_intercept = False)
         huber.fit (x[:, np.newaxis], np.sort(z_n))
-        a = -1./huber.coef_
+        a = -1./huber.coef_[0]
         self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (a))
             #popt, _ = opt.curve_fit (exp, np.sort (z_n[:,0]), np.linspace (0,1,len(z_n[:,0])),
             #                         p0 = (10), sigma = 1/np.sqrt(z_n[:,1])[np.argsort(z_n[:,0])])
