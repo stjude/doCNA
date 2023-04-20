@@ -275,10 +275,13 @@ class Genome:
         self.scorer = Scoring.Scoring (data_for_scoring, self.logger, diploid_ai_thr = Consts.DIPLOID_AI_THR)
         for seg in self.all_segments:
             self.scorer.analyze_segment(seg, self.models)
+            
+        self.score_model_distance ()
+            
 
     def score_model_distance (self):
     
-        zs_ns = [(seg.parameters['d'], seg.parameters['n']) for seg in self.all_segments]
+        zs_ns = [(seg.parameters['d_model'], seg.parameters['n']) for seg in self.all_segments]
         
         z_n_a = np.array(zs_ns)
         z_n = z_n_a[~np.isnan(z_n_a[:,0]) ,:]
@@ -293,8 +296,8 @@ class Genome:
             self.logger.warning ("Consider rerunning with manually set m0.")
 
         for seg in self.all_segments:
-            seg.parameters['model_score'] = -np.log10 (np.exp (-popt[0]*seg.parameters['d']))
-        self.genome_medians['model_d'] = {'a' : popt[0]}
+            seg.parameters['score_model'] = -np.log10 (np.exp (-popt[0]*seg.parameters['d']))
+        self.genome_medians['d_model'] = {'a' : popt[0]}
         
     def score_clonality (self, size_thr = 5e6, model_thr = 3, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
         balanced = [seg.parameters['model'] == '(AB)n' for seg in self.all_segments]

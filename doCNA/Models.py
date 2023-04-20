@@ -122,7 +122,7 @@ def calculate_distance (preset, m, ai, m0):
     return d
 
 def pick_model (ai, s_ai, cn, s_cn, models):
-    dsks = [calculate_distance_minim(ai, s_ai, cn, s_cn, model_presets[model]) for model in models]
+    dsks = [calculate_distance_minim(ai, 1, cn, 1, model_presets[model]) for model in models]
     ds = np.array ([dk['d'] for dk in dsks])
     ks = np.array ([dk['k'] for dk in dsks])
     

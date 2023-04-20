@@ -25,6 +25,7 @@ class Report:
                            's_cn\t'+str(genome.scorer.cn_param['s']),
                            'm_d\t' +str(genome.scorer.dipl_dist['m']),
                            's_d\t' +str(genome.scorer.dipl_dist['s']),
+                           'a_d\t' +str(genome.genome_medians['d_model']['a']),
                            'models\t'+str(genome.models)]
                         
             report = '\n'.join(report_list)
@@ -105,7 +106,7 @@ class Report:
                                                  segment.parameters['score_HE'], 
                                                  segment.parameters['model'],
                                                  segment.parameters['d_model'], 
-                                                 segment.parameters['p_model'],
+                                                 segment.parameters['score_model'],
                                                  segment.parameters['k'], 
                                                  segment.segmentation_symbol, 
                                                  segment.cytobands,
