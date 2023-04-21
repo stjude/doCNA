@@ -19,6 +19,7 @@ class Report:
             report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
         elif self._report_type == 'params':
             report_list = ['m0\t'+ str(genome.genome_medians['m0']),
+                           'v0\t'+str(genome.genome_medians['']),
                            'm_ai\t'+str(genome.scorer.ai_param['m']),
                            's_ai\t'+str(genome.scorer.ai_param['s']),
                            'm_cn\t'+str(genome.scorer.cn_param['m']),

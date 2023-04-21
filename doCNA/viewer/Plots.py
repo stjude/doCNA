@@ -171,7 +171,7 @@ def plot_cdf (all_values, ax,  all_colors, par = (1,1), n = 100, xscale = 'lin',
         raise ('Unknown scale')
         
 
-def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2, max_score_HE = 10):
+def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2, max_k_score = 10):
     chromdata = data_df.loc[data_df.chrom == chrom]
 
     chromdata.loc[chromdata['symbol'] == 'E'].plot(x = 'position', y = 'vaf', lw = 0, alpha = 0.3,
@@ -261,34 +261,52 @@ stat_colors['CNVb'] = 'black'
 
 def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 100):
     assert type in ["CDF", "PDF"], "Unknown plot type!"
-    for stat, df in ch_bed.groupby (by = 'status'):
-        starts = df.start.values
-        ends = df.end.values
-        pos_filt = ((d_ch.position.values[:, np.newaxis] > starts[np.newaxis,:]) &(d_ch.position.values[:, np.newaxis] < ends[np.newaxis,:])).any (axis = 1) 
-        #print (pos_filt.sum())
-        tmp = d_ch.loc[(d_ch['vaf'] < 1)&(d_ch['vaf'] > 0)&(pos_filt)]
-        stat
-        v = np.sort (tmp['vaf'].values)
-        if type == "CDF":
-            ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 1, color = stat_colors[stat])
-            ax.plot ((),(), lw = 2, label = stat, color = stat_colors[stat])
-        else:
-            ax.hist (v, bins = np.linspace (0,1, no_bins), lw = 2, 
-                     histtype = "step", density = True, color = stat_colors[stat])
-            ax.plot ((),(), lw = 2, label = stat, color = stat_colors[stat])
     
+    ##Plot reference
     try: 
         x = np.linspace (0,1, 500)
         if type == "CDF":
-            ax.plot (x, sts.norm.cdf (x, 0.497, np.sqrt(0.25/par['m0'][0])*par['fb'][0]), '.',
-                     markersize = 1, color = 'green')
+            ax.plot (x, sts.norm.cdf (x, 0.497, np.sqrt(0.25/par['m0'])*par['fb']), '.',
+                     markersize = 1, color = 'red')
         else:
-            ax.plot (x, sts.norm.pdf (x, 0.497, np.sqrt(0.25/par['m0'][0])*par['fb'][0]), '.',
-                     markersize = 1, color = 'green')
-        ax.plot ((),(), lw = 2, color = 'green', label = 'diploid reference')
+            ax.plot (x, sts.norm.pdf (x, 0.497, np.sqrt(0.25/par['m0'])*par['fb']), '.',
+                     markersize = 1, color = 'red')
+        ax.plot ((),(), lw = 2, color = 'red', label = 'diploid reference')
     except:
         pass
     
-    ax.legend()
-    ax.set_xlabel ('BAF', fontsize = 14)
-    ax.set_ylabel (type, fontsize = 14)
+    ##Plot AB
+    
+    
+    ###OLD TBR
+    #for stat, df in ch_bed.groupby (by = 'status'):
+    #    starts = df.start.values
+    #   ends = df.end.values
+    #    pos_filt = ((d_ch.position.values[:, np.newaxis] > starts[np.newaxis,:]) &(d_ch.position.values[:, np.newaxis] < ends[np.newaxis,:])).any (axis = 1) 
+    
+    #    tmp = d_ch.loc[(d_ch['vaf'] < 1)&(d_ch['vaf'] > 0)&(pos_filt)]
+        
+    #    v = np.sort (tmp['vaf'].values)
+    #    if type == "CDF":
+    #        ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 1, color = stat_colors[stat])
+    #        ax.plot ((),(), lw = 2, label = stat, color = stat_colors[stat])
+    #    else:
+    #        ax.hist (v, bins = np.linspace (0,1, no_bins), lw = 2, 
+    #                 histtype = "step", density = True, color = stat_colors[stat])
+    #        ax.plot ((),(), lw = 2, label = stat, color = stat_colors[stat])
+    
+    #try: 
+    #    x = np.linspace (0,1, 500)
+    #    if type == "CDF":
+    #        ax.plot (x, sts.norm.cdf (x, 0.497, np.sqrt(0.25/par['m0'][0])*par['fb'][0]), '.',
+    #                 markersize = 1, color = 'green')
+    #    else:
+    #        ax.plot (x, sts.norm.pdf (x, 0.497, np.sqrt(0.25/par['m0'][0])*par['fb'][0]), '.',
+    #                 markersize = 1, color = 'green')
+    #    ax.plot ((),(), lw = 2, color = 'green', label = 'diploid reference')
+    #except:
+    #    pass
+    
+    #ax.legend()
+    #ax.set_xlabel ('BAF', fontsize = 14)
+    #ax.set_ylabel (type, fontsize = 14)

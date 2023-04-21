@@ -11,9 +11,9 @@ class Scoring:
     def __init__(self, initial_data, logger) -> None:
         
         self.ai_param = fit_QQgauss(initial_data[: ,0])
-        self.logger.info (f"Distribution of diploid allelic imbalance: m = {self.ai_param['m']}, s = {self.ai_param['s']}")
+        
         self.cn_param = fit_QQgauss(initial_data[: ,1], fit_intercept = False)
-        self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
+        
         
         dds =  initial_data - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
         ds = dds/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :]
@@ -29,7 +29,9 @@ class Scoring:
         if logger:
             self.logger = logger.getChild (f'{self.__class__.__name__}')
             self.logger.info (f"Distribution of distance to diploid (0,2): m = {self.dipl_dist['m']}, s = {self.dipl_dist['s']}")
-    
+            self.logger.info (f"Distribution of diploid allelic imbalance: m = {self.ai_param['m']}, s = {self.ai_param['s']}")
+            self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
+            
     def get_ai_dist (self):
         return self.ai_param
     

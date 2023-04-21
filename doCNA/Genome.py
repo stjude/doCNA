@@ -226,6 +226,7 @@ class Genome:
                 self.logger.exception ('Estimation of fb failed.')
                 exit (1)
   
+        self.genome_medians['v0'] = self.genome_medians['VAF']['vaf']
         if m0 > 0:
             self.logger.info (f"Using user supplied m0 = {m0}, instead of estimated m0 = {self.genome_medians['COV']['m']}")
             self.genome_medians['m0'] = m0
