@@ -272,7 +272,7 @@ class Genome:
         self.segments = [self.all_segments[i] for i in np.where(self.segment_filter)[0]]
         
         data_for_scoring = np.array([(s.parameters['ai'], 2*s.parameters['m']/self.genome_medians['m0']-2) for s in self.segments])
-        self.scorer = Scoring.Scoring (data_for_scoring, self.logger, diploid_ai_thr = Consts.DIPLOID_AI_THR)
+        self.scorer = Scoring.Scoring (data_for_scoring, self.logger)
         for seg in self.all_segments:
             self.scorer.analyze_segment(seg, self.models)
             

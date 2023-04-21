@@ -160,7 +160,7 @@ app_ui = ui.page_fluid(
                                                                                                    chromdic, inline = True),)),
                                                           ui.row(ui.input_radio_buttons('f_to_plot', "Which function plot to compare:", 
                                                                                          {'PDF' : 'Probability density function',
-                                                                                          'CDF' : 'Cumulative density function /for the pros/'}, 
+                                                                                          'CDF' : 'Cumulative density function'}, 
                                                                                          selected = 'CDF', inline = True)),                                                          
                                                           ui.row(ui.output_plot ('data_plot'),
                                                                  ui.output_plot ('compare_plot')),
@@ -574,11 +574,13 @@ def server(input, output, session):
                     p.set(m, message = 'Calculating')
                     
                     cn_index = (m_cov > (1-Consts.DIPLOID_dCN_THR)*m/2) & (m_cov < (1+Consts.DIPLOID_dCN_THR)*m/2)
-                    #scorers.append (Scoring.Scoring(np.array(ai[], m_cov[]), logger = False))
-                    for _, b in bed_data.iterrows ():
-                        pass  
+                    index = ai_index & cn_index
+                    data_for_scoring = np.concatenate(ai[index], m_cov[index]).reshape (sum(index), 2)
+                    scorer = Scoring.Scoring(data_for_scoring, logger = False)
                     
-                    res = Models.fit_exp_shift (bed_data['ai'].values, 2*bed_data['m'].values/m)
+                    
+                    
+                    #res = Models.fit_exp_shift (bed_data['ai'].values, 2*bed_data['m'].values/m)
                     #for _, b in bed_data.iterrows():
                         #dt.append (np.sqrt(b['size'])*(np.nanmin([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets().values()])))
                     #    dt.append ((b['size'])*(np.min([Models.calculate_distance_new (b['ai'], 2*b['m']/m, model)['d'] for model in model_presets().values()])))                    
@@ -592,13 +594,13 @@ def server(input, output, session):
             
             #opt_solution.set((ms,dtsa, np.array(dist_as), np.array(dist_bs)))
             
-            try:
-                m0_opt.set (ms[np.where(dts == np.nanmin(dtsa))[0][0]])
+            #try:
+                #m0_opt.set (ms[np.where(dts == np.nanmin(dtsa))[0][0]])
                 #print ()
                 #print (ms[np.where(dts == np.nanmin(dtsa))[0][0]])
                 #print ()
-            except:
-                m0_opt.set(m0())
+            #except:
+                #m0_opt.set(m0())
             
     @output
     @render.plot (alt = 'Total distance to the model')
