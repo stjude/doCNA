@@ -8,23 +8,24 @@ from doCNA import Models
 
 
 class Scoring:
-    def __init__(self, initial_data, logger) -> None:
+    def __init__(self, initial_data = None, logger = False) -> None:
         
-        self.ai_param = fit_QQgauss(initial_data[: ,0])
+        if initial_data is None:
+            self.ai_param = {'m' : np.inf, 's' : 1}
+            self.cn_param = {'m' : np.inf, 's' : 1}
+            self.dipl_dist = {'m' : np.inf, 's' : 1, 'thr' : 0, 'alpha': np.nan}
+        else:
+            self.ai_param = fit_QQgauss(initial_data[: ,0])
+            self.cn_param = fit_QQgauss(initial_data[: ,1], fit_intercept = False)
+            dds =  initial_data - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
+            ds = dds/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :]
+            self.dipl_dist = fit_QQgauss (np.sqrt((ds**2).sum(axis = 1)))
+            self.dipl_dist['alpha'] = 1/(5*len(initial_data))
+            self.dipl_dist['thr'] = sts.norm.ppf (1-self.dipl_dist['alpha'], 
+                                                  self.dipl_dist['m'],
+                                                  self.dipl_dist['s'])
         
-        self.cn_param = fit_QQgauss(initial_data[: ,1], fit_intercept = False)
-        
-        
-        dds =  initial_data - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
-        ds = dds/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :]
-        
-        
-        self.dipl_dist = fit_QQgauss (np.sqrt((ds**2).sum(axis = 1)))
-        #self.dipl_dist = fit_smallest_gauss (np.sqrt((ds**2).sum(axis = 1)))
-        self.dipl_dist['alpha'] = 1/(5*len(initial_data))
-        self.dipl_dist['thr'] = sts.norm.ppf (1-self.dipl_dist['alpha'], 
-                                              self.dipl_dist['m'],
-                                              self.dipl_dist['s'])
+            
         
         if logger:
             self.logger = logger.getChild (f'{self.__class__.__name__}')
@@ -32,15 +33,6 @@ class Scoring:
             self.logger.info (f"Distribution of diploid allelic imbalance: m = {self.ai_param['m']}, s = {self.ai_param['s']}")
             self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
             
-    def get_ai_dist (self):
-        return self.ai_param
-    
-    def get_cn_dist (self):
-        return self.cn_param
-
-    def get_d_dist (self):
-        return self.dipl_dist
-    
     def get_d_thr (self):
         return self.dipl_dist['thr']
     
