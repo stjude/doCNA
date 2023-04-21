@@ -171,7 +171,7 @@ def plot_cdf (all_values, ax,  all_colors, par = (1,1), n = 100, xscale = 'lin',
         raise ('Unknown scale')
         
 
-def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2, max_k_score = 10):
+def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2, max_score_HE = 10):
     chromdata = data_df.loc[data_df.chrom == chrom]
 
     chromdata.loc[chromdata['symbol'] == 'E'].plot(x = 'position', y = 'vaf', lw = 0, alpha = 0.3,
@@ -263,21 +263,55 @@ def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 100):
     assert type in ["CDF", "PDF"], "Unknown plot type!"
     
     ##Plot reference
-    try: 
+    #try: 
+    if True:
         x = np.linspace (0,1, 500)
         if type == "CDF":
-            ax.plot (x, sts.norm.cdf (x, 0.497, np.sqrt(0.25/par['m0'])*par['fb']), '.',
-                     markersize = 1, color = 'red')
+            ax.plot (x, sts.norm.cdf (x, par['v0'], np.sqrt(0.25/par['m0'])*par['fb']),  color = 'red')
         else:
-            ax.plot (x, sts.norm.pdf (x, 0.497, np.sqrt(0.25/par['m0'])*par['fb']), '.',
-                     markersize = 1, color = 'red')
+            ax.plot (x, sts.norm.pdf (x, par['v0'], np.sqrt(0.25/par['m0'])*par['fb']), color = 'red')
         ax.plot ((),(), lw = 2, color = 'red', label = 'diploid reference')
-    except:
-        pass
+    #except:
+    #    pass
     
     ##Plot AB
+    dipl_bed = ch_bed.loc[ch_bed['model'] == 'AB']
+    starts = dipl_bed['start'].values
+    ends = dipl_bed['end'].values
+    pos_filt = ((d_ch.position.values[:, np.newaxis] > starts[np.newaxis,:]) &\
+                (d_ch.position.values[:, np.newaxis] < ends[np.newaxis,:])).any (axis = 1) 
     
+    tmp = d_ch.loc[(d_ch['symbol'] == Consts.E_SYMBOL)&(pos_filt)]
+        
+    v = np.sort (tmp['vaf'].values)
+    if type == "CDF":
+        ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 1, color = colorsCN['AB'])
+        ax.plot ((),(), lw = 2, label = 'AB', color = colorsCN['AB'])
+    else:
+        ax.hist (v, bins = np.linspace (0,1, no_bins), lw = 2, 
+                 histtype = "step", density = True, color = colorsCN['AB'])
+        ax.plot ((),(), lw = 2, label = 'AB', color = colorsCN['AB'])
     
+    ##Plot CNVs
+    CNV_bed = ch_bed.loc[ch_bed['model'] != 'AB']
+    for _, cb in CNV_bed.iterrows():
+        tmp = d_ch.loc[(d_ch['symbol'] == cb['symbol'])&\
+                       (d_ch['position'] >= cb['start'])&\
+                       (d_ch['position'] >= cb['start'])]
+        v = np.sort (tmp['vaf'].values)
+        if type == "CDF":
+            ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 1,
+                    color = colorsCN[cb['model']])
+            ax.plot ((),(), lw = 2, color = colorsCN[cb['model']],
+                     label = cb['chrom']+':'+str(cb['start'])+'-'+str(cb['end'])+':'+cb['model'])
+        else:
+            ax.hist (v, bins = np.linspace (0,1, no_bins), lw = 2, 
+                     histtype = "step", density = True,
+                     color = colorsCN['AB'])
+            ax.plot ((),(), lw = 2, color = colorsCN[cb['model']],
+                     label = cb['chrom']+':'+str(cb['start'])+'-'+str(cb['end'])+':'+cb['model'])
+    
+    ax.legend()
     ###OLD TBR
     #for stat, df in ch_bed.groupby (by = 'status'):
     #    starts = df.start.values

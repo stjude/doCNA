@@ -425,7 +425,7 @@ def server(input, output, session):
                             c = np.array([colorsCN[m] for m in tmp_bed['model']]),
                             s = np.sqrt(tmp_bed['size']))
             x = np.linspace (tmp_bed['d_model'].min(), tmp_bed['d_model'].max(), 100)
-            axs[1].plot (x , 1 - np.exp (-par_d['a_d'] * x), 'r-')
+            axs[1].plot (x , 1 - np.exp (par_d['a_d'] * x), 'r-')
             axs[1].set_ylabel ('cdf - Model distance')  
             
             fig.tight_layout()
@@ -536,7 +536,8 @@ def server(input, output, session):
         data_df = data()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0) & (len(data_df) != 0):
             fig, axs = plt.subplots (4, 1, figsize = (12,4), sharex = True)
-            earth_worm_plot (data_df, bed_data, par_d, input.chrom_view(), axs)
+            earth_worm_plot (data_df, bed_data, par_d, input.chrom_view(), axs, 
+                             max_score_HE = input.HE_max())
             return fig
         
     @output
