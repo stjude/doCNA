@@ -164,12 +164,12 @@ app_ui = ui.page_fluid(
                                                           ui.row(ui.output_plot ('data_plot'),
                                                                  ui.output_plot ('compare_plot')),
                                                           ui.row(ui.output_table (id = 'chrom_segments'))),
-                                                    ui.nav("Report",
-                                                           ui.row(ui.column(12,
-                                                                            ui.output_plot('report_plot'),
-                                                                            ui.row (ui.h6 ("Report diploid regions?"),
-                                                                                    ui.input_checkbox ('rep_AB', "Yes", value = False)),
-                                                                            ui.output_table('report')))),
+                                                    #ui.nav("Report",
+                                                    #       ui.row(ui.column(12,
+                                                    #                        ui.output_plot('report_plot'),
+                                                    #                        ui.row (ui.h6 ("Report diploid regions?"),
+                                                    #                                ui.input_checkbox ('rep_AB', "Yes", value = False)),
+                                                    #                        ui.output_table('report')))),
                                                     ui.nav("Publication",
                                                            ui.h6 ("AI still in school"))
                                                             
@@ -198,14 +198,24 @@ def server(input, output, session):
     @output
     @render.text
     def solutions_info ():
-        m, d, _, _ = opt_solution ()
-        ind = sig.argrelmin (d)[0]
-        minims = []
-        for i in ind:
-            minims.append ((m[i], d[i])) 
-        minims.sort (key = lambda x: x[1], reverse = False)
+        solutions = solutions_list()
+        if len (solutions):
+            ms = np.array(list(solutions_list())) #np.array([s[0] for s in solutions])
+            d_total = np.array([solutions[m][1] for m in solutions.keys()])
+            d_HE = np.array([solutions[m][0].dipl_dist['m'] for m in solutions.keys()])
         
-        return '\n'.join(['m = ' + str(m) + '  d = ' + str(d)  for m,d in minims])
+        #m, d, _, _ = opt_solution ()
+            ind_d = sig.argrelmin (d_total)[0]
+            ind_HE = sig.argrelmin (d_HE)[0]
+            minims = []
+            for i in ind_d:
+                minims.append ((ms[i], d_total[i], d_HE[i]))
+            for i in ind_HE:
+                minims.append ((ms[i], d_total[i], d_HE[i]))
+             
+            minims.sort (key = lambda x: x[1], reverse = False)
+        
+            return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) + ' d_HE = ' + str(HE)  for m,d,HE in minims])
   
    
     @output
@@ -469,6 +479,7 @@ def server(input, output, session):
         if (len(opt_bed_data) != 0) & (len(par_d.keys()) != 0):
            
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
+            print (opt_bed_data['model'])
             check_solution_plot_opt (opt_bed_data, ax, model_thr = input.model_thr(),
                                           highlight = [], xcol = 'm')
             k = np.linspace (0,1,100)
@@ -492,7 +503,7 @@ def server(input, output, session):
             ms = np.array(list(solutions_list()))
             diff = np.abs(ms - m0_opt())
             i = np.where(diff == diff.min())[0][0]
-            value = solutions_list()[ms[i]]
+            value = ms[i]
             ui.update_slider ('m0_cov', value = value,
                               min = min(solutions_list().keys()),
                               max = max(solutions_list().keys()),
@@ -640,10 +651,11 @@ def server(input, output, session):
         if len(solutions_list()):
             
             m0_opt.set(input.m0_cov())
-            solutions_list()
-            bed = opt_bed()
+            #solutions_list()
+            bed = opt_bed().copy()
             bed['cn'] = 2*bed['m']/m0_opt()
-            bed['model'] = solutions_list()[m0_opt()][-1]
+            #print (solutions_list()[m0_opt()][-1])
+            bed['model'] = [s['model'] for s in solutions_list()[m0_opt()][-1]]
             #bed['d_model'] = solutions_list()[m0_opt()][0]['d_model']
     
             opt_bed.set(bed)
