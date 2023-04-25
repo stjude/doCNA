@@ -451,9 +451,6 @@ def server(input, output, session):
         par_d = par()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
-            check_solution_plot_opt (bed_data, ax, 
-                                     highlight = input.chroms_selected(),
-                                     model_thr = input.model_thr())
             k = np.linspace (0,1,100)
             m0 = par_d['m0']
             for model in model_presets().keys():
@@ -463,6 +460,10 @@ def server(input, output, session):
                     ls = ':'
                 ax.plot (2*model_presets()[model].m(k, m0)/m0, model_presets()[model].ai(k, m0),  
                          lw = 1, linestyle = ls, color = colorsCN[model], alpha  = 1)
+            
+            check_solution_plot_opt (bed_data, ax, 
+                                     highlight = input.chroms_selected(),
+                                     model_thr = input.model_thr())
             
             ax.set_xlim (2*0.9*bed_data.m.min()/m0, 2*1.1*bed_data.m.max()/m0)
             ax.set_ylim ((max(-0.02, -0.02*bed_data.ai.max()), bed_data.ai.max()*1.1))
@@ -480,8 +481,7 @@ def server(input, output, session):
            
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
             print (opt_bed_data['model'])
-            check_solution_plot_opt (opt_bed_data, ax, model_thr = input.model_thr(),
-                                          highlight = [], xcol = 'm')
+            
             k = np.linspace (0,1,100)
             for model in model_presets().keys():
                 if model in par()['models']:
@@ -490,6 +490,9 @@ def server(input, output, session):
                     ls = ':'
                 ax.plot (model_presets()[model].m(k, m0_opt()), model_presets()[model].ai(k, m0_opt()), 
                          lw = 1, linestyle = ls, color = colorsCN[model], alpha = 0.6, label = model)
+            
+            check_solution_plot_opt (opt_bed_data, ax, model_thr = input.model_thr(),
+                                          highlight = [], xcol = 'm')
             
             #ax.legend (bbox_to_anchor = (1,0))
             ax.legend (bbox_to_anchor = (1.2,1), loc = 'upper center')

@@ -244,10 +244,10 @@ def check_solution_plot_opt (bed, ax, model_thr,
     for _, b in bed.loc[bed['model'].notna(),:].iterrows():
         ec = 'w' if b['score_model'] < model_thr else 'orange'
         if b['chrom'] == 'chrX':
-            ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size'],
+            ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size']*2,
                         edgecolor = ec, marker = 'X')
         elif b['chrom'] == 'chrY':
-            ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size']*2,
+            ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size']*4,
                         edgecolor = ec, marker = 'v')
         else:
                         ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']],

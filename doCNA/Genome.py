@@ -276,7 +276,8 @@ class Genome:
                 
             self.genome_medians['d_model'] = {'a' : a}
         else:
-            self.info ('Not enough non diploid regions to perform meaningful scoring')
+            self.logger.info ('Not enough non diploid regions to perform meaningful scoring')
+            self.genome_medians['d_model'] = {'a' : np.nan}
             for seg in self.all_segments:
                 seg.parameters['score_model'] = 0
         
