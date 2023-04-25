@@ -123,10 +123,9 @@ class Genome:
         #for formatting
         for  par in status.index.values:
             params[par] = self.HE.get_genome_medians()[par]  
-            
-        self.sex_chromosomes[Consts.FEMALE_CHROM].markE_onHE (params, float(self.config['HE']['z_thr']))
-        #self.sex_chromosomes[Consts.MALE_CHROM].data['symbol'] = 'N'
-        self.sex_chromosomes[Consts.MALE_CHROM].markE_onHE (params, float(self.config['HE']['z_thr']))
+        
+        for chrom in self.sex_chromosomes.keys():
+            self.sex_chromosomes[chrom].markE_onHE (params, float(self.config['HE']['z_thr']))
         
         self.logger.debug ('Testing N/E marking.')    
         
@@ -181,15 +180,6 @@ class Genome:
                                                      index = [Consts.MALE_CHROM]))
         
 
-        #self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
-        #self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
-        #male_markers = len (self.sex_chromosomes[Consts.MALE_CHROM].data)
-        #if male_markers > Consts.SNPS_IN_WINDOW:
-        #    self.chromosomes[Consts.MALE_CHROM] = self.sex_chromosomes[Consts.MALE_CHROM]
-        #    self.logger.info(f'Chromosome {Consts.MALE_CHROM} added.')
-        #else:
-        #    self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, only {male_markers} markers.')
-        
         self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
         self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
         male_markers = len (self.sex_chromosomes[Consts.MALE_CHROM].data)
@@ -258,13 +248,6 @@ class Genome:
             for seg in self.chromosomes[chrom].segments:
                 self.all_segments.append (seg)
                 
-        
-        #Now it works different way
-        #self.score_model_distance ()
-        #self.score_clonality (size_thr = Consts.SIZE_THR, model_thr = Consts.MODEL_THR,
-        #                      dalpha = Consts.DSCORE_ALPHA, kalpha = Consts.KSCORE_ALPHA,
-        #                      k_thr = Consts.K_THR)
-        
         self.segment_filter = [((s.end - s.start)/1e6 > Consts.SIZE_THR) &\
                                 (s.centromere_fraction < Consts.CENTROMERE_THR) &\
                                 (s.parameters['ai'] < Consts.DIPLOID_AI_THR) &\
@@ -282,40 +265,35 @@ class Genome:
 
     def score_model_distance (self):
     
-        indexes = np.where([((seg.end - seg.start)/1e6 > Consts.SIZE_THR) &\
-                            (seg.centromere_fraction < Consts.CENTROMERE_THR) &\
-                            (seg.parameters['model'] != 'AB') &\
-                             np.isfinite(seg.parameters['d_model']) for seg in self.all_segments])[0]
-        print (indexes)
-        segments = [self.all_segments[i] for i in indexes]
-        print (len(segments))
-        zs_ns = [seg.parameters['d_model'] for seg in segments]
+        size_filter = [(seg.end - seg.start)/1e6 > Consts.SIZE_THR  for seg in self.all_segments]
+        cent_filter = [seg.centromere_fraction < Consts.CENTROMERE_THR  for seg in self.all_segments]
+        model_filter = [seg.parameters['model'] != 'AB'  for seg in self.all_segments]
+        finite_filter = [np.isfinite(seg.parameters['d_model']) for seg in self.all_segments]
+        
+        filter = size_filter & cent_filter & model_filter & finite_filter
+        
+        if sum(filter) >= 3:
+            indexes = np.where(filter)[0]
+            segments = [self.all_segments[i] for i in indexes]
+            zs_ns = [seg.parameters['d_model'] for seg in segments]
             
-        z_n = np.array(zs_ns)
-        print (z_n)
-        #z_n = z_n_a[~np.isnan(z_n_a[:,0]) ,:]
-        #try:
-        x = sts.expon.ppf (np.linspace (0,1,len(z_n)+2)[1:-1])
-        huber = slm.HuberRegressor (fit_intercept = False)
-        huber.fit (x[:, np.newaxis], np.sort(z_n))
-        a = -1./huber.coef_[0]
-        self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (a))
-            #popt, _ = opt.curve_fit (exp, np.sort (z_n[:,0]), np.linspace (0,1,len(z_n[:,0])),
-            #                         p0 = (10), sigma = 1/np.sqrt(z_n[:,1])[np.argsort(z_n[:,0])])
-            #self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (popt[0]))
-            
-        #except ValueError:
-        #    a = np.nan
-        #    self.logger.warning ("Scoring of models failed. None of the scoring have any sense.")
-        #    self.logger.warning ("Consider rerunning with manually set m0.")
-
-        for seg in self.all_segments:
-            if seg.parameters['model'] != 'AB':
-                seg.parameters['score_model'] = -np.log10 (np.exp (a*seg.parameters['d_model']))
-            else:
-                seg.parameters['score_model'] = 0
+            z_n = np.array(zs_ns)
+            x = sts.expon.ppf (np.linspace (0,1,len(z_n)+2)[1:-1])
+            huber = slm.HuberRegressor (fit_intercept = False)
+            huber.fit (x[:, np.newaxis], np.sort(z_n))
+            a = -1./huber.coef_[0]
+            self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (a))
+            for seg in self.all_segments:
+                if seg.parameters['model'] != 'AB':
+                    seg.parameters['score_model'] = -np.log10 (np.exp (a*seg.parameters['d_model']))
+                else:
+                    seg.parameters['score_model'] = 0
                 
-        self.genome_medians['d_model'] = {'a' : a}
+            self.genome_medians['d_model'] = {'a' : a}
+        else:
+            self.info ('Not enough non diploid regions to perform meaningful scoring')
+            for seg in self.all_segments:
+                seg.parameters['score_model'] = 0
         
     def score_clonality (self, size_thr = 5e6, model_thr = 5, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
         balanced = [seg.parameters['model'] == '(AB)n' for seg in self.all_segments]

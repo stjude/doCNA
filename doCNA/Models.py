@@ -66,7 +66,7 @@ model_presets = {'(AB)(2+n)' : Preset(A = lambda m,dv,m0: 0,
                                     B = lambda m,dv,m0 : -1,
                                     C = lambda m,dv,m0 : m0,
                                     D = lambda m,dv,m0 : m - 2*dv*m0/(3-2*dv),
-                                    k = lambda m,dv,m0 : 4*dv/(3-2*dv) if (m/m0 > 1.9/2) & (m/m0 < 3.1/2) else np.nan,
+                                    k = lambda m,dv,m0 : 34*dv/(3-2*dv) if (m/m0 > 1.9/2) & (m/m0 < 3.1/2) else np.nan,
                                     m = lambda k,m0 : (2+k)*m0/2,
                                     ai = lambda k,m0 : 3*k/(4+2*k)),
                     

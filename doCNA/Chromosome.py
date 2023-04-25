@@ -299,7 +299,7 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
                 E_thr = Consts.DEFAULT_E_THRESHOLD
             if E_thr > np.percentile(counts[values == E], q = [20])[0]:
                 E_thr = Consts.DEFAULT_E_THRESHOLD
-    except (RuntimeError,TypeError):
+    except (RuntimeError,TypeError, ValueError):
         E_thr = Consts.DEFAULT_E_THRESHOLD
     
     return Run_treshold (N = N_thr, E = E_thr)
