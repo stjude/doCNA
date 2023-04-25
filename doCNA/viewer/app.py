@@ -266,8 +266,6 @@ def server(input, output, session):
         
         df['size'] = (df['end'] - df['start'])/1e6
         df.loc[np.isinf(df['score_HE']) , 'score_HE'] = np.nanmax(df['score_HE'])
-        print (df.head())
-        print (df.columns)
         
         data.set(pd.DataFrame())
         par.set({})
@@ -275,6 +273,7 @@ def server(input, output, session):
         opt_solution.set ((np.array([]), np.array([]), np.array([])))
         log_file.set([])
         bed_report.set(pd.DataFrame())
+        solutions_list.set ({})
             
     @reactive.Effect
     @reactive.Calc
@@ -369,9 +368,6 @@ def server(input, output, session):
                     except:
                         print ('Line: ' + line + 'not parsed.')
         par.set(pard)
-        print ('')
-        print(pard)
-        print('')
         opt_solution.set ((np.array([]), np.array([]), np.array([])))
         m0.set(pard['m0'])
         m0_opt.set(pard['m0'])
@@ -480,7 +476,6 @@ def server(input, output, session):
         if (len(opt_bed_data) != 0) & (len(par_d.keys()) != 0):
            
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
-            print (opt_bed_data['model'])
             
             k = np.linspace (0,1,100)
             for model in model_presets().keys():
@@ -494,7 +489,6 @@ def server(input, output, session):
             check_solution_plot_opt (opt_bed_data, ax, model_thr = input.model_thr(),
                                           highlight = [], xcol = 'm')
             
-            #ax.legend (bbox_to_anchor = (1,0))
             ax.legend (bbox_to_anchor = (1.2,1), loc = 'upper center')
                
             return fig
@@ -603,7 +597,7 @@ def server(input, output, session):
                     cn_index = np.abs(cn -2) < Consts.DIPLOID_dCN_THR
                     index = np.where(ai_index & cn_index)[0]
                     if len(index) > 2:
-                        data_for_scoring = np.concatenate([ai[index], m_cov[index]]).reshape (len(index), 2)
+                        data_for_scoring = np.concatenate([ai[index], cn[index]-2]).reshape (len(index), 2)
                         scorer = Scoring.Scoring(data_for_scoring)
                     else:
                         scorer = Scoring.Scoring()
@@ -611,9 +605,10 @@ def server(input, output, session):
                     models = []
                     d_total = 0
                     for i in np.arange(len(ai)):
-                        models.append(scorer.score_dipl(ai[i], m_cov[i], m, par()['models']))
-                        d_total += models[-1]['d_model']*sizes[i]
-
+                        sm = scorer.score_dipl(ai[i], m_cov[i], m, par()['models'])
+                        models.append(sm['model'])
+                        d_total += sm['d_model']*sizes[i]
+                    
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
             
             solutions_list.set (solutions)    
@@ -633,15 +628,17 @@ def server(input, output, session):
             d_HE = np.array([solutions[m][0].dipl_dist['m'] for m in solutions.keys()])
              
             fig, ax = plt.subplots(1,1, figsize = (6,6))
-            ax.plot (ms, d_total, 'ro-', label = 'Total distance to models')
+            ax.plot (ms, d_total, 'ro-')
             axt = ax.twinx()
-            axt.plot (ms, d_HE, 'bo-', label = 'Diploid shift')
+            axt.plot (ms, d_HE, 'bo-')
             
             ax.set_xlabel ('Covearage')
             ax.set_ylabel ('Distance to the model')
-            axt.set_ylabel ('Diploid shift')
-            axt.yaxis.label.set_color ('b')
+            ax.yaxis.label.set_color ('r')
+            ax.tick_params(axis='y', colors = 'r')
             
+            
+            axt.set_ylabel ('Diploid shift')
             axt.yaxis.label.set_color('b')
             axt.tick_params(axis='y', colors = 'b')
             
@@ -654,13 +651,9 @@ def server(input, output, session):
         if len(solutions_list()):
             
             m0_opt.set(input.m0_cov())
-            #solutions_list()
             bed = opt_bed().copy()
             bed['cn'] = 2*bed['m']/m0_opt()
-            #print (solutions_list()[m0_opt()][-1])
-            bed['model'] = [s['model'] for s in solutions_list()[m0_opt()][-1]]
-            #bed['d_model'] = solutions_list()[m0_opt()][0]['d_model']
-    
+            bed['model'] = solutions_list()[m0_opt()][-1]
             opt_bed.set(bed)
             
 app = App(app_ui, server, debug=True)

@@ -20,12 +20,10 @@ class Scoring:
             dds =  initial_data - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
             ds = dds/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :]
             self.dipl_dist = fit_QQgauss (np.sqrt((ds**2).sum(axis = 1)))
-            self.dipl_dist['alpha'] = 1/(5*len(initial_data))
+            self.dipl_dist['alpha'] = Consts.SCORE_ALPHA
             self.dipl_dist['thr'] = sts.norm.ppf (1-self.dipl_dist['alpha'], 
                                                   self.dipl_dist['m'],
                                                   self.dipl_dist['s'])
-        
-            
         
         if logger:
             self.logger = logger.getChild (f'{self.__class__.__name__}')
