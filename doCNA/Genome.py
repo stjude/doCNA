@@ -163,32 +163,17 @@ class Genome:
                 self.logger.debug (f'Chromosome {chrom} marked on full model.')
                 self.chromosomes[chrom].mark_on_full_model (self.HE.medians['cov']) 
         
-        self.logger.info (f'Analyzing {Consts.FEMALE_CHROM}: ...')
-        female_chrom_vaf_results = Testing.VAF_test (self.sex_chromosomes[Consts.FEMALE_CHROM].data,
+        for chrom in self.sex_chromosomes.keys():
+            self.logger.info (f'Analyzing {chrom}: ...')
+            chrom_vaf_results = Testing.VAF_test (self.sex_chromosomes[chrom].data,
                                                      self.HE.medians['cov'])
-        self.logger.info (f'VAF test results: {female_chrom_vaf_results}')
-        self.VAF.results.append(pd.DataFrame.from_records ([female_chrom_vaf_results],
-                                                     columns = female_chrom_vaf_results._fields, 
-                                                     index = [Consts.FEMALE_CHROM]))
+            self.logger.info (f'VAF test results: {chrom_vaf_results}')
+            self.VAF.results.append(pd.DataFrame.from_records ([chrom_vaf_results],
+                                                                columns = chrom_vaf_results._fields, 
+                                                                index = [chrom]))
         
-        self.logger.info (f'Analyzing {Consts.MALE_CHROM}: ...')
-        male_chrom_vaf_results = Testing.VAF_test (self.sex_chromosomes[Consts.MALE_CHROM].data,
-                                                     self.HE.medians['cov'])
-        self.logger.info (f'VAF test results: {male_chrom_vaf_results}')
-        self.VAF.results.append(pd.DataFrame.from_records ([male_chrom_vaf_results],
-                                                     columns = male_chrom_vaf_results._fields,
-                                                     index = [Consts.MALE_CHROM]))
-        
-
-        self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
-        self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
-        male_markers = len (self.sex_chromosomes[Consts.MALE_CHROM].data)
-        if male_markers > 0: #Consts.SNPS_IN_WINDOW:
-            self.chromosomes[Consts.MALE_CHROM] = self.sex_chromosomes[Consts.MALE_CHROM]
-            self.logger.info(f'Chromosome {Consts.MALE_CHROM} added.')
-        else:
-            self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, no markers.')                
-                
+            self.chromosomes[chrom] = self.sex_chromosomes[chrom]
+            self.logger.info(f'Chromosome {chrom} added.')        
         
         self.COV = Testing.Testing ('COV', 
                                     self.chromosomes,
@@ -265,10 +250,10 @@ class Genome:
 
     def score_model_distance (self):
     
-        size_filter = [(seg.end - seg.start)/1e6 > Consts.SIZE_THR  for seg in self.all_segments]
-        cent_filter = [seg.centromere_fraction < Consts.CENTROMERE_THR  for seg in self.all_segments]
-        model_filter = [seg.parameters['model'] != 'AB'  for seg in self.all_segments]
-        finite_filter = [np.isfinite(seg.parameters['d_model']) for seg in self.all_segments]
+        size_filter = np.array([(seg.end - seg.start)/1e6 > Consts.SIZE_THR  for seg in self.all_segments])
+        cent_filter = np.array([seg.centromere_fraction < Consts.CENTROMERE_THR  for seg in self.all_segments])
+        model_filter = np.array([seg.parameters['model'] != 'AB'  for seg in self.all_segments])
+        finite_filter = np.array([np.isfinite(seg.parameters['d_model']) for seg in self.all_segments])
         
         filter = size_filter & cent_filter & model_filter & finite_filter
         
