@@ -38,14 +38,14 @@ class Run:
         self.get_windows (n = Consts.SNPS_IN_WINDOW)
         self.logger.debug (f'Run divided into {len(self.windows)} windows.')
         if len(self.windows) >= Consts.WINDOWS_THRESHOLD:
-            try:
-                self.get_ai ()
-                self.get_coverage ()
-                self.solve_windows ()
-            except:
-                self.logger.info (f"Run can't be analyzed.")
-                self.dumy_solution ()
-                self.logger.info ('One solution devised for crazy run')
+            #try:
+            self.get_ai ()
+            self.get_coverage ()
+            self.solve_windows ()
+            #except :
+            #    self.logger.info (f"Run can't be analyzed.")
+            #    self.dumy_solution ()
+            #    self.logger.info ('One solution devised for crazy run')
             
         else:
             self.logger.info (f'Run is to short to segment.')
@@ -184,8 +184,8 @@ class Run:
         self.v0 = np.array(v0s)        
         self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = p_thr, thr_z = z_thr)
-        self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: m = {self.dv_dist.parameters['m']}, s = {self.dv_dist.parameters['s']}.")
-    
+        self.logger.debug (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: m = {self.dv_dist.parameters['m']}, s = {self.dv_dist.parameters['s']}.")
+        
     def get_coverage (self, z_thr = Consts.M_Z, p_thr = Consts.SINGLE_P_SENSITIVE):
         ml = []
         ll = []

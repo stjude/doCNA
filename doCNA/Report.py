@@ -90,13 +90,7 @@ class Report:
 
         """ Generates a report for Segment objects """
         if self._report_type == 'bed':    
-            #if np.isnan (segment.parameters['k']):
-            #    if segment.parameters['fraction_1'] > 0.95:
-            #        k = 1
-            #    else:
-            #        k = np.nan
-            #else:
-            
+           
             report = '\t'.join([str(p) for p in [segment.chrom, 
                                                  segment.start,
                                                  segment.end,

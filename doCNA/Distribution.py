@@ -67,6 +67,7 @@ class Distribution:
                 #marking D population
                 for i in np.where ((z1 < z0)&(z1 < thr_z))[0]:
                     string[i] = 'D'
+                
                 self.parameters['string'] = ''.join(string)
                 self.all_parameters['double']['string'] = string
                 self.string = ''.join(string)
