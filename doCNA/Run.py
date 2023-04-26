@@ -99,7 +99,7 @@ class Run:
         dvl = []
         v0l = []
         for v in vafs:
-            popt, _ = get_shift (v, s)
+            popt = get_shift (v, s)
             dvl.append (popt[0])
             v0l.append (popt[1])
                         
