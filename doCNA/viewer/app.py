@@ -265,7 +265,6 @@ def server(input, output, session):
                             'k', 'symbol', 'cyto', 'cent'])
         
         df['size'] = (df['end'] - df['start'])/1e6
-        df.loc[np.isinf(df['score_HE']) , 'score_HE'] = np.nanmax(df['score_HE'])
         
         data.set(pd.DataFrame())
         par.set({})

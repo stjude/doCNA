@@ -453,7 +453,7 @@ def fit_huber (data, alpha):
     m, std = sts.norm.fit (inlier_ds)
     std = std/Bolch_correction (len(inlier_ds))
 
-    score_FDR = FDR (np.sort(sts.norm.sf (d, m, std)), alpha)
+    score_FDR = FDR (np.sort(sts.norm.sf (d, m, std)), alpha, score = True)
 
     return {'A' : A, 'B' : B, 'C' : C, 'down' : down, 'up' : up, 'm' : m,
             's' : std, 'score_FDR' : score_FDR}
@@ -462,11 +462,14 @@ def Bolch_correction (n):
     return 1 - 1/(4*n) - 7/(32*n**2) - 19/(128*n**3)
 
 
-def FDR (p, alpha):
+def FDR (p, alpha, score = False):
     k = np.arange (1, len(p)+1)
     index = np.where(p <= alpha*k/len(p))[0]
     try:
-        return -np.log10(p[np.max(index)])
+        if score:
+            return -np.log10(p[np.max(index)])
+        else:
+            return p[np.max(index)]
     except:
         return np.inf
 

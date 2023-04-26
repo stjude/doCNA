@@ -50,7 +50,8 @@ class Distribution:
             except:
                 double_G_par = fit_double_G (np.sort(values), alpha = 0.01, r = 0.5)
                 values_used = 'unique'
-            if (double_G_par['p'] < single_G_par['p'])&(double_G_par['m'][0] != double_G_par['m'][1]):
+                
+            if (double_G_par['p'] > single_G_par['p'])&(double_G_par['m'][0] != double_G_par['m'][1]):
                 self.key = 'double'
                 self.parameters = double_G_par
                 self.all_parameters ['double'] = double_G_par
