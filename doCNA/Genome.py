@@ -252,7 +252,7 @@ class Genome:
     
         size_filter = np.array([(seg.end - seg.start)/1e6 > Consts.SIZE_THR  for seg in self.all_segments])
         cent_filter = np.array([seg.centromere_fraction < Consts.CENTROMERE_THR  for seg in self.all_segments])
-        model_filter = np.array([seg.parameters['model'] != 'AB'  for seg in self.all_segments])
+        model_filter = np.array([seg.parameters['model'] not in ['AB', '(AB)(2-n)', '(AB)(2+n)'] for seg in self.all_segments])
         finite_filter = np.array([np.isfinite(seg.parameters['d_model']) for seg in self.all_segments])
         
         filter = size_filter & cent_filter & model_filter & finite_filter

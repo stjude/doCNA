@@ -46,11 +46,9 @@ class Scoring:
             #it is diploid
             model_param = {'model' : 'AB', 'd_model' : d,
                            'score_HE' : -np.log10(p_d), 'd_HE' : d,
-                           'p_model' : 0,#p_d,
                            'k': cn/2-1}
         else:
             model_param = Models.pick_model (ai, s_ai, cn, s_cn, models)        
-            model_param['p_model'] = 0, #sts.norm.sf(model_param['d_model'], self.dipl_dist['m'], self.dipl_dist['s'])
             model_param['score_HE'] = -np.log10(p_d)
             model_param['d_HE'] = d
         return model_param
