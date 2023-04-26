@@ -485,7 +485,7 @@ def server(input, output, session):
                 ax.plot (model_presets()[model].m(k, m0_opt()), model_presets()[model].ai(k, m0_opt()), 
                          lw = 1, linestyle = ls, color = colorsCN[model], alpha = 0.6, label = model)
             
-            check_solution_plot_opt (opt_bed_data, ax, model_thr = input.model_thr(),
+            check_solution_plot_opt (opt_bed_data, ax, model_thr = np.inf,
                                           highlight = [], xcol = 'm')
             
             ax.legend (bbox_to_anchor = (1.2,1), loc = 'upper center')
@@ -553,7 +553,7 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0) & (len(data_df) != 0):
             fig, axs = plt.subplots (4, 1, figsize = (12,4), sharex = True)
             earth_worm_plot (data_df, bed_data, par_d, input.chrom_view(), axs, 
-                             max_score_HE = input.HE_max())
+                             max_score_HE = input.HE_max(), model_threshold = input.model_thr())
             return fig
         
     @output

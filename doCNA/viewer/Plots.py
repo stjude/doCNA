@@ -181,7 +181,8 @@ def plot_cdf (all_values, ax,  all_colors, par = (1,1), n = 100, xscale = 'lin',
         raise ('Unknown scale')
         
 
-def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2, max_score_HE = 10):
+def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2,
+                     max_score_HE = 10, model_threshold = 3):
     chromdata = data_df.loc[data_df.chrom == chrom]
 
     chromdata.loc[chromdata['symbol'] == 'E'].plot(x = 'position', y = 'vaf', lw = 0, alpha = 0.3,
@@ -220,14 +221,14 @@ def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2, max_sc
         else:
             a = 0.1 + 0.8*seg['score_HE']/ max_score_HE 
     
-        if seg['score_model'] < 10:    
+        if seg['score_model'] < model_threshold:    
             axs[2].plot ((seg.start, seg.end), (seg.k, seg.k), c = colorsCN[seg.model], lw = 10, alpha = a)
             axs[2].plot ((seg.start, seg.end), (seg.k, seg.k), c = colorsCN[seg.model], lw = 1, marker = 'o')
             axs[3].plot ((seg.start, seg.end), (seg.cn, seg.cn), c = colorsCN[seg.model])
         else:
-            axs[2].plot ((seg.start, seg.end), (seg.k, seg.k), c = 'magenta', lw = 10, alpha = a)
-            axs[2].plot ((seg.start, seg.end), (seg.k, seg.k), c = 'magenta', lw = 1.5, marker = 'o', ls = ':')
-            axs[3].plot ((seg.start, seg.end), (seg.cn, seg.cn), c = 'magenta', ls = ':')
+            axs[2].plot ((seg.start, seg.end), (seg.k, seg.k), c = colorsCN[seg.model], lw = 10, alpha = a)
+            axs[2].plot ((seg.start, seg.end), (seg.k, seg.k), c = 'yellow', lw = 1.5, marker = 'o', ls = ':')
+            axs[3].plot ((seg.start, seg.end), (seg.cn, seg.cn), c = 'yellow', ls = ':')
 
     if len(chrombed) > 0:
         axs[3].set_ylim (chrombed['cn'].agg([min, max])*np.array ((0.95,1.05)))
