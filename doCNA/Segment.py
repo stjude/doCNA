@@ -132,7 +132,7 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
                       'status' : 'valid', 'fraction_1' : np.nan}
         
     except (RuntimeError, ValueError):
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : v0, 'p_ai' : np.nan,
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : np.nan, 'p_ai' : np.nan,
                       'success' : False, 'n' : np.nan,
                       'status' : 'valid', 'fraction_1' : np.nan}
         

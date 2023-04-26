@@ -231,7 +231,10 @@ class Run:
             self.logger.debug (f'Solution calculated: {make_rle_string(merged_segments, sep ="")}') 
             indexes = []
             for i in old_indexes:
-                indexes += (divide_segment(self.dv, *i))
+                try:
+                    indexes += (divide_segment(self.dv, *i))
+                except (IndexError):
+                    self.logger.debug (f"Re segmenting o f{i} failed!")
             if len(indexes) > len(old_indexes):
                 self.logger.debug (f'Run further divided, {len(indexes) - len(old_indexes)} more segment(s).')
                 self.logger.debug (f'Old runs: {old_indexes}')
@@ -252,12 +255,15 @@ class Run:
             self.logger.debug (f"""Solution performance: chi2 = {chi2.sum()/(3*len(self.dv)-df)},
             chi2_noO = {chi2[noOfilter].sum()/(3*sum(noOfilter)-df)}""")
             
-            self.solutions.append(Solution (chi2 = chi2.sum()/(3*len(self.dv)-df),
+            try:
+                self.solutions.append(Solution (chi2 = chi2.sum()/(3*len(self.dv)-df),
                                             chi2_noO = chi2[noOfilter].sum()/(3*sum(noOfilter)-df),
                                             positions = [(self.windows_positions[si][0], self.windows_positions[ei][1]) for si, ei in indexes],
                                             p_norm = psl,
                                             segments = ''.join(segments),
                                             merged_segments = make_rle_string(''.join(merged_segments))))
+            except (IndexError):
+                self.logger.debug ('Solution for {si:ei} failed.')
         
         self.solutions.sort (key = lambda x: x.chi2_noO)        
         self.logger.info (f"Total {len(self.solutions)} solution(s) found. Best chi2 = {self.solutions[0].chi2_noO}")
