@@ -242,9 +242,19 @@ class Genome:
         
         data_for_scoring = np.array([(s.parameters['ai'], 2*s.parameters['m']/self.genome_medians['m0']-2) for s in self.segments])
         self.scorer = Scoring.Scoring (data_for_scoring, self.logger)
+        ps = []
+        for seg in self.all_segments:
+            self.scorer.score_dipl(seg, self.models)
+            ps.append (seg.parameters['p_d'])
+        
+        ps = np.array(ps)
+        ##FDRing threshold
+        thr = FDR(ps[np.isfinite(ps)], alpha = Consts.DIPLOID_ALPHA, score = True)
+        self.scorer.set_thr (thr)
         for seg in self.all_segments:
             self.scorer.analyze_segment(seg, self.models)
-            
+        
+        
         self.score_model_distance ()
             
 
@@ -268,13 +278,17 @@ class Genome:
             huber.fit (x[:, np.newaxis], np.sort(z_n))
             a = -1./huber.coef_[0]
             self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (a))
+            ps = []
             for seg in self.all_segments:
                 if seg.parameters['model'] != 'AB':
-                    seg.parameters['score_model'] = -np.log10 (np.exp (a*seg.parameters['d_model']))
+                    p = np.exp (a*seg.parameters['d_model'])
+                    seg.parameters['score_model'] = -np.log10 (p)
+                    ps.append(p)
                 else:
                     seg.parameters['score_model'] = 0
                 
             self.genome_medians['d_model'] = {'a' : a}
+            self.genome_medians['thr_model'] = FDR (np.array(ps), Consts.MODEL_APLHA, score = True)
         else:
             self.logger.info ('Not enough non diploid regions to perform meaningful scoring')
             self.genome_medians['d_model'] = {'a' : np.nan}

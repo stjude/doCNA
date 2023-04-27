@@ -82,7 +82,7 @@ app_ui = ui.page_fluid(
                                                         value = 5, min = 0, max = 10),
                                        ui.h4 ("Display settings:"),
                                        ui.input_slider ('model_thr', "Model score threshold",
-                                                        value = 3, min = 0, max = 10),
+                                                        value = 3, min = 0, max = 10, step = 0.1),
                                        ui.input_slider ('HE_max', "Max HE score:",
                                                         value = 2, min = 0, max = 10),
                                        
@@ -121,15 +121,6 @@ app_ui = ui.page_fluid(
                                                                            ui.h5 ('Models distance distribution:'),
                                                                            ui.output_plot ('model_distance_plot'),
                                                                            ))
-                                                          #ui.row(ui.column(6,
-                                                          #                 ui.h5 ('Solution review:'),
-                                                          #                 ui.output_plot ('solution_plot'),
-                                                          #                 ),
-                                                          #       ui.column(6,
-                                                          #                 ui.row(
-                                                          #                        ui.h5 ('Scoring review:'),
-                                                          #                        ui.output_plot ('scoring_plots'),),
-                                                          #                 )),
                                                          ),
                                                    
                                                    ui.nav("LOG", 
@@ -615,6 +606,16 @@ def server(input, output, session):
                               max = max(solutions_list().keys()),
                               step = input.step() )
     
+    @reactive.Effect
+    @reactive.event(par)
+    def _():
+        if 'thr_model' in par().keys():
+            ui.update_slider ('model_thr', value = par()['thr_model'],
+                              min = 0,
+                              max = 10, 
+                              step = 0.1)
+
+
     @output
     @render.table
     def chrom_segments ():
