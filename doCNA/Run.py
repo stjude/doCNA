@@ -233,8 +233,9 @@ class Run:
             for i in old_indexes:
                 try:
                     indexes += (divide_segment(self.dv, *i))
-                except (IndexError):
-                    self.logger.debug (f"Re segmenting o f{i} failed!")
+                except (IndexError,ValueError):
+                    self.logger.debug (f"Re segmenting of {i} failed!")
+                    indexes.append(i)
             if len(indexes) > len(old_indexes):
                 self.logger.debug (f'Run further divided, {len(indexes) - len(old_indexes)} more segment(s).')
                 self.logger.debug (f'Old runs: {old_indexes}')
