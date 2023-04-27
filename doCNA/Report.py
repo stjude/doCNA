@@ -28,7 +28,8 @@ class Report:
                            'm_d\t' +str(genome.scorer.dipl_dist['m']),
                            's_d\t' +str(genome.scorer.dipl_dist['s']),
                            'a_d\t' +str(genome.genome_medians['d_model']['a']),
-                           'models\t'+str(genome.models)]
+                           'models\t'+str(genome.models),
+                           'thr_model\t'+str(genome.genome_medians['thr_model'])]
                         
             report = '\n'.join(report_list)
         else:
