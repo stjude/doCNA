@@ -23,7 +23,6 @@ colorsCN['AAAA'] = 'darkolivegreen'
 colorsCN[np.nan] = 'lightskyblue'
 colorsCN['NA'] = 'lightskyblue'
     
-MAX_HE_SCORE = 10    
 
 def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
     chrs = chrom_sizes.index.values.tolist()
@@ -32,8 +31,9 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
     axs[1].plot ((start, start), (0, 4), 'k:', lw = 0.5)
     axs[0].plot ((start, start), (0, 0.95), 'k:', lw = 0.5)
     mids = []
-    #axst = axs[2].twinx() 
-   
+    
+    max_he = bed_df.loc[np.isfinite(bed_df['score_HE'].values), 'score_HE'].max()
+    print (max_he)
     for chrom in chrs:
         
         for _, b in bed_df.loc[bed_df['chrom'] == chrom].iterrows():
@@ -52,14 +52,21 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
             if np.isposinf (b['score_HE']):
                 ec = 'r'
                 lw = 2
-                ys = (MAX_HE_SCORE, MAX_HE_SCORE)
+                ys = (max_he, max_he)
+                hatch = '*'
+                color = None
+                alpha = 0.7
+                                
             else:
                 ec = color
                 lw = 0
                 ys = (b['score_HE'], b['score_HE'])
+                hatch = None
+                alpha = 1
+
             axs[2].fill_between ((start + b['start'], start + b['end']), 
                                  ys, edgecolor = ec, lw = lw,
-                                 color = color, alpha = alpha)
+                                 color = color, hatch  = hatch, alpha = alpha)
                 
                 
         end = chrom_sizes[chrom]

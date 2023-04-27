@@ -34,36 +34,39 @@ class Scoring:
     def get_d_thr (self):
         return self.dipl_dist['thr']
     
-    def score_dipl (self, ai, m, m0, models):
+    def score_dipl (self, segment): #ai, m, m0, models):
+        ai = segment.parameters['ai'] 
+        m = segment.parameters['m']
+        m0 = segment.genome_medians['m0']
         cn = 2*m/m0
         s_ai = self.ai_param['s']
         s_cn = self.cn_param['s']
         d = np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
         p_d = sts.norm.sf (d, self.dipl_dist['m'], self.dipl_dist['s'])
-        isHE = d < self.dipl_dist['thr']
         
-        if isHE:
-            #it is diploid
-            model_param = {'model' : 'AB', 'd_model' : d,
-                           'score_HE' : -np.log10(p_d), 'd_HE' : d,
-                           'k': cn/2-1}
-        else:
-            model_param = Models.pick_model (ai, s_ai, cn, s_cn, models)        
-            model_param['score_HE'] = -np.log10(p_d)
-            model_param['d_HE'] = d
-        return model_param
-    
+        segment.parameters['d_HE'] = np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
+        segment.parameters['p_HE'] = p_d
+        segment.parameters['score_HE'] = -np.log10(p_d)
+
+
     def analyze_segment (self, segment, models):
-        """Convenience wrapper for Segment"""
-        ai = segment.parameters['ai']
         m = segment.parameters['m']
-        m0 = segment.genome_medians['m0']      
-        try:
-            segment.parameters.update (self.score_dipl(ai,m,m0,models))
-        except IndexError:
-            segment.parameters.update ({'model' : 'UN', 'd_model' : np.nan,
-                                        'k': np.nan, 'p_model' : np.nan, 'score_HE' : np.nan,
-                                        'd_HE' : np.nan})
+        m0 = segment.genome_medians['m0']
+        cn = 2*m/m0
+        
+        if segment.parameters['score_HE'] > self.dipl_dist['thr']:
+            ai = segment.parameters['ai']
+               
+            try:
+                segment.parameters.update (Models.pick_model(ai,1, cn,1,models))
+            except IndexError:
+                segment.parameters.update ({'model' : 'UN', 'd_model' : np.nan,
+                                            'k': np.nan, 'p_model' : np.nan,})
+        else:
+            segment.parameters.update({'model' : 'AB', 'd_model' : np.nan, 'k': cn/2-1})
+                
+    def set_thr (self, thr):
+        self.dipl_dist['thr'] = thr
 
     
 def fit_QQgauss (values, fit_intercept = True):

@@ -9,7 +9,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.signal as sig
+
 from collections import defaultdict
+from matplotlib.patches import Ellipse
 
 
 chromdic = {}
@@ -82,7 +84,7 @@ app_ui = ui.page_fluid(
                                        ui.input_slider ('model_thr', "Model score threshold",
                                                         value = 3, min = 0, max = 10),
                                        ui.input_slider ('HE_max', "Max HE score:",
-                                                        value = 2, min = 0, max = MAX_HE_SCORE),
+                                                        value = 2, min = 0, max = 10),
                                        
                                        width = 2),
                       ui.panel_main(
@@ -99,15 +101,35 @@ app_ui = ui.page_fluid(
                                                                                                     chromdic, inline = True)),),   
                                                           ui.row (ui.input_file ('par_file', "Choose PAR file to upload:",
                                                                                           multiple = False, accept = '.par')),
-                                                          ui.row(ui.column(6,
-                                                                           ui.h5 ('Solution review:'),
-                                                                           ui.output_plot ('solution_plot'),
+                                                          
+                                                          ui.row(ui.h4('Diploid analysis'),
+                                                                 ui.column(6,
+                                                                           ui.h5 ('Diploid segments:'),
+                                                                           ui.output_plot ('diploid_segments_plot'),
                                                                            ),
                                                                  ui.column(6,
-                                                                           ui.row(
-                                                                                  ui.h5 ('Scoring review:'),
-                                                                                  ui.output_plot ('scoring_plots'),),
+                                                                           ui.h5 ('Diploid distance distribution:'),
+                                                                           ui.output_plot ('diploid_distance_plot'),
                                                                            )),
+                                                          
+                                                          ui.row(ui.h4 ('Karyotyping review:'),
+                                                                 ui.column(6, 
+                                                                           ui.h5 ('Models review:'),
+                                                                           ui.output_plot ('models_plot'),
+                                                                           ),
+                                                                 ui.column(6,
+                                                                           ui.h5 ('Models distance distribution:'),
+                                                                           ui.output_plot ('model_distance_plot'),
+                                                                           ))
+                                                          #ui.row(ui.column(6,
+                                                          #                 ui.h5 ('Solution review:'),
+                                                          #                 ui.output_plot ('solution_plot'),
+                                                          #                 ),
+                                                          #       ui.column(6,
+                                                          #                 ui.row(
+                                                          #                        ui.h5 ('Scoring review:'),
+                                                          #                        ui.output_plot ('scoring_plots'),),
+                                                          #                 )),
                                                          ),
                                                    
                                                    ui.nav("LOG", 
@@ -413,6 +435,94 @@ def server(input, output, session):
             axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets())+2,
                            loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
+    
+    @output
+    @render.plot (alt = 'Diploid segments plot')
+    def diploid_segments_plot():
+        bed_data = bed()
+        par_d = par()
+        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
+            fig, ax = plt.subplots (1, 1, figsize = (6,6))
+            dip_bed_data = bed_data.loc[(bed_data['ai'] < Consts.DIPLOID_AI_THR) &\
+                                        (np.abs(bed_data['cn']-2) < Consts.DIPLOID_dCN_THR)]            
+            
+            check_solution_plot_opt (dip_bed_data, ax, model_thr = input.model_thr(),
+                                     highlight = input.chroms_selected())
+            
+            def ellipse_n (n, par):
+                return Ellipse ((par['m_cn']+2, par['m_ai']), n*par['s_cn'], n*par['s_ai'], 
+                                fill = False, lw = 1)
+            
+            ax.add_patch (ellipse_n(1, par_d))
+            ax.add_patch (ellipse_n(2, par_d))
+
+            ymin, ymax = ax.get_ylim()
+            ax.set_xlim (0.95*(2-Consts.DIPLOID_dCN_THR), 1.05*(2+Consts.DIPLOID_dCN_THR))
+            ax.set_ylim (np.max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
+                         np.min((1.01*Consts.DIPLOID_AI_THR, ymax)))
+            
+            return fig
+        
+    @output
+    @render.plot (alt = 'Diploid distance distribution plot')
+    def diploid_distance_plot():
+        bed_data = bed()
+        par_d = par()
+        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
+            fig, ax = plt.subplots (figsize = (6,6))
+            plot_cdf (bed_data['d_HE'].values, ax, par = (par_d['m_d'],par_d['s_d']),
+                      all_colors = np.array([colorsCN[m] for m in bed_data['model']]), half = True)
+            ax.set_ylabel ('cdf - HE distance')
+            return fig
+
+    @output
+    @render.plot (alt = 'Diploid segments plot')
+    def models_plot():
+        bed_data = bed()
+        par_d = par()
+        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
+            fig, ax = plt.subplots (1, 1, figsize = (6,6))
+            
+            k = np.linspace (0,1,100)
+            m0 = par_d['m0']
+            for model in model_presets().keys():
+                if model in par()['models']:
+                    ls = '-'
+                else:
+                    ls = ':'
+                ax.plot (2*model_presets()[model].m(k, m0)/m0, model_presets()[model].ai(k, m0),  
+                         lw = 1, linestyle = ls, color = colorsCN[model], alpha  = 1)
+
+            check_solution_plot_opt (bed_data, ax, model_thr = input.model_thr(),
+                                     highlight = input.chroms_selected())
+            
+            ax.set_xlim (2*0.9*bed_data.m.min()/m0, 2*1.1*bed_data.m.max()/m0)
+            ax.set_ylim ((max(-0.02, -0.02*bed_data.ai.max()), bed_data.ai.max()*1.1))
+            
+            #ymin, ymax = ax.get_ylim()
+            #ax.set_xlim (0.95*(2-Consts.DIPLOID_dCN_THR), 1.05*(2+Consts.DIPLOID_dCN_THR))
+            #ax.set_ylim (np.max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
+            #             np.min((1.01*Consts.DIPLOID_AI_THR, ymax)))
+            
+            return fig
+        
+    @output
+    @render.plot (alt = 'Diploid distance distribution plot')
+    def model_distance_plot():
+        bed_data = bed()
+        par_d = par()
+        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
+            tmp_bed = bed_data.loc[bed_data['model'] != 'AB'].sort_values (by = 'd_model')
+            fig, ax = plt.subplots (1, 1, figsize = (6,6))
+            ax.scatter (tmp_bed['d_model'].values, np.linspace (0,1, len(tmp_bed)),
+                            c = np.array([colorsCN[m] for m in tmp_bed['model']]),
+                            s = np.sqrt(tmp_bed['size']))
+            x = np.linspace (tmp_bed['d_model'].min(), tmp_bed['d_model'].max(), 100)
+            ax.plot (x , 1 - np.exp (par_d['a_d'] * x), 'r-')
+            ax.set_ylabel ('cdf - Model distance')  
+            return fig
+
+    
     
     @output
     @render.plot (alt = "Scoring view")
