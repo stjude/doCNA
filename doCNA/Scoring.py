@@ -47,7 +47,7 @@ class Scoring:
         segment.parameters['d_HE'] = np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
         segment.parameters['p_HE'] = p_d
         segment.parameters['score_HE'] = -np.log10(p_d)
-        print(segment.parameters['score_HE'])
+        
 
 
     def analyze_segment (self, segment, models):
