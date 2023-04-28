@@ -296,7 +296,7 @@ class Genome:
             self.genome_medians['d_model'] = {'a' : np.nan}
             for seg in self.all_segments:
                 seg.parameters['score_model'] = 0
-                
+            self.genome_medians['thr_model'] = 0
         
         
         
