@@ -249,9 +249,8 @@ class Genome:
         
         ps = np.array(ps)
         ##FDRing threshold
-        print (ps[np.isfinite(ps)])
         thr = FDR(np.sort(ps[np.isfinite(ps)]), alpha = Consts.DIPLOID_ALPHA, score = True)
-        print (thr)
+        self.genome_medians['thr_HE'] = thr
         self.scorer.set_thr (thr)
         for seg in self.all_segments:
             self.scorer.analyze_segment(seg, self.models)
@@ -290,12 +289,16 @@ class Genome:
                     seg.parameters['score_model'] = 0
                 
             self.genome_medians['d_model'] = {'a' : a}
-            self.genome_medians['thr_model'] = FDR (np.array(ps), Consts.MODEL_APLHA, score = True)
+            ps = np.array(ps)
+            self.genome_medians['thr_model'] = FDR (np.sort(ps[np.isfinite(ps)]), Consts.MODEL_APLHA, score = True)
         else:
             self.logger.info ('Not enough non diploid regions to perform meaningful scoring')
             self.genome_medians['d_model'] = {'a' : np.nan}
             for seg in self.all_segments:
                 seg.parameters['score_model'] = 0
+                
+        
+        
         
     def score_clonality (self, size_thr = 5e6, model_thr = 5, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
         balanced = [seg.parameters['model'] == '(AB)n' for seg in self.all_segments]

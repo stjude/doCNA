@@ -441,11 +441,12 @@ def server(input, output, session):
                                      highlight = input.chroms_selected())
             
             def ellipse_n (n, par):
-                return Ellipse ((par['m_cn']+2, par['m_ai']), n*par['s_cn'], n*par['s_ai'], 
+                return Ellipse ((par['m_cn']+2, par['m_ai']), n*2*par['s_cn'], n*2*par['s_ai'], 
                                 fill = False, lw = 1)
             
             ax.add_patch (ellipse_n(1, par_d))
             ax.add_patch (ellipse_n(2, par_d))
+            ax.add_patch (ellipse_n(3, par_d))
 
             ymin, ymax = ax.get_ylim()
             ax.set_xlim (0.95*(2-Consts.DIPLOID_dCN_THR), 1.05*(2+Consts.DIPLOID_dCN_THR))
@@ -467,7 +468,7 @@ def server(input, output, session):
             return fig
 
     @output
-    @render.plot (alt = 'Diploid segments plot')
+    @render.plot (alt = 'Model segments plot')
     def models_plot():
         bed_data = bed()
         par_d = par()
@@ -498,12 +499,12 @@ def server(input, output, session):
             return fig
         
     @output
-    @render.plot (alt = 'Diploid distance distribution plot')
+    @render.plot (alt = 'Model distance distribution plot')
     def model_distance_plot():
         bed_data = bed()
         par_d = par()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
-            tmp_bed = bed_data.loc[bed_data['model'] != 'AB'].sort_values (by = 'd_model')
+            tmp_bed = bed_data.loc[[m not in ['AB', '(AB)(2+n)', '(AB)(2-n)'] for m in bed_data['model']]].sort_values (by = 'd_model')
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
             ax.scatter (tmp_bed['d_model'].values, np.linspace (0,1, len(tmp_bed)),
                             c = np.array([colorsCN[m] for m in tmp_bed['model']]),
