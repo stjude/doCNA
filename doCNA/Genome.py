@@ -244,8 +244,8 @@ class Genome:
         self.scorer = Scoring.Scoring (data_for_scoring, self.logger)
         ps = []
         for seg in self.all_segments:
-            self.scorer.score_dipl(seg, self.models)
-            ps.append (seg.parameters['p_d'])
+            self.scorer.score_dipl(seg)
+            ps.append (seg.parameters['p_HE'])
         
         ps = np.array(ps)
         ##FDRing threshold
