@@ -2,8 +2,10 @@ from shiny import *
 from .Plots import * #need a dot before Plots, like this: .Plots
 
 from doCNA import Models
+
 from doCNA import Consts
 from doCNA import Scoring
+
 
 
 import numpy as np
@@ -11,8 +13,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.signal as sig
 
+
 from collections import defaultdict
 from matplotlib.patches import Ellipse
+
 
 
 chromdic = {}
@@ -207,6 +211,7 @@ def server(input, output, session):
     bed_report = reactive.Value(pd.DataFrame())
     model_presets = reactive.Value (Models.model_presets)
     solutions_list = reactive.Value ({})
+
     
           
     @output
@@ -300,6 +305,7 @@ def server(input, output, session):
             bed.set (tmp.loc[tmp.filt])
             opt_bed.set(tmp.loc[tmp.filt])
     
+
     #@reactive.Effect
     #@reactive.Calc
     #def _():
@@ -360,6 +366,7 @@ def server(input, output, session):
     #            
     #        bed_report.set(pd.DataFrame.from_records (merged_segments,
     #                                                  columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto', 'score']))
+
     
     @reactive.Effect
     @reactive.event(input.par_file)
@@ -725,6 +732,7 @@ def server(input, output, session):
                     models = np.repeat('AB', len(ai))
                     d_model = np.repeat(np.nan, len(ai))
                                         
+
                     for i in np.where(p_d < thr)[0]:
                         sm = Models.pick_model(ai[i], 1, cn[i], 1, par()['models']) #scorer.score_dipl(ai[i], m_cov[i], m, par()['models'])
                         models[i] = sm['model']
@@ -734,6 +742,7 @@ def server(input, output, session):
                     d_total = np.nansum((d_model*sizes))    
                     print (m,thr, np.nansum(d_model), m_ai, s_ai, m_cn, s_cn, np.unique(models, return_counts = True))
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
+
             
             solutions_list.set (solutions)    
                     

@@ -95,7 +95,6 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
 def reporting_plot (bed_df, axs, chrom_sizes):
     chrs = chrom_sizes.index.values.tolist()
     chrs.sort(key = Consts.CHROM_ORDER.index)
-    
     start = 0
     axs[1].plot ((start, start), (0, 4), 'k:', lw = 0.5)
     axs[0].plot ((start, start), (0, 0.95), 'k:', lw = 0.5)
@@ -124,6 +123,7 @@ def reporting_plot (bed_df, axs, chrom_sizes):
     ranges = bed_df.loc[~(bed_df['k'].isnull()), ['k','m']].agg ([min, max])
     maxk = max (bed_df.loc[~(bed_df['k'].isnull()), 'k'].max(), -bed_df.loc[~(bed_df['k'].isnull()), 'k'].min())
     
+
     #axs[0].set_ylim ((-0.009, 1.01))
     axs[0].set_ylim ((-0.009,  maxk *1.1))
     axs[0].set_xlim ((-3e7, start + 3e7))

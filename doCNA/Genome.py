@@ -272,6 +272,7 @@ class Genome:
             segments = [self.all_segments[i] for i in indexes]
             zs_ns = [seg.parameters['d_model'] for seg in segments]
             
+
             z_n = np.array(zs_ns)
             x = sts.expon.ppf (np.linspace (0,1,len(z_n)+2)[1:-1])
             huber = slm.HuberRegressor (fit_intercept = False)
@@ -300,6 +301,7 @@ class Genome:
         
         
     def score_clonality (self, size_thr = 5e6, model_thr = 5, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
+
         balanced = [seg.parameters['model'] == '(AB)n' for seg in self.all_segments]
         big = [(seg.end - seg.start)/1e6 > size_thr for seg in self.all_segments]
         notHO = [seg.parameters['k'] < k_thr for seg in self.all_segments]

@@ -71,6 +71,7 @@ class Segment:
     #        v = self.parameters['ai']
     #        m0 = self.genome_medians['m0']
         
+
     #        self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in self.model_presets.values()])
     #        self.logger.debug (f"Segment distances {self.distances}")
     #        if all (np.isnan(self.distances)):
@@ -100,6 +101,7 @@ class Segment:
             #    self.parameters['model'] = 'NaN'
             #    self.parameters['k'] = np.nan
             #    self.logger.info (f"Segment not identified!")
+
             
     #    else:
     #        self.parameters['d'] = np.nan
