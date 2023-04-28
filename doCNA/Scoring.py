@@ -39,9 +39,11 @@ class Scoring:
         m = segment.parameters['m']
         m0 = segment.genome_medians['m0']
         cn = 2*m/m0
+        m_ai = self.ai_param['m']
         s_ai = self.ai_param['s']
+        m_cn = self.cn_param['m']
         s_cn = self.cn_param['s']
-        d = np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
+        d = np.sqrt (((ai-m_ai)/s_ai)**2 + (((cn-2)-m_cn)/s_cn)**2)
         p_d = sts.norm.sf (d, self.dipl_dist['m'], self.dipl_dist['s'])
         
         segment.parameters['d_HE'] = np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
@@ -57,7 +59,7 @@ class Scoring:
         
         if segment.parameters['score_HE'] > self.dipl_dist['thr']:
             ai = segment.parameters['ai']
-               
+              
             try:
                 segment.parameters.update (Models.pick_model(ai,1, cn,1,models))
             except IndexError:

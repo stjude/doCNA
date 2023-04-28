@@ -5,6 +5,7 @@ from doCNA import Models
 from doCNA import Consts
 from doCNA import Scoring
 
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -712,14 +713,26 @@ def server(input, output, session):
                         scorer = Scoring.Scoring(data_for_scoring)
                     else:
                         scorer = Scoring.Scoring()
+                    m_ai = scorer.ai_param['m']
+                    s_ai = scorer.ai_param['s']
+                    m_cn = scorer.cn_param['m']                   
+                    s_cn = scorer.cn_param['s']
                     
-                    models = []
-                    d_total = 0
-                    for i in np.arange(len(ai)):
-                        sm = scorer.score_dipl(ai[i], m_cov[i], m, par()['models'])
-                        models.append(sm['model'])
-                        d_total += sm['d_model']*sizes[i]
+                    d_HE = np.sqrt (((ai-m_ai)/s_ai)**2 + ((cn-2-m_cn)/s_cn)**2)
+                    p_d = sts.norm.sf (d_HE, scorer.dipl_dist['m'], scorer.dipl_dist['s'])
                     
+                    thr = FDR (np.sort(p_d[np.isfinite(p_d)]), Consts.DIPLOID_ALPHA)
+                    models = np.repeat('AB', len(ai))
+                    d_model = np.repeat(0, len(ai))
+                    print (m,thr)
+                    
+                    for i in np.where(p_d < thr)[0]:
+                        sm = Models.pick_model(ai[i], 1, cn[i], 1, par()['models']) #scorer.score_dipl(ai[i], m_cov[i], m, par()['models'])
+                        models[i] = sm['model']
+                        d_model[i] = sm['d_model']
+                        
+                    
+                    d_total = (d_model*sizes).sum()    
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
             
             solutions_list.set (solutions)    
@@ -768,3 +781,14 @@ def server(input, output, session):
             opt_bed.set(bed)
             
 app = App(app_ui, server, debug=True)
+
+def FDR (p, alpha, score = False):
+    k = np.arange (1, len(p)+1)
+    index = np.where(p <= alpha*k/len(p))[0]
+    try:
+        if score:
+            return -np.log10(p[np.max(index)])
+        else:
+            return p[np.max(index)]
+    except:
+        return np.inf

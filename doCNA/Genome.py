@@ -11,7 +11,6 @@ from sklearn.linear_model import HuberRegressor
 from doCNA import Testing
 from doCNA import Chromosome
 from doCNA import Distribution
-from doCNA import Distribution
 from doCNA import Consts
 from doCNA import Report
 from doCNA import Scoring
