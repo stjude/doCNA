@@ -377,7 +377,7 @@ def server(input, output, session):
                 except:
                     try:
                         key, values = line.split('\t')
-                        pard[key] = [v.strip("',[]") for v in values.split(' ')]
+                        pard[key] = [v.strip().strip("'[]") for v in values.split(',')]
                     except:
                         print ('Line: ' + line + 'not parsed.')
         par.set(pard)
@@ -709,7 +709,7 @@ def server(input, output, session):
                     cn_index = np.abs(cn -2) < Consts.DIPLOID_dCN_THR
                     index = np.where(ai_index & cn_index)[0]
                     if len(index) > 2:
-                        data_for_scoring = np.concatenate([ai[index], cn[index]-2]).reshape (len(index), 2)
+                        data_for_scoring = np.concatenate([ai[index], cn[index]-2]).reshape (2,len(index)).T
                         scorer = Scoring.Scoring(data_for_scoring)
                     else:
                         scorer = Scoring.Scoring()
@@ -723,16 +723,16 @@ def server(input, output, session):
                     
                     thr = FDR (np.sort(p_d[np.isfinite(p_d)]), Consts.DIPLOID_ALPHA)
                     models = np.repeat('AB', len(ai))
-                    d_model = np.repeat(0, len(ai))
-                    print (m,thr)
-                    
+                    d_model = np.repeat(np.nan, len(ai))
+                                        
                     for i in np.where(p_d < thr)[0]:
                         sm = Models.pick_model(ai[i], 1, cn[i], 1, par()['models']) #scorer.score_dipl(ai[i], m_cov[i], m, par()['models'])
                         models[i] = sm['model']
                         d_model[i] = sm['d_model']
                         
                     
-                    d_total = (d_model*sizes).sum()    
+                    d_total = np.nansum((d_model*sizes))    
+                    print (m,thr, np.nansum(d_model), m_ai, s_ai, m_cn, s_cn, np.unique(models, return_counts = True))
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
             
             solutions_list.set (solutions)    
