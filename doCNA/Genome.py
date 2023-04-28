@@ -250,7 +250,7 @@ class Genome:
         ps = np.array(ps)
         ##FDRing threshold
         print (ps[np.isfinite(ps)])
-        thr = FDR(ps[np.isfinite(ps)], alpha = Consts.DIPLOID_ALPHA, score = True)
+        thr = FDR(np.sort(ps[np.isfinite(ps)]), alpha = Consts.DIPLOID_ALPHA, score = True)
         print (thr)
         self.scorer.set_thr (thr)
         for seg in self.all_segments:
