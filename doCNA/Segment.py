@@ -64,53 +64,10 @@ class Segment:
                 
     def report (self, report_type = 'bed'):
         return Report(report_type).segment_report(self)
-                                                  
-    #def select_model (self):        
-    #    if self.parameters['success']:
-    #        m = self.parameters['m']
-    #        v = self.parameters['ai']
-    #        m0 = self.genome_medians['m0']
-        
-
-    #        self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in self.model_presets.values()])
-    #        self.logger.debug (f"Segment distances {self.distances}")
-    #        if all (np.isnan(self.distances)):
-    #            picked = np.nan
-    #            self.parameters['d'] = np.nan
-    #            self.parameters['model'] = 'NaN'
-    #            self.parameters['k'] = np.nan
-    #            self.logger.info (f"Segment not kariotyped!")    
-    #        else:
-    #            picked = np.where(self.distances == np.nanmin(self.distances))[0][0]
-     #           self.parameters['d'] = np.nanmin(self.distances)
-      #          self.parameters['model'] = list(self.model_presets.keys())[picked]
-     #           k = self.model_presets[self.parameters['model']].k(m,v,m0) 
-     #           self.parameters['k'] = k if k < Consts.K_MAX else np.nan
-    #            self.logger.info (f"Segment kariotyped as {self.parameters['model']}, d = {self.parameters['d']}")
-                
-            #try:
-            #    picked = np.where(self.distances == np.nanmin(self.distances))[0][0]
-            #    self.parameters['d'] = np.nanmin(self.distances)
-            #    self.parameters['model'] = list(model_presets.keys())[picked]
-            #    k = model_presets[self.parameters['model']].k(m,v,m0) 
-            #    self.parameters['k'] = k if k < Consts.K_MAX else np.nan
-            #    self.logger.info (f"Segment identified as {self.parameters['model']}, d = {self.parameters['d']}")
-            #except IndexError:
-            #    picked = np.nan
-            #    self.parameters['d'] = np.nan
-            #    self.parameters['model'] = 'NaN'
-            #    self.parameters['k'] = np.nan
-            #    self.logger.info (f"Segment not identified!")
-
-            
-    #    else:
-    #        self.parameters['d'] = np.nan
-    #        self.parameters['model'] = 'NA'
-    #        self.parameters['k'] = np.nan
-    #        self.logger.info ('No model for this segment.')
+                                                
                         
 
-def get_sensitive (data, fb, mG, z_thr = 1.5):
+def get_sensitive (data, fb):
     
     vafs = data['vaf'].values
     
@@ -127,14 +84,13 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
                                     bounds = ((0.0, 0.1, 0.45),
                                               (0.3, 0.9, 0.55)), check_finite = False)
         dv, a, v0 = popt
-        p_ai = sts.kstest (vafs, ai, args = popt).pvalue
-        
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'v0' : v0, 'p_ai' : p_ai,
+                
+        parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'v0' : v0,
                       'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'status' : 'valid', 'fraction_1' : np.nan}
         
     except (RuntimeError, ValueError):
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : np.nan, 'p_ai' : np.nan,
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : np.nan, 
                       'success' : False, 'n' : np.nan,
                       'status' : 'valid', 'fraction_1' : np.nan}
         
@@ -143,7 +99,7 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
 def get_full (data, b = 1.01):
     
     vafs = data['vaf'].values    
-    m, dm, l, dl = Testing.COV_test (data)
+    m, _, l, _ = Testing.COV_test (data)
 
     def vaf_cdf (v, dv, a, lerr, f, vaf, b):
         return vaf_cdf_c (v, dv, a, lerr, f, vaf, b, m)
@@ -160,21 +116,20 @@ def get_full (data, b = 1.01):
                                     bounds = ((0,   0,   1, 0, 0.45, 1),
                                               (0.499, 0.95, 5, 1, 0.55, 10)))
         dv, a, lerr, f, v0, b = popt
-        p_ai = sts.kstest (vafs[~np.isnan(vafs)], vaf_cdf, args = popt).pvalue
                      
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'p_ai' : p_ai,
+        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 
                       'success' : True, 'fraction_1' : ones0/c.sum(),
                       'n' : len (data)/Consts.SNPS_IN_WINDOW, 'status' : 'valid'}
     except RuntimeError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : v0, 'p_ai' : np.nan,
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : v0, 
                       'success' : False, 'n' :  len (data)/Consts.SNPS_IN_WINDOW,
                       'fraction_1' : ones0/c.sum(), 'status' : 'Fit failed'}
     except ValueError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : v0, 'p_ai' : np.nan,
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : v0, 
                       'success' : False, 'n' : len (data)/Consts.SNPS_IN_WINDOW,  
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters failed'}    
     if ones0/c.sum() > 0.9:
-        parameters = {'m': m, 'l': l, 'ai' : 0.5, 'v0' : v0, 'p_ai' : 1,
+        parameters = {'m': m, 'l': l, 'ai' : 0.5, 'v0' : v0, 
                       'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters guessed'}    
         

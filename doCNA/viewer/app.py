@@ -279,7 +279,7 @@ def server(input, output, session):
         if not file_input:
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
-                   names = ['chrom', 'start', 'end', 'ai','p_ai', 'm', 'cn',
+                   names = ['chrom', 'start', 'end', 'ai','n', 'm', 'cn',
                             'd_HE', 'score_HE', 'model', 'd_model', 'score_model',
                             'k', 'symbol', 'cyto', 'cent'])
         
@@ -499,11 +499,6 @@ def server(input, output, session):
             ax.set_xlim (2*0.9*bed_data.m.min()/m0, 2*1.1*bed_data.m.max()/m0)
             ax.set_ylim ((max(-0.02, -0.02*bed_data.ai.max()), bed_data.ai.max()*1.1))
             
-            #ymin, ymax = ax.get_ylim()
-            #ax.set_xlim (0.95*(2-Consts.DIPLOID_dCN_THR), 1.05*(2+Consts.DIPLOID_dCN_THR))
-            #ax.set_ylim (np.max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
-            #             np.min((1.01*Consts.DIPLOID_AI_THR, ymax)))
-            
             return fig
         
     @output
@@ -619,10 +614,11 @@ def server(input, output, session):
     @reactive.event(par)
     def _():
         if 'thr_model' in par().keys():
-            ui.update_slider ('model_thr', value = par()['thr_model'],
-                              min = 0,
-                              max = 10, 
-                              step = 0.1)
+            if np.isfinite(par()['thr_model']):
+                ui.update_slider ('model_thr', value = par()['thr_model'],
+                                  min = 0,
+                                  max = 10, 
+                                  step = 0.1)
 
 
     @output

@@ -338,7 +338,7 @@ def get_norm_p (values, sinit = 0.05):
         pks = sts.kstest (values, cdf, args = popt).pvalue
     except opt.OptimizeWarning:
         pks = np.nan
-    except RuntimeError:
+    except (RuntimeError, ValueError):
         pks = np.nan    
     return pks
 

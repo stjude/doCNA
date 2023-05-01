@@ -14,7 +14,7 @@ from doCNA import Models
 _description = "Scan chromosomes in search for non-HE segments. Assigns copy numbers if can."
 
 
-__version__ = '0.9.3'
+__version__ = '0.9.3a'
 
 
 def main():
