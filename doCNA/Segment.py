@@ -45,8 +45,7 @@ class Segment:
         method = 'unspecified'
         if self.symbol == Consts.E_SYMBOL:
             self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == Consts.E_SYMBOL,],
-                                             self.genome_medians['fb'],
-                                             self.genome_medians['m0'])
+                                             self.genome_medians['fb'])
             method = 'sensitive'
             if self.parameters['ai'] > Consts.MAX_AI_THRESHOLD_FOR_SENSITIVE:
                 self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',])

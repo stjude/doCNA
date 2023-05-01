@@ -4,101 +4,51 @@ from collections import namedtuple
 import numpy as np
 import scipy.optimize as opt
 
-#Fields of the tuple are functions describing model of karyotype
-# A,B,C -  
-# D - 
-# k - func to calculate clonality
-# m - func to describe coverage
-# ai - func to describe allelic imbalance
-Preset = namedtuple ('Preset', ['A', 'B', 'C', 'D', 'k','m', 'ai'])
+Preset = namedtuple ('Preset', ['k','m', 'ai'])
 
 #Presets of models with 2 +/- 1 copies
-model_presets = {'(AB)(2+n)' : Preset(A = lambda m,dv,m0: 0,
-                                    B = lambda m,dv,m0: 1/2,
-                                    C = lambda m,dv,m0: dv,
-                                    D = lambda m,dv,m0: 0,
-                                    k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > -0.1/2) & (m/m0 < 4.1/2) else np.nan,
-                                    m = lambda k,m0: (1+k)*m0,
-                                    ai = lambda k,m0:  np.zeros_like(k)),#np.repeat(0, len(k)) if hasattr(k, "shape") else 0.0),
+model_presets = {'(AB)(2+n)' : Preset(k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > -0.1/2) & (m/m0 < 4.1/2) else np.nan,
+                                      m = lambda k,m0: (1+k)*m0,
+                                      ai = lambda k,m0:  np.zeros_like(k)),
                    
-                   '(AB)(2-n)' : Preset(A = lambda m,dv,m0: 0,
-                                    B = lambda m,dv,m0: 1/2,
-                                    C = lambda m,dv,m0: dv,
-                                    D = lambda m,dv,m0: 0,
-                                    k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > -0.1/2) & (m/m0 < 4.1/2) else np.nan,
-                                    m = lambda k,m0: (1-k)*m0,
-                                    ai = lambda k,m0:  np.zeros_like(k)),#np.repeat(0, len(k)) if hasattr(k, "shape") else 0.0),
+                   '(AB)(2-n)' : Preset(k = lambda m,dv,m0: np.abs(m/m0 - 1) if (m/m0 > -0.1/2) & (m/m0 < 4.1/2) else np.nan,
+                                        m = lambda k,m0: (1-k)*m0,
+                                        ai = lambda k,m0:  np.zeros_like(k)),
                    
-                   'A'   : Preset(A = lambda m,dv,m0: -m0/2,
-                                  B = lambda m,dv,m0: -1,
-                                  C = lambda m,dv,m0: m0,
-                                  D = lambda m,dv,m0: m0*(2*dv/(0.5+dv))/2+m,
-                                  k = lambda m,dv,m0: 2*dv/(0.5+dv) if (m/m0 > 0.9/2) & (m/m0 < 2.1/2) else np.nan,
+                   'A'   : Preset(k = lambda m,dv,m0: 2*dv/(0.5+dv) if (m/m0 > 0.9/2) & (m/m0 < 2.1/2) else np.nan,
                                   m = lambda k,m0: (2-k)*m0/2,
                                   ai = lambda k,m0: k/(2*(2-k))),
                  
-                   'AA'  : Preset(A = lambda m,dv,m0: 0,
-                                  B = lambda m,dv,m0: -1,
-                                  C = lambda m,dv,m0: m0,
-                                  D = lambda m,dv,m0: m,
-                                  k = lambda m,dv,m0: 2*dv if (m/m0 > 1.9/2) & (m/m0 < 2.1/2) else np.nan,
-                                  m = lambda k,m0: (np.zeros_like(k)+1)*m0, #np.repeat(m0, len(k)) if hasattr(k, "shape") else m0,
+                   'AA'  : Preset(k = lambda m,dv,m0: 2*dv if (m/m0 > 1.9/2) & (m/m0 < 2.1/2) else np.nan,
+                                  m = lambda k,m0: (np.zeros_like(k)+1)*m0,
                                   ai = lambda k,m0: k/2),
                  
-                   'AAB' : Preset(A = lambda m,dv,m0: m0/2,
-                                  B = lambda m,dv,m0: -1,
-                                  C = lambda m,dv,m0: m0,
-                                  D = lambda m,dv,m0: -m0*(2*dv/(0.5-dv))/2+m,
-                                  k = lambda m,dv,m0: 2*dv/(0.5-dv) if (m/m0 > 1.9/2) & (m/m0 < 3.1/2) else np.nan,
+                   'AAB' : Preset(k = lambda m,dv,m0: 2*dv/(0.5-dv) if (m/m0 > 1.9/2) & (m/m0 < 3.1/2) else np.nan,
                                   m = lambda k,m0: (2+k)*m0/2,
                                   ai = lambda k,m0: k/(2*(2+k))),
     
 #models of more copies, not a strict classification 
-                   'AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
-                                    B = lambda m,dv,m0 : -1,
-                                    C = lambda m,dv,m0 : m0,
-                                    D = lambda m,dv,m0 : m - 2*m0*dv/(1-2*dv),
-                                    k = lambda m,dv,m0 : 2*dv/(1-2*dv) if (m/m0 > 1.9/2) & (m/m0 < 4.1/2) else np.nan,
+                   'AAAB' : Preset (k = lambda m,dv,m0 : 2*dv/(1-2*dv) if (m/m0 > 1.9/2) & (m/m0 < 4.1/2) else np.nan,
                                     m = lambda k,m0 : (1+k)*m0,
                                     ai = lambda k,m0 : k/(2+2*k)),
                    
-                   'AAA' : Preset (A = lambda m,dv,m0 : m0/2,
-                                    B = lambda m,dv,m0 : -1,
-                                    C = lambda m,dv,m0 : m0,
-                                    D = lambda m,dv,m0 : m - 2*dv*m0/(3-2*dv),
-                                    k = lambda m,dv,m0 : 34*dv/(3-2*dv) if (m/m0 > 1.9/2) & (m/m0 < 3.1/2) else np.nan,
-                                    m = lambda k,m0 : (2+k)*m0/2,
-                                    ai = lambda k,m0 : 3*k/(4+2*k)),
+                   'AAA' : Preset (k = lambda m,dv,m0 : 4*dv/(3-2*dv) if (m/m0 > 1.9/2) & (m/m0 < 3.1/2) else np.nan,
+                                   m = lambda k,m0 : (2+k)*m0/2,
+                                   ai = lambda k,m0 : 3*k/(4+2*k)),
                     
-                   'AAAA' : Preset (A = lambda m,dv,m0 : m0/2,
-                                     B = lambda m,dv,m0 : -1,
-                                     C = lambda m,dv,m0 : m0,
-                                     D = lambda m,dv,m0 : m - dv*m0/(1-dv),
-                                     k = lambda m,dv,m0 : dv/(1-dv) if (m/m0 > 1.9/2) & (m/m0 < 4.1/2) else np.nan,
-                                     m = lambda k,m0 : (1+k)*m0,
-                                     ai = lambda k,m0 : k/(1+k)),
+                   'AAAA' : Preset (k = lambda m,dv,m0 : dv/(1-dv) if (m/m0 > 1.9/2) & (m/m0 < 4.1/2) else np.nan,
+                                    m = lambda k,m0 : (1+k)*m0,
+                                    ai = lambda k,m0 : k/(1+k)),
 #more crazy models
-                   'AAB+AAAB' : Preset (A = lambda m,dv,m0 : m0/2,
-                                        B = lambda m,dv,m0 : -1,
-                                        C = lambda m,dv,m0 : 3*m0/2,
-                                        D = lambda m,dv,m0 : m- m0/((6*dv-1)/(2-4*dv)),
-                                        k = lambda m,dv,m0 : (6*dv-1)/(1-2*dv) if (m/m0 > 2.9/2) & (m/m0 < 4.1/2) else np.nan,
+                   'AAB+AAAB' : Preset (k = lambda m,dv,m0 : (6*dv-1)/(1-2*dv) if (m/m0 > 2.9/2) & (m/m0 < 4.1/2) else np.nan,
                                         m = lambda k,m0 : (3+k)*m0/2,
                                         ai = lambda k,m0 : (1+k)/(6+2*k)),
                    
-                   'AA+AAB' : Preset (A = lambda m,dv,m0 : m0/2,
-                                      B = lambda m,dv,m0 : -1,
-                                      C = lambda m,dv,m0 : m0,
-                                      D = lambda m,dv,m0 : m- m0*(1-2*dv)/(2*dv+1),
-                                      k = lambda m,dv,m0 : 2*(1-2*dv)/(2*dv+1) if (m/m0 > 1.9/2) & (m/m0 < 3.1/2) else np.nan,
+                   'AA+AAB' : Preset (k = lambda m,dv,m0 : 2*(1-2*dv)/(2*dv+1) if (m/m0 > 1.9/2) & (m/m0 < 3.1/2) else np.nan,
                                       m = lambda k,m0 : (2+k)*m0/2,
                                       ai = lambda k,m0 : (2-k)/(4+2*k)),
                    
-                   'AAB+AABB' : Preset (A = lambda m,dv,m0 : m0/2,
-                                        B = lambda m,dv,m0 : -1,
-                                        C = lambda m,dv,m0 : 3*m0/2,
-                                        D = lambda m,dv,m0 : m- m0*(1-6*dv)/(4*dv+1),
-                                        k = lambda m,dv,m0 : (1-6*dv)/(2*dv+1) if (m/m0 > 2.9/2) & (m/m0 < 4.1/2) else np.nan,
+                   'AAB+AABB' : Preset (k = lambda m,dv,m0 : (1-6*dv)/(2*dv+1) if (m/m0 > 2.9/2) & (m/m0 < 4.1/2) else np.nan,
                                         m = lambda k,m0 : (3+k)*m0/2,
                                         ai = lambda k,m0 : (1-k)/(6+2*k))}
 

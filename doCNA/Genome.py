@@ -6,11 +6,9 @@ import scipy.stats as sts
 import scipy.optimize as opt
 import sys
 import sklearn.linear_model as slm
-from sklearn.linear_model import HuberRegressor
 
 from doCNA import Testing
 from doCNA import Chromosome
-from doCNA import Distribution
 from doCNA import Consts
 from doCNA import Report
 from doCNA import Scoring
@@ -278,7 +276,7 @@ class Genome:
             huber = slm.HuberRegressor (fit_intercept = False)
             huber.fit (x[:, np.newaxis], np.sort(z_n))
             a = -1./huber.coef_[0]
-            self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (a))
+            self.logger.info ('Distance from model /d/ distribution: FI(d) = exp({:.5f} d)'.format (a))
             ps = []
             for seg in self.all_segments:
                 if seg.parameters['model'] != 'AB':
@@ -311,7 +309,7 @@ def score_double_gauss (k, m, s):
 def fit_huber (data, alpha):
     k = np.log10 (data[:,0])
     s = np.log10 (data[:,1])
-    huber = HuberRegressor(alpha = 0.0, epsilon = 1.35)
+    huber = slm.HuberRegressor(alpha = 0.0, epsilon = 1.35)
     huber.fit(s[:, np.newaxis], k)
 
     A = -huber.coef_[0]

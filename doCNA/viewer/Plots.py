@@ -16,7 +16,7 @@ colorsCN['AA'] = 'blue'
 colorsCN['AAB'] = 'cyan'
 colorsCN['(AB)(2+n)'] = 'black'
 colorsCN['(AB)(2-n)'] = 'goldenrod'
-colorsCN['AB'] = 'lightgray'
+colorsCN['AB'] = 'darkgray'
 colorsCN['AAAB'] = 'magenta'
 colorsCN['AAA'] = 'brown'
 colorsCN['AAAA'] = 'darkolivegreen'
@@ -38,7 +38,10 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
         
         for _, b in bed_df.loc[bed_df['chrom'] == chrom].iterrows():
             if b['score_model'] < model_thr:
-                color = colorsCN[b['model']]
+                if (b['score_HE'] < HE_thr) & (b['model'] != 'AB'):
+                    color = 'r'
+                else:
+                    color = colorsCN[b['model']]
             else:
                 color = 'yellow'
             
