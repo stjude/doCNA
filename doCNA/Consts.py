@@ -4,14 +4,21 @@ MALE_CHROM = 'chrY'
 SEX_CHROMS = [FEMALE_CHROM, MALE_CHROM]
 
 #Scoring
-SIZE_THR = 1 #in Mb
+##Many may be from older version
+SIZE_THR = 5 #in Mb
 K_THR = 0.11
 MIN_LEN_K_BALANCED = 6
-MODEL_THR = 3
+MODEL_APLHA = 0.05
 #alpha used to determine weidening threshold, using normal approximation 
 FB_ALPHA = 0.1
+SCORE_ALPHA = 0.05
 DSCORE_ALPHA = 0.05
 KSCORE_ALPHA = 0.05
+DIPLOID_AI_THR = 0.05
+DIPLOID_dCN_THR = 0.5
+DIPLOID_ALPHA = 0.01
+CENTROMERE_THR = 0.3
+
 
 ##Chromosome
 N_SYMBOL = 'N'

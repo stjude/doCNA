@@ -1,21 +1,22 @@
 from shiny import *
-from .Plots import * #need a dot
-#import Models
+from .Plots import * #need a dot before Plots, like this: .Plots
+
 from doCNA import Models
 
 from doCNA import Consts
+from doCNA import Scoring
+
 
 
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.signal as sig
+
+
 from collections import defaultdict
+from matplotlib.patches import Ellipse
 
-
-mp = {}
-mp.update (Models.model_presets_2)
-mp.update (Models.model_presets_4)
 
 
 chromdic = {}
@@ -86,8 +87,8 @@ app_ui = ui.page_fluid(
                                                         value = 5, min = 0, max = 10),
                                        ui.h4 ("Display settings:"),
                                        ui.input_slider ('model_thr', "Model score threshold",
-                                                        value = 3, min = 0, max = 10),
-                                       ui.input_slider ('k_max', "Max clonality score:",
+                                                        value = 3, min = 0, max = 10, step = 0.1),
+                                       ui.input_slider ('HE_max', "Max HE score:",
                                                         value = 2, min = 0, max = 10),
                                        
                                        width = 2),
@@ -105,26 +106,32 @@ app_ui = ui.page_fluid(
                                                                                                     chromdic, inline = True)),),   
                                                           ui.row (ui.input_file ('par_file', "Choose PAR file to upload:",
                                                                                           multiple = False, accept = '.par')),
-                                                          ui.row(ui.column(6,
-                                                                           ui.h5 ('Solution review:'),
-                                                                           ui.output_plot ('solution_plot'),
+                                                          
+                                                          ui.row(ui.h4('Diploid analysis'),
+                                                                 ui.column(6,
+                                                                           ui.h5 ('Diploid segments:'),
+                                                                           ui.output_plot ('diploid_segments_plot'),
                                                                            ),
                                                                  ui.column(6,
-                                                                           ui.row(
-                                                                                  ui.h5 ('Scoring review:'),
-                                                                                  ui.output_plot ('CNV_plot'),),
-                                                                           ui.row(
-                                                                                  ui.output_plot('scoring_dists')),
+                                                                           ui.h5 ('Diploid distance distribution:'),
+                                                                           ui.output_plot ('diploid_distance_plot'),
                                                                            )),
+                                                          
+                                                          ui.row(ui.h4 ('Karyotyping review:'),
+                                                                 ui.column(6, 
+                                                                           ui.h5 ('Models review:'),
+                                                                           ui.output_plot ('models_plot'),
+                                                                           ),
+                                                                 ui.column(6,
+                                                                           ui.h5 ('Models distance distribution:'),
+                                                                           ui.output_plot ('model_distance_plot'),
+                                                                           ))
                                                          ),
                                                    
                                                    ui.nav("LOG", 
                                                           ui.row(ui.column(12,
                                                                  ui.input_file ('log_file', "Choose LOG file to screen:",
                                                                                 multiple = False, accept = '.log'),
-                                                                 #ui.output_text ('log_text'),
-                                                                 
-                                                                 #ui.tags.textarea(id = 'log', name = 'log_text', rows = '30', cols = '200',   )
                                                                  ui.output_ui("dyn_log_ui")))),
  
                                                    ui.nav("CNVs",
@@ -144,14 +151,12 @@ app_ui = ui.page_fluid(
                                                                                                               value = 0.7, min = 0.1, max = 1, step = 0.05),
                                                                                              ui.input_slider ('max_cn', "Max cov (relative):",
                                                                                                               value = 1.1, min = 0.5, max = 1.5, step = 0.05),
-                                                                                             ui.row(ui.column(6,ui.input_numeric ("step", 'Step:', 0.1, min = 0.01, max = 1, step = 0.1)),
+                                                                                             ui.row(ui.column(6,ui.input_numeric ("step", 'Step:', 0.5, min = 0.5, max = 5, step = 0.5)),
                                                                                                     ui.column(6,#ui.h6 ("# steps"),
                                                                                                                 ui.input_text ("number_points", '# points')),
                                                                                                    ),    
                                                                                              ui.h6("Coverage range:"),
                                                                                              ui.output_text_verbatim ("coverage_range"),
-                                                                                             ui.input_checkbox ('extra_models', 'Include extra models?',
-                                                                                                                value = False),
                                                                                              ui.input_action_button ('opt',
                                                                                                                      "Optimize solution"),
                                                                                              width = 2),
@@ -162,7 +167,7 @@ app_ui = ui.page_fluid(
                                                                                           ui.h6("Pick coverage to plot models:"),
                                                                                           ui.row(ui.input_slider ('m0_cov', "Diploid coverage",
                                                                                                                value = 0.5, min = 0, max = 1, width = '200%')),
-                                                                                                 ui.output_text_verbatim ('solutions')))),
+                                                                                                 ui.output_text_verbatim ('solutions_info')))),
                                                                                           
                                                    ui.nav("Chromosome view",
                                                           ui.row(ui.column(12,
@@ -172,17 +177,17 @@ app_ui = ui.page_fluid(
                                                                                                    chromdic, inline = True),)),
                                                           ui.row(ui.input_radio_buttons('f_to_plot', "Which function plot to compare:", 
                                                                                          {'PDF' : 'Probability density function',
-                                                                                          'CDF' : 'Cumulative density function /for the pros/'}, 
+                                                                                          'CDF' : 'Cumulative density function'}, 
                                                                                          selected = 'CDF', inline = True)),                                                          
                                                           ui.row(ui.output_plot ('data_plot'),
                                                                  ui.output_plot ('compare_plot')),
                                                           ui.row(ui.output_table (id = 'chrom_segments'))),
-                                                    ui.nav("Report",
-                                                           ui.row(ui.column(12,
-                                                                            ui.output_plot('report_plot'),
-                                                                            ui.row (ui.h6 ("Report diploid regions?"),
-                                                                                    ui.input_checkbox ('rep_AB', "Yes", value = False)),
-                                                                            ui.output_table('report')))),
+                                                    #ui.nav("Report",
+                                                    #       ui.row(ui.column(12,
+                                                    #                        ui.output_plot('report_plot'),
+                                                    #                        ui.row (ui.h6 ("Report diploid regions?"),
+                                                    #                                ui.input_checkbox ('rep_AB', "Yes", value = False)),
+                                                    #                        ui.output_table('report')))),
                                                     ui.nav("Publication",
                                                            ui.h6 ("AI still in school"))
                                                             
@@ -195,6 +200,7 @@ def server(input, output, session):
     
     bed_full = reactive.Value(pd.DataFrame())
     bed = reactive.Value(pd.DataFrame())
+    opt_bed = reactive.Value(pd.DataFrame())
     data = reactive.Value(pd.DataFrame())
     par = reactive.Value({})
     opt_solution = reactive.Value((np.array([]), np.array([]), np.array([])))
@@ -203,38 +209,39 @@ def server(input, output, session):
     m0_opt = reactive.Value(np.nan)
     log_file = reactive.Value ([])
     bed_report = reactive.Value(pd.DataFrame())
-    model_presets = reactive.Value (mp)
+    model_presets = reactive.Value (Models.model_presets)
+    solutions_list = reactive.Value ({})
 
-    @reactive.Effect
-    @reactive.event (input.extra_models)
-    def _():
-        mp = {}
-        mp.update (Models.model_presets_2)
-        mp.update (Models.model_presets_4)
-        if input.extra_models():
-            mp.update (Models.model_presets_extra)
-            
-        model_presets.set(mp)
-        
     
+          
     @output
     @render.text
-    def solutions ():
-        m, d, f = opt_solution ()
-        ind = sig.argrelmin (d/f)[0]
-        minims = []
-        for i in ind:
-            minims.append ((m[i], d[i], f[i])) 
-        minims.sort (key = lambda x: x[1], reverse = False)
+    def solutions_info ():
+        solutions = solutions_list()
+        if len (solutions):
+            ms = np.array(list(solutions_list())) #np.array([s[0] for s in solutions])
+            d_total = np.array([solutions[m][1] for m in solutions.keys()])
+            d_HE = np.array([solutions[m][0].dipl_dist['m'] for m in solutions.keys()])
         
-        return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) + ' f = ' + str (f) for m,d,f in minims])
+        #m, d, _, _ = opt_solution ()
+            ind_d = sig.argrelmin (d_total)[0]
+            ind_HE = sig.argrelmin (d_HE)[0]
+            minims = []
+            for i in ind_d:
+                minims.append ((ms[i], d_total[i], d_HE[i]))
+            for i in ind_HE:
+                minims.append ((ms[i], d_total[i], d_HE[i]))
+             
+            minims.sort (key = lambda x: x[1], reverse = False)
+        
+            return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) + ' d_HE = ' + str(HE)  for m,d,HE in minims])
   
    
     @output
     @render.ui
     def dyn_log_ui():
         return ui.TagList (ui.tags.textarea ([l.strip() for l in log_file()], 
-                                             cols = "200", rows = "30"))
+                                             cols = "150", rows = "30"))
     
     @output
     @render.text
@@ -242,7 +249,7 @@ def server(input, output, session):
         if np.isnan(m0()):
             text = 'n.a.'
         else:
-            text = '{:.2f}'.format(m0()*input.min_cn()) + ' - ' + '{:.2f}'.format(m0()*input.max_cn())
+            text = '{:.2f}'.format(int(m0()*input.min_cn())) + ' - ' + '{:.2f}'.format(int(m0()*input.max_cn()))
         return text
     
     @reactive.Effect
@@ -264,8 +271,6 @@ def server(input, output, session):
             log = f.readlines()
         log_file.set(log)    
         
-
-    
     @reactive.Effect
     @reactive.event(input.bed_file)
     def _():
@@ -274,11 +279,9 @@ def server(input, output, session):
         if not file_input:
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
-                   names = ['chrom', 'start', 'end', 'ai', 'm', 'cn','model', 'd', 'model_score',
-                            'k', 'k_score','dd', 'cyto', 'cent', 'status_d', 'status'])
-        
-        #TBR in release
-        #df['model'] = [fix_model[model] for model in df['model'].tolist()]
+                   names = ['chrom', 'start', 'end', 'ai','p_ai', 'm', 'cn',
+                            'd_HE', 'score_HE', 'model', 'd_model', 'score_model',
+                            'k', 'symbol', 'cyto', 'cent'])
         
         df['size'] = (df['end'] - df['start'])/1e6
         
@@ -288,6 +291,7 @@ def server(input, output, session):
         opt_solution.set ((np.array([]), np.array([]), np.array([])))
         log_file.set([])
         bed_report.set(pd.DataFrame())
+        solutions_list.set ({})
             
     @reactive.Effect
     @reactive.Calc
@@ -299,78 +303,76 @@ def server(input, output, session):
             
             #bed_full.set(tmp)
             bed.set (tmp.loc[tmp.filt])
+            opt_bed.set(tmp.loc[tmp.filt])
     
-    @reactive.Effect
-    @reactive.Calc
-    def _():
-        bf = bed_full()    
-        b = bed()
-        if (len(bf) != 0) & (len(b) != 0):
-            chrs = chrom_sizes().index.values.tolist()
 
-            chrs.sort (key = Consts.CHROM_ORDER.index)
+    #@reactive.Effect
+    #@reactive.Calc
+    #def _():
+    #    bf = bed_full()    
+    #    b = bed()
+    #    if (len(bf) != 0) & (len(b) != 0):
+    #        chrs = chrom_sizes().index.values.tolist()
+    #        #chrs.sort (key = lambda x: int(x[3:]))
+    #        chrs.sort (key = Consts.CHROM_ORDER.index)
+    #        merged_segments = []
+    #        for chrom in chrs: #
+    #            segments = bf.loc[bf.chrom == chrom] #, segments in bf.groupby (by = 'chrom'):
+    #            data = segments.sort_values (by = 'start', ignore_index = True)
+    #            
+    #            seg_iter = data.itertuples()
+    #            
+    #            to_merge = [next(seg_iter)]
+    #            
+    #            try:
+    #                while not to_merge[-1].filt:
+    #                    to_merge.append (next(seg_iter))
+    #            except:
+    #                pass
+    #            current_record = to_merge[-1]
+    #            
+    #            last_action = 'merge' 
+    #            while True:
+    #                try:
+    #                    
+    #                    next_record = next(seg_iter)
+    #                    while not next_record.filt:
+    #                        
+    #                        to_merge.append (next_record)
+    #                        next_record = next(seg_iter)
+    #                    
+    #                    if (current_record.status == next_record.status)&\
+    #                             (current_record.model == next_record.model):
+    #                        if (current_record.status == 'norm'):
+    #                       
+    #                            to_merge.append(next_record)
+    #                            last_action = 'merge'
+    #                        elif (current_record.model == next_record.model)&\
+    #                             np.abs(((current_record.k-next_record.k)/current_record.k) < 0.1):
+    #                            to_merge.append(next_record)
+    #                            last_action = 'merge'
+    #                    
+    #                    else: 
+    #                        
+    #                        merged_segments.append(merge_records(to_merge, chrom))
+    #                        to_merge = [next_record]
+    #                        current_record = next_record
+    #                        last_action = 'no merge'
+    #                except StopIteration:
+    #                    break
+    #                 
+    #            if last_action == 'no merge':
+    #                merged_segments.append(merge_records(to_merge, chrom))
+    #            
+    #        bed_report.set(pd.DataFrame.from_records (merged_segments,
+    #                                                  columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto', 'score']))
 
-            merged_segments = []
-            for chrom in chrs: #
-                segments = bf.loc[bf.chrom == chrom] #, segments in bf.groupby (by = 'chrom'):
-                data = segments.sort_values (by = 'start', ignore_index = True)
-                
-                seg_iter = data.itertuples()
-                
-                to_merge = [next(seg_iter)]
-                
-                try:
-                    while not to_merge[-1].filt:
-                        to_merge.append (next(seg_iter))
-                except:
-                    pass
-                current_record = to_merge[-1]
-                
-                last_action = 'merge' 
-                while True:
-                    try:
-                        
-                        next_record = next(seg_iter)
-                        while not next_record.filt:
-                            
-                            to_merge.append (next_record)
-                            next_record = next(seg_iter)
-                        
-                        if (current_record.status == next_record.status)&\
-                                 (current_record.model == next_record.model):
-                            if (current_record.status == 'norm'):
-                           
-                                to_merge.append(next_record)
-                                last_action = 'merge'
-                            elif (current_record.model == next_record.model)&\
-                                 np.abs(((current_record.k-next_record.k)/current_record.k) < 0.1):
-                                to_merge.append(next_record)
-                                last_action = 'merge'
-                        
-                        else: 
-                            
-                            merged_segments.append(merge_records(to_merge, chrom))
-                            to_merge = [next_record]
-                            current_record = next_record
-                            last_action = 'no merge'
-                    except StopIteration:
-                        break
-                
-               
-                
-                     
-                if last_action == 'no merge':
-                    merged_segments.append(merge_records(to_merge, chrom))
-                
-                
-            bed_report.set(pd.DataFrame.from_records (merged_segments,
-                                                      columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto', 'score']))
     
     @reactive.Effect
     @reactive.event(input.par_file)
     def _():
         file_input = input.par_file()
-        
+       
         if not file_input:
             return
         pard = {}
@@ -378,19 +380,19 @@ def server(input, output, session):
             for line in f.readlines():
                 try:
                     key, value = line.split('\t')
-                    pard[key] = (float(value),)
+                    pard[key] = float(value)
                 except:
                     try:
-                        value0, value1 = value.split(' ')
-                        pard[key] = (float(value0),float(value1))
+                        key, values = line.split('\t')
+                        pard[key] = [v.strip().strip("'[]") for v in values.split(',')]
                     except:
                         print ('Line: ' + line + 'not parsed.')
         par.set(pard)
-        
         opt_solution.set ((np.array([]), np.array([]), np.array([])))
-        m0.set(float(pard['m0'][0]))
-        m0_opt.set(float(pard['m0'][0]))
-        
+        m0.set(pard['m0'])
+        m0_opt.set(pard['m0'])
+    
+            
     @reactive.Effect
     @reactive.event(input.data_file)
     def _():
@@ -408,8 +410,7 @@ def server(input, output, session):
         if  len(bed_data):
             fig, axs = plt.subplots (3, 1, figsize = (16,6), sharex = True)
             meerkat_plot (bed_data, axs, chrom_sizes(),
-                          max_k_score = input.k_max(),
-                          model_thr = input.model_thr())
+                          model_thr = input.model_thr(), HE_thr = input.HE_max())
             
             for model in model_presets().keys():
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
@@ -435,26 +436,117 @@ def server(input, output, session):
             return fig
     
     @output
+    @render.plot (alt = 'Diploid segments plot')
+    def diploid_segments_plot():
+        bed_data = bed()
+        par_d = par()
+        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
+            fig, ax = plt.subplots (1, 1, figsize = (6,6))
+            dip_bed_data = bed_data.loc[(bed_data['ai'] < Consts.DIPLOID_AI_THR) &\
+                                        (np.abs(bed_data['cn']-2) < Consts.DIPLOID_dCN_THR)]            
+            
+            check_solution_plot_opt (dip_bed_data, ax, model_thr = input.model_thr(),
+                                     highlight = input.chroms_selected())
+            
+            def ellipse_n (n, par):
+                return Ellipse ((par['m_cn']+2, par['m_ai']), n*2*par['s_cn'], n*2*par['s_ai'], 
+                                fill = False, lw = 1)
+            
+            ax.add_patch (ellipse_n(1, par_d))
+            ax.add_patch (ellipse_n(2, par_d))
+            ax.add_patch (ellipse_n(3, par_d))
+
+            ymin, ymax = ax.get_ylim()
+            ax.set_xlim (0.95*(2-Consts.DIPLOID_dCN_THR), 1.05*(2+Consts.DIPLOID_dCN_THR))
+            ax.set_ylim (np.max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
+                         np.min((1.01*Consts.DIPLOID_AI_THR, ymax)))
+            
+            return fig
+        
+    @output
+    @render.plot (alt = 'Diploid distance distribution plot')
+    def diploid_distance_plot():
+        bed_data = bed()
+        par_d = par()
+        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
+            fig, ax = plt.subplots (figsize = (6,6))
+            plot_cdf (bed_data['d_HE'].values, ax, par = (par_d['m_d'],par_d['s_d']),
+                      all_colors = np.array([colorsCN[m] for m in bed_data['model']]), half = True)
+            ax.set_ylabel ('cdf - HE distance')
+            return fig
+
+    @output
+    @render.plot (alt = 'Model segments plot')
+    def models_plot():
+        bed_data = bed()
+        par_d = par()
+        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
+            fig, ax = plt.subplots (1, 1, figsize = (6,6))
+            
+            k = np.linspace (0,1,100)
+            m0 = par_d['m0']
+            for model in model_presets().keys():
+                if model in par()['models']:
+                    ls = '-'
+                else:
+                    ls = ':'
+                ax.plot (2*model_presets()[model].m(k, m0)/m0, model_presets()[model].ai(k, m0),  
+                         lw = 1, linestyle = ls, color = colorsCN[model], alpha  = 1)
+
+            check_solution_plot_opt (bed_data, ax, model_thr = input.model_thr(),
+                                     highlight = input.chroms_selected())
+            
+            ax.set_xlim (2*0.9*bed_data.m.min()/m0, 2*1.1*bed_data.m.max()/m0)
+            ax.set_ylim ((max(-0.02, -0.02*bed_data.ai.max()), bed_data.ai.max()*1.1))
+            
+            #ymin, ymax = ax.get_ylim()
+            #ax.set_xlim (0.95*(2-Consts.DIPLOID_dCN_THR), 1.05*(2+Consts.DIPLOID_dCN_THR))
+            #ax.set_ylim (np.max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
+            #             np.min((1.01*Consts.DIPLOID_AI_THR, ymax)))
+            
+            return fig
+        
+    @output
+    @render.plot (alt = 'Model distance distribution plot')
+    def model_distance_plot():
+        bed_data = bed()
+        par_d = par()
+        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
+            tmp_bed = bed_data.loc[[m not in ['AB', '(AB)(2+n)', '(AB)(2-n)'] for m in bed_data['model']]].sort_values (by = 'd_model')
+            fig, ax = plt.subplots (1, 1, figsize = (6,6))
+            ax.scatter (tmp_bed['d_model'].values, np.linspace (0,1, len(tmp_bed)),
+                            c = np.array([colorsCN[m] for m in tmp_bed['model']]),
+                            s = np.sqrt(tmp_bed['size']))
+            x = np.linspace (tmp_bed['d_model'].min(), tmp_bed['d_model'].max(), 100)
+            ax.plot (x , 1 - np.exp (par_d['a_d'] * x), 'r-')
+            ax.set_ylabel ('cdf - Model distance')  
+            return fig
+
+    
+    
+    @output
     @render.plot (alt = "Scoring view")
-    def CNV_plot ():
+    def scoring_plots ():
         bed_data = bed()
         par_d = par()
         
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
-            fig, ax = plt.subplots (1, 1, figsize = (6,3))
+            fig, axs = plt.subplots (2, 1, figsize = (6,6))
+                        
+            plot_cdf (bed_data['d_HE'].values, axs[0], par = (par_d['m_d'],par_d['s_d']),
+                      all_colors = np.array([colorsCN[m] for m in bed_data['model']]), half = True)
+            axs[0].set_ylabel ('cdf - HE distance')
+
+            tmp_bed = bed_data.loc[bed_data['model'] != 'AB'].sort_values (by = 'd_model')
+            axs[1].scatter (tmp_bed['d_model'].values, np.linspace (0,1, len(tmp_bed)),
+                            c = np.array([colorsCN[m] for m in tmp_bed['model']]),
+                            s = np.sqrt(tmp_bed['size']))
+            x = np.linspace (tmp_bed['d_model'].min(), tmp_bed['d_model'].max(), 100)
+            axs[1].plot (x , 1 - np.exp (par_d['a_d'] * x), 'r-')
+            axs[1].set_ylabel ('cdf - Model distance')  
             
-            leopard_plot (bed_data.loc[bed_data['model'] != '(AB)n'], 
-                          (par_d['A_i'][0], par_d['C_i'][0], par_d['C_i'][0]-par_d['up_i'][0]),
-                          ax, highlight = input.chroms_selected(),
-                          color_norm = 'black', color_hit = 'darkred')
-            leopard_plot (bed_data.loc[bed_data['model'] == '(AB)n'], 
-                          (np.nan, np.nan, np.nan),
-                          ax, highlight = input.chroms_selected(), 
-                          color_norm = 'gray', color_hit = 'darkorange', alpha = 0.3)
-            ax.set_xlim ((np.log10(0.95*input.size_thr()), 
-                          np.log10(1.05*bed_data['size'].max())))
-            k_pos = bed_data.loc[bed_data['k'] > 0, 'k'].values
-            ax.set_ylim ((np.log10(k_pos.min()), 0.1))  
+            fig.tight_layout()
+            
             return fig
     
     @output
@@ -464,108 +556,75 @@ def server(input, output, session):
         par_d = par()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
-            check_solution_plot_opt (bed_data, par_d, ax, 
-                                          highlight = input.chroms_selected())
             k = np.linspace (0,1,100)
             m0 = par_d['m0']
             for model in model_presets().keys():
-                ax.plot (model_presets()[model].m(k, m0), model_presets()[model].ai(k, m0),  
-                         lw = 2, linestyle = '-', color = colorsCN[model], alpha  = 0.6)
+                if model in par()['models']:
+                    ls = '-'
+                else:
+                    ls = ':'
+                ax.plot (2*model_presets()[model].m(k, m0)/m0, model_presets()[model].ai(k, m0),  
+                         lw = 1, linestyle = ls, color = colorsCN[model], alpha  = 1)
             
-            ax.set_xlim (0.9*bed_data.m.min(), 1.1*bed_data.m.max())
+            check_solution_plot_opt (bed_data, ax, 
+                                     highlight = input.chroms_selected(),
+                                     model_thr = input.model_thr())
+            
+            ax.set_xlim (2*0.9*bed_data.m.min()/m0, 2*1.1*bed_data.m.max()/m0)
             ax.set_ylim ((max(-0.02, -0.02*bed_data.ai.max()), bed_data.ai.max()*1.1))
             
             return fig
     
-    @output
-    @render.plot (alt = 'Scoring distribution')
-    def scoring_dists ():
-        bed_data = bed()
-        par_d = par()
-        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
-            fig, axs = plt.subplots (1, 2, figsize = (6,3), sharey = True)
-            tmp = bed_data.loc[bed_data.model != '(AB)n']
-            if len(tmp) > 0:
-                plot_cdf (tmp['dd'].values, ax = axs[0], 
-                          par = ((par_d['m_i'],),(par_d['s_i'],), (sum(tmp.status == 'norm')/len(tmp),)))
-                axs[0].set_title ('Imbalanced')
-                axs[0].set_xlabel ('Distance to usual')
-                axs[0].set_ylabel ('CDF')
-            tmp = bed_data.loc[bed_data.model == '(AB)n']
-            k = tmp['m']/par_d['m0'] - 1
-            
-            if len(tmp) > 0:
-                if len (par_d['a_b']) == 2:
-                    neg_tmp = tmp.loc[tmp.cn < 2.0]
-                    fnnorm = sum(neg_tmp.status_d == 'norm')/len (neg_tmp)
-
-                    pos_tmp = tmp.loc[tmp.cn >= 2.0]
-                    fpnorm = sum(pos_tmp.status_d == 'norm')/len (pos_tmp)
-
-                    plot_cdf (k, ax = axs[1], 
-                              par = (par_d['m_b'],par_d['s_b'], (par_d['a_b'][0]*fnnorm, par_d['a_b'][1]*fpnorm)),
-                              a0 = len(tmp.loc[(tmp.cn < 2)& (tmp.status_d != 'norm')])/len(tmp) )
-
-                elif len(par_d['a_b']) == 1:
-                    plot_cdf (k, ax = axs[1], 
-                              par = ((par_d['m_b'],),(par_d['s_b'],), (sum(tmp.status == 'norm')/len(tmp),)))
-                 
-                axs[1].set_title ('Balanced')
-                axs[1].set_xlabel ('Sign clonality')
-                
-            return fig
-    
+        
     
     @output
     @render.plot (alt = "Solution view")
     def solution_plot_opt ():
-        bed_data = bed()
+        opt_bed_data = opt_bed()
         par_d = par()
-        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
+        if (len(opt_bed_data) != 0) & (len(par_d.keys()) != 0):
            
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
-            check_solution_plot_opt (bed_data, par_d, ax, 
-                                          highlight = [])
+            
             k = np.linspace (0,1,100)
             for model in model_presets().keys():
+                if model in par()['models']:
+                    ls = '-'
+                else:
+                    ls = ':'
                 ax.plot (model_presets()[model].m(k, m0_opt()), model_presets()[model].ai(k, m0_opt()), 
-                         lw = 2, linestyle = '-', color = colorsCN[model], alpha = 0.6, label = model)
+                         lw = 1, linestyle = ls, color = colorsCN[model], alpha = 0.6, label = model)
             
-            #ax.legend (bbox_to_anchor = (1,0))
+            check_solution_plot_opt (opt_bed_data, ax, model_thr = np.inf,
+                                          highlight = [], xcol = 'm')
+            
             ax.legend (bbox_to_anchor = (1.2,1), loc = 'upper center')
                
             return fig
     
-    @output
-    @render.plot (alt = 'Total distance to the model')
-    def opt_plot ():
-        
-        if len(opt_solution()[0]):
-            opt = opt_solution()
-            fig, ax = plt.subplots(1,1, figsize = (6,6))
-            ax.plot (opt_solution()[0], opt_solution()[1], 'r:', label = 'Total distance')
-            ax.plot (opt_solution()[0], opt_solution()[1]/opt_solution()[2], 'r-', label = 'Normed total distance')
-            axt = ax.twinx()
-            axt.plot (opt_solution()[0], opt_solution()[2], 'b-', label = 'fraction')
-            ax.set_xlabel ('Covearage')
-            ax.set_ylabel ('Relative distance to the model')
-            axt.set_ylabel ('Fraction of genome modeled')
-            
-            #for model in colorsCN.keys():
-            #    ax.plot ((),(), lw = 2, color = colorsCN[model], label = model)
-            ax.legend()
-            #ax.legend (bbox_to_anchor = (1.4,1), loc = 'upper center')
-            return fig
-    
     @reactive.Effect
-    @reactive.event(opt_solution)
+    @reactive.event(solutions_list)
     def _():
-        if len(opt_solution()[0]):
-            ui.update_slider ('m0_cov', value = m0_opt(),
-                              min = opt_solution()[0][0],
-                              max = opt_solution()[0][-1],
+        if len(solutions_list().keys()):
+            ms = np.array(list(solutions_list()))
+            diff = np.abs(ms - m0_opt())
+            i = np.where(diff == diff.min())[0][0]
+            value = ms[i]
+            ui.update_slider ('m0_cov', value = value,
+                              min = min(solutions_list().keys()),
+                              max = max(solutions_list().keys()),
                               step = input.step() )
     
+    @reactive.Effect
+    @reactive.event(par)
+    def _():
+        if 'thr_model' in par().keys():
+            ui.update_slider ('model_thr', value = par()['thr_model'],
+                              min = 0,
+                              max = 10, 
+                              step = 0.1)
+
+
     @output
     @render.table
     def chrom_segments ():
@@ -590,9 +649,9 @@ def server(input, output, session):
         if (len(bed_data) != 0):
             
             if input.sort_CNV_by() == 'score':
-                tmp_bed = bed_data.loc[bed_data[input.corrected()] != 'norm'].sort_values(by = 'k_score', ascending = False)
+                tmp_bed = bed_data.loc[bed_data['model'] != 'AB'].sort_values(by = 'score_HE', ascending = False)
             else:
-                tmp_bed = bed_data.loc[bed_data[input.corrected()] != 'norm']
+                tmp_bed = bed_data.loc[bed_data['model'] != 'AB']
             return tmp_bed
 
     @output
@@ -600,7 +659,7 @@ def server(input, output, session):
     def number_CNVs():
         bed_data = bed()
         if len(bed_data) > 0: 
-            message = "Number of CNVs found: " + str(len(bed_data.loc[bed_data[input.corrected()] != 'norm']))
+            message = "Number of CNVs found: " + str(len(bed_data.loc[bed_data['model'] != 'AB']))
         else:
             message = ''
         return  message
@@ -613,7 +672,8 @@ def server(input, output, session):
         data_df = data()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0) & (len(data_df) != 0):
             fig, axs = plt.subplots (4, 1, figsize = (12,4), sharex = True)
-            earth_worm_plot (data_df, bed_data, par_d, input.chrom_view(), axs)
+            earth_worm_plot (data_df, bed_data, par_d, input.chrom_view(), axs, 
+                             max_score_HE = input.HE_max(), model_threshold = input.model_thr())
             return fig
         
     @output
@@ -628,7 +688,7 @@ def server(input, output, session):
             verification_plot_CNV (data_chrom, CNV_bed, ax, par(), input.f_to_plot())
             return fig
         
-        
+    ###optimalization below    
     @reactive.Effect
     @reactive.event (input.opt)
     def _():
@@ -636,50 +696,108 @@ def server(input, output, session):
         par_d = par()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
            
-            ms = np.arange (m0()*input.min_cn(), m0()*input.max_cn(), input.step())
-            tmp = bed_data.loc[(~bed_data['model'].isna())]
+            ms = np.arange (int(m0()*input.min_cn()),
+                            int(m0()*input.max_cn())+input.step(),
+                            input.step())
+            
+            ai = np.array(bed_data['ai'].values)
+            m_cov = np.array(bed_data['m'].values)
+            sizes = np.array(bed_data['size'].values)
+            
+            ai_index = ai < Consts.DIPLOID_AI_THR
+            solutions = {}
             
             with ui.Progress (min = ms[0], max = ms[-1]) as p:
                 p.set(message = 'Optimizing solution...', )
-                dts = []
-                fts = []
-                st = []
-                
-                for _, b in tmp.iterrows():
-                    st.append (b['size'])
-                sttotal = np.sum(st)
-                            
+                                            
                 for m in ms:
                     p.set(m, message = 'Calculating')
-                    dt = []
+                    cn = 2*m_cov/m
+                    cn_index = np.abs(cn -2) < Consts.DIPLOID_dCN_THR
+                    index = np.where(ai_index & cn_index)[0]
+                    if len(index) > 2:
+                        data_for_scoring = np.concatenate([ai[index], cn[index]-2]).reshape (2,len(index)).T
+                        scorer = Scoring.Scoring(data_for_scoring)
+                    else:
+                        scorer = Scoring.Scoring()
+                    m_ai = scorer.ai_param['m']
+                    s_ai = scorer.ai_param['s']
+                    m_cn = scorer.cn_param['m']                   
+                    s_cn = scorer.cn_param['s']
                     
-                    for _, b in tmp.iterrows():
-                        dt.append (np.sqrt(b['size'])*(np.nanmin([Models.calculate_distance(model, b['m'], b['ai'], m) for model in model_presets().values()])))
-                                            
-                    index = np.where(np.isfinite(dt))[0]
-                    sts = np.sum(([st[i] for i in index]))
-                    fts.append (sts/sttotal)
-                    dts.append (np.nansum(dt)/sts)
+                    d_HE = np.sqrt (((ai-m_ai)/s_ai)**2 + ((cn-2-m_cn)/s_cn)**2)
+                    p_d = sts.norm.sf (d_HE, scorer.dipl_dist['m'], scorer.dipl_dist['s'])
+                    
+                    thr = FDR (np.sort(p_d[np.isfinite(p_d)]), Consts.DIPLOID_ALPHA)
+                    models = np.repeat('AB', len(ai))
+                    d_model = np.repeat(np.nan, len(ai))
                                         
-                fraction = np.array (fts)
-                dtsa = np.array(dts)
-            
-            opt_solution.set((ms,dtsa, fraction))
 
-            try:
-                m0_opt.set (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
-                print ()
-                print (ms[np.where(dts == np.nanmin(dtsa/fraction))[0][0]])
-                print ()
-            except:
-                m0_opt.set(m0())
+                    for i in np.where(p_d < thr)[0]:
+                        sm = Models.pick_model(ai[i], 1, cn[i], 1, par()['models']) #scorer.score_dipl(ai[i], m_cov[i], m, par()['models'])
+                        models[i] = sm['model']
+                        d_model[i] = sm['d_model']
+                        
+                    
+                    d_total = np.nansum((d_model*sizes))    
+                    print (m,thr, np.nansum(d_model), m_ai, s_ai, m_cn, s_cn, np.unique(models, return_counts = True))
+                    solutions[m] = (scorer, d_total/sizes.sum(), models)
+
             
-           
+            solutions_list.set (solutions)    
+                    
+            
+    @output
+    @render.plot (alt = 'Total distance to the model')
+    def opt_plot ():
+        
+        if len(solutions_list().keys()) > 0:
+            fig,ax = plt.subplots (figsize = (6,6))
+            
+            solutions = solutions_list()
+            
+            ms = solutions.keys() #np.array([s[0] for s in solutions])
+            d_total = np.array([solutions[m][1] for m in solutions.keys()])
+            d_HE = np.array([solutions[m][0].dipl_dist['m'] for m in solutions.keys()])
+             
+            fig, ax = plt.subplots(1,1, figsize = (6,6))
+            ax.plot (ms, d_total, 'ro-')
+            axt = ax.twinx()
+            axt.plot (ms, d_HE, 'bo-')
+            
+            ax.set_xlabel ('Covearage')
+            ax.set_ylabel ('Distance to the model')
+            ax.yaxis.label.set_color ('r')
+            ax.tick_params(axis='y', colors = 'r')
+            
+            
+            axt.set_ylabel ('Diploid shift')
+            axt.yaxis.label.set_color('b')
+            axt.tick_params(axis='y', colors = 'b')
+            
+            ax.legend()
+            return fig
+               
     @reactive.Effect
     @reactive.event (input.m0_cov)
     def _():
-        if len(opt_solution()[0]):
+        if len(solutions_list()):
+            
             m0_opt.set(input.m0_cov())
-    
+            bed = opt_bed().copy()
+            bed['cn'] = 2*bed['m']/m0_opt()
+            bed['model'] = solutions_list()[m0_opt()][-1]
+            opt_bed.set(bed)
             
 app = App(app_ui, server, debug=True)
+
+def FDR (p, alpha, score = False):
+    k = np.arange (1, len(p)+1)
+    index = np.where(p <= alpha*k/len(p))[0]
+    try:
+        if score:
+            return -np.log10(p[np.max(index)])
+        else:
+            return p[np.max(index)]
+    except:
+        return np.inf

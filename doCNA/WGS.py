@@ -4,12 +4,14 @@ from doCNA import Genome
 
 class WGS:
     """Class to handle WGS read counts file and create the genome."""
-    def __init__ (self, wgs_file_name,  sample_name, parameters,   
+    def __init__ (self, wgs_file_name,  sample_name, parameters, models,   
                   no_processes = 1, verbosity = 'INFO'):        
         self.sample_name = sample_name
         self.no_processes = no_processes
         self.wgs_file = open (wgs_file_name, 'r')
         self.config = parameters
+        self.models = models
+        
         try:
             self.SG_file = open (self.config['Input']['SuperGood_filepath'], 'rb')
         except FileNotFoundError:
@@ -39,7 +41,8 @@ class WGS:
             
     def analyze (self, m0 = 0):
         self.logger.debug ('Creating genome.')
-        self.genome = Genome.Genome (self.sample_name, self.logger, self.config, self.CB_file, self.no_processes)
+        self.genome = Genome.Genome (self.sample_name, self.logger, self.config, self.CB_file, 
+                                     self.models, self.no_processes)
         input_columns = [self.config['InputColumns']['chrom'],
                          self.config['InputColumns']['position'],
                          self.config['InputColumns']['ref_count'],

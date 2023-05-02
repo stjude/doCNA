@@ -42,7 +42,7 @@ class Run:
                 self.get_ai ()
                 self.get_coverage ()
                 self.solve_windows ()
-            except:
+            except (AssertionError):
                 self.logger.info (f"Run can't be analyzed.")
                 self.dumy_solution ()
                 self.logger.info ('One solution devised for crazy run')
@@ -79,8 +79,37 @@ class Run:
             self.get_ai_sensitive()
         else:
             self.get_ai_full()
-        
+    
     def get_ai_sensitive (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
+                          z_thr = Consts.AI_SENSITIVE_Z):
+        
+        s0 = np.sqrt (0.25/self.genome_medians['m0'])
+        fB = cov_mult
+        
+        vafs = []
+        wides = []
+        for window in self.windows:
+            vafs.append (np.sort(window['vaf'].values))
+            wides.append (get_wide (vafs[-1], s0, fB, zero_thr)[0])  
+            fB = wides[-1]
+            
+        #fB = np.percentile (wides, 100*zero_thr)
+        s = s0/np.sqrt(fB)
+        
+        dvl = []
+        v0l = []
+        for v in vafs:
+            popt = get_shift (v, s)
+            dvl.append (popt[0])
+            v0l.append (popt[1])
+                        
+        self.dv = np.array(dvl)
+        self.v0 = np.array (v0l)
+        self.dv_dist = Distribution.Distribution (self.dv, p_thr = p_thr, thr_z = z_thr)
+        self.logger.debug ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult-0.01))
+        self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: {self.dv_dist.parameters['m']}.")  
+    
+    def get_ai_sensitive_old (self, zero_thr = 0.01, cov_mult = 1.01, p_thr = Consts.SINGLE_P_SENSITIVE, 
                           z_thr = Consts.AI_SENSITIVE_Z):
         tmpf = 1
         s0 = np.sqrt (0.25/self.genome_medians['m0'])
@@ -88,7 +117,7 @@ class Run:
         vafs = []
         for window in self.windows:
             vafs.append(np.sort(window['vaf'].values))
-        
+            
         while tmpf > zero_thr:
             dvl = []
             v0l = []
@@ -155,8 +184,8 @@ class Run:
         self.v0 = np.array(v0s)        
         self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = p_thr, thr_z = z_thr)
-        self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: m = {self.dv_dist.parameters['m']}, s = {self.dv_dist.parameters['s']}.")
-    
+        self.logger.debug (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: m = {self.dv_dist.parameters['m']}, s = {self.dv_dist.parameters['s']}.")
+        
     def get_coverage (self, z_thr = Consts.M_Z, p_thr = Consts.SINGLE_P_SENSITIVE):
         ml = []
         ll = []
@@ -185,9 +214,10 @@ class Run:
         x = np.array([self.dv, self.m, self.l]).T
         
         for m0, s0, labels in zip(*self.get_distributions()):
-            if s0[0] == 0:
+            if any(s0[0]) == 0:
                 self.logger.info (f'Std of ai is zero; adjusted to {1/np.sqrt(m0[1])}')
                 s0[0] = 1/np.sqrt(m0[1])
+                    
             self.logger.debug (f'Calculating solution /dv,m,l/ = [{m0[0]},{m0[1]},{m0[2]}],[{s0[0]},{s0[1]},{s0[2]}]') 
             y = ((x[:,:,np.newaxis] - m0[np.newaxis,:,:])/s0[np.newaxis,:,:])**2
             z = y.sum(axis = 1)
@@ -201,7 +231,11 @@ class Run:
             self.logger.debug (f'Solution calculated: {make_rle_string(merged_segments, sep ="")}') 
             indexes = []
             for i in old_indexes:
-                indexes += (divide_segment(self.dv, *i))
+                try:
+                    indexes += (divide_segment(self.dv, *i))
+                except (IndexError,ValueError):
+                    self.logger.debug (f"Re segmenting of {i} failed!")
+                    indexes.append(i)
             if len(indexes) > len(old_indexes):
                 self.logger.debug (f'Run further divided, {len(indexes) - len(old_indexes)} more segment(s).')
                 self.logger.debug (f'Old runs: {old_indexes}')
@@ -222,12 +256,15 @@ class Run:
             self.logger.debug (f"""Solution performance: chi2 = {chi2.sum()/(3*len(self.dv)-df)},
             chi2_noO = {chi2[noOfilter].sum()/(3*sum(noOfilter)-df)}""")
             
-            self.solutions.append(Solution (chi2 = chi2.sum()/(3*len(self.dv)-df),
+            try:
+                self.solutions.append(Solution (chi2 = chi2.sum()/(3*len(self.dv)-df),
                                             chi2_noO = chi2[noOfilter].sum()/(3*sum(noOfilter)-df),
                                             positions = [(self.windows_positions[si][0], self.windows_positions[ei][1]) for si, ei in indexes],
                                             p_norm = psl,
                                             segments = ''.join(segments),
                                             merged_segments = make_rle_string(''.join(merged_segments))))
+            except (IndexError):
+                self.logger.debug ('Solution for {si:ei} failed.')
         
         self.solutions.sort (key = lambda x: x.chi2_noO)        
         self.logger.info (f"Total {len(self.solutions)} solution(s) found. Best chi2 = {self.solutions[0].chi2_noO}")
@@ -270,6 +307,27 @@ class Run:
     def __repr__(self) -> str:
         return self.tostring()
         
+def get_wide (vafs, s0, fB, zero_thr):
+    s = s0/np.sqrt (fB)
+    dv, _ = get_shift (vafs, s)
+    while dv < zero_thr:
+        fB += 0.01
+        s = s0/np.sqrt (fB)
+        dv, _ = get_shift (vafs, s)
+        
+    return fB, dv
+
+def get_shift (v, s):
+    
+    def two_gauss (v, dv, v0, a):
+        return a*sts.norm.cdf (v, v0 - dv, s) + (1-a)*sts.norm.cdf (v, v0 + dv, s)
+
+    popt, _ = opt.curve_fit (two_gauss, np.sort(v), np.linspace (0,1,len(v)),
+                             p0 = [0.01,0.5, 0.5],
+                             bounds = ((0, 0.4, 0.3),(0.5, 0.6, 0.7)))
+            
+    return popt[0], popt[1]
+
 def get_norm_p (values, sinit = 0.05):
     """Tests if normally distributed around zero."""
     def cdf(x,s):

@@ -50,6 +50,7 @@ class Distribution:
             except:
                 double_G_par = fit_double_G (np.sort(values), alpha = 0.01, r = 0.5)
                 values_used = 'unique'
+                
             if (double_G_par['p'] < single_G_par['p'])&(double_G_par['m'][0] != double_G_par['m'][1]):
                 self.key = 'double'
                 self.parameters = double_G_par
@@ -66,6 +67,7 @@ class Distribution:
                 #marking D population
                 for i in np.where ((z1 < z0)&(z1 < thr_z))[0]:
                     string[i] = 'D'
+                
                 self.parameters['string'] = ''.join(string)
                 self.all_parameters['double']['string'] = string
                 self.string = ''.join(string)

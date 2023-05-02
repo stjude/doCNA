@@ -11,7 +11,34 @@ class Report:
     def __init__(self, report_t):
         self._report_type = report_t
 
-    def genome_report(self, genome):
+    def genome_report (self, genome):
+        """ Generates a report for Genome objects """
+        if self._report_type == 'bed':
+            keys = list(genome.chromosomes.keys())
+            keys.sort (key = Consts.CHROM_ORDER.index)
+            report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
+        elif self._report_type == 'params':
+            report_list = ['m0\t'+ str(genome.genome_medians['m0']),
+                           'v0\t'+str(genome.genome_medians['v0']),
+                           'fb\t'+str(genome.genome_medians['fb']),
+                           'm_ai\t'+str(genome.scorer.ai_param['m']),
+                           's_ai\t'+str(genome.scorer.ai_param['s']),
+                           'm_cn\t'+str(genome.scorer.cn_param['m']),
+                           's_cn\t'+str(genome.scorer.cn_param['s']),
+                           'm_d\t' +str(genome.scorer.dipl_dist['m']),
+                           's_d\t' +str(genome.scorer.dipl_dist['s']),
+                           'a_d\t' +str(genome.genome_medians['d_model']['a']),
+                           'models\t'+str(genome.models),
+                           'thr_model\t'+str(genome.genome_medians['thr_model']),
+                           'thr_HE\t'+str(genome.genome_medians['thr_HE'])]
+                        
+            report = '\n'.join(report_list)
+        else:
+            report = ""
+        return report
+    
+    ##Remove in release
+    def genome_report_old(self, genome):
         """ Generates a report for Genome objects """
         if self._report_type == 'bed':
             keys = list(genome.chromosomes.keys())
@@ -19,9 +46,22 @@ class Report:
             keys.sort (key = Consts.CHROM_ORDER.index)
             report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
         elif self._report_type == 'params':
+            #shift_b = genome.genome_medians['clonality_balanced']['up']
             shift_i = genome.genome_medians['clonality_imbalanced']['up']
-            report_list = ['m0\t'+ str(genome.genome_medians['m0']),
-                           'fb\t'+ str(genome.genome_medians ['fb']),
+            #report = '\n'.join(['m' + '\t' + str(genome.genome_medians['m']),
+            #                    'a_model' + '\t' + str(genome.genome_medians['model_d']['a']),  
+            #                    'a_b' + '\t' + str(genome.genome_medians['clonality_balanced']['A']),
+            #                    'b_b' + '\t' + str(genome.genome_medians['clonality_balanced']['C']),
+            #                    'bt_b' + '\t' + str(genome.genome_medians['clonality_balanced']['C']-shift_b),
+            #                    'm_a' + '\t' + str(genome.genome_medians['clonality_balanced']['m']),
+            #                    's_a' + '\t' + str(genome.genome_medians['clonality_balanced']['s']),
+            #                    'a_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['A']),
+            #                    'b_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['C']),
+            #                    'bt_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['C']-shift_i),
+            #                    'm_a' + '\t' + str(genome.genome_medians['clonality_imbalanced']['m']),
+            #                    's_a' + '\t' + str(genome.genome_medians['clonality_imbalanced']['s'])])
+
+            report_list = ['m0\t'+ str(genome.genome_medians['m']),
                            'a_model\t' + str(genome.genome_medians['model_d']['a']),
                            'Imbalanced:']
             for key in genome.genome_medians['clonality_imbalanced'].keys():
@@ -38,6 +78,7 @@ class Report:
         else:
             report = ""     
         return report
+    ##end of remove in release
 
     def chromosome_report(self, segments, runs):
         """ Generates a report for Chromosome objects """
@@ -51,24 +92,24 @@ class Report:
 
         """ Generates a report for Segment objects """
         if self._report_type == 'bed':    
-            #if np.isnan (segment.parameters['k']):
-            #    if segment.parameters['fraction_1'] > 0.95:
-            #        k = 1
-            #    else:
-            #        k = np.nan
-            #else:
-            k = segment.parameters['k']
-
-            report = '\t'.join([str(p) for p in [segment.chrom, segment.start, segment.end,
-                                                 segment.parameters['ai'], segment.parameters['m'],
+           
+            report = '\t'.join([str(p) for p in [segment.chrom, 
+                                                 segment.start,
+                                                 segment.end,
+                                                 segment.parameters['ai'], 
+                                                 segment.parameters['p_ai'],
+                                                 segment.parameters['m'],
                                                  2*segment.parameters['m']/segment.genome_medians['m0'],
-                                                 segment.parameters['model'], segment.parameters['d'], 
-                                                 segment.parameters['model_score'],
-                                                 k, segment.parameters['clonality_score'],
-                                                 segment.parameters['k_d'], 
+                                                 segment.parameters['d_HE'], 
+                                                 segment.parameters['score_HE'], 
+                                                 segment.parameters['model'],
+                                                 segment.parameters['d_model'], 
+                                                 segment.parameters['score_model'],
+                                                 segment.parameters['k'], 
+                                                 segment.segmentation_symbol, 
                                                  segment.cytobands,
-                                                 segment.centromere_fraction, 
-                                                 segment.parameters['call'], segment.parameters['call_FDR']]])
+                                                 segment.centromere_fraction]])
+                                                 #segment.parameters['call'], segment.parameters['call_FDR']]])
         else:
             report = ''
         return report
