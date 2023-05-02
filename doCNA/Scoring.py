@@ -19,7 +19,7 @@ class Scoring:
             self.median_size = np.median(initial_data[:, 2])            
             self.ai_param = fit_QQgauss(initial_data[: ,0])
             self.cn_param = fit_QQgauss(initial_data[: ,1], fit_intercept = False)
-            dds =  initial_data - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
+            dds =  initial_data[:,:-1] - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
             ds = dds/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :]
             self.dipl_dist = fit_QQgauss (np.sqrt((ds**2).sum(axis = 1)))
             self.dipl_dist['alpha'] = Consts.SCORE_ALPHA
