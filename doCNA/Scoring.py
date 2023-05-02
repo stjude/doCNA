@@ -16,7 +16,7 @@ class Scoring:
             self.dipl_dist = {'m' : 0, 's' : 1, 'thr' : 0, 'alpha': np.nan}
             self.median_size = 1
         else:
-            self.median_size = initial_data[:, 2].median()            
+            self.median_size = np.median(initial_data[:, 2])            
             self.ai_param = fit_QQgauss(initial_data[: ,0])
             self.cn_param = fit_QQgauss(initial_data[: ,1], fit_intercept = False)
             dds =  initial_data - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
@@ -29,6 +29,7 @@ class Scoring:
         
         if logger:
             self.logger = logger.getChild (f'{self.__class__.__name__}')
+            self.logger.info (f"Median segment size: {self.median_size}")
             self.logger.info (f"Distribution of distance to diploid (0,2): m = {self.dipl_dist['m']}, s = {self.dipl_dist['s']}")
             self.logger.info (f"Distribution of diploid allelic imbalance: m = {self.ai_param['m']}, s = {self.ai_param['s']}")
             self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
