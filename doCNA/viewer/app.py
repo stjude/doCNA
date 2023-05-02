@@ -98,7 +98,7 @@ app_ui = ui.page_fluid(
                                                           ui.row(ui.column(8,
                                                                            ui.output_plot ('genome_plot'),),
                                                                  ui.column(4,
-                                                                           ui.h6 ('Attempt of grouping clones'),
+                                                                           ui.h6 ('Attempt of grouping CNVs into clones'),
                                                                            ui.output_plot ('clones_plot')),),
                                                           ui.row(ui.column(12,
                                                                            ui.h5 (''),
