@@ -11,10 +11,12 @@ class Scoring:
     def __init__(self, initial_data = None, logger = False) -> None:
         
         if initial_data is None:
-            self.ai_param = {'m' : np.inf, 's' : 1}
-            self.cn_param = {'m' : np.inf, 's' : 1}
-            self.dipl_dist = {'m' : np.inf, 's' : 1, 'thr' : 0, 'alpha': np.nan}
+            self.ai_param = {'m' : 0, 's' : 1}
+            self.cn_param = {'m' : 0, 's' : 1}
+            self.dipl_dist = {'m' : 0, 's' : 1, 'thr' : 0, 'alpha': np.nan}
+            self.median_size = 1
         else:
+            self.median_size = initial_data[:, 2].median()            
             self.ai_param = fit_QQgauss(initial_data[: ,0])
             self.cn_param = fit_QQgauss(initial_data[: ,1], fit_intercept = False)
             dds =  initial_data - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
@@ -39,14 +41,15 @@ class Scoring:
         m = segment.parameters['m']
         m0 = segment.genome_medians['m0']
         cn = 2*m/m0
+        scale = np.sqrt (self.median_size / segment['n'])
         m_ai = self.ai_param['m']
-        s_ai = self.ai_param['s']
+        s_ai = self.ai_param['s']*scale
         m_cn = self.cn_param['m']
-        s_cn = self.cn_param['s']
+        s_cn = self.cn_param['s']*scale
         d = np.sqrt (((ai-m_ai)/s_ai)**2 + (((cn-2)-m_cn)/s_cn)**2)
         p_d = sts.norm.sf (d, self.dipl_dist['m'], self.dipl_dist['s'])
         
-        segment.parameters['d_HE'] = np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
+        segment.parameters['d_HE'] = d# np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
         segment.parameters['p_HE'] = p_d
         segment.parameters['score_HE'] = -np.log10(p_d)
         

@@ -237,14 +237,13 @@ class Genome:
         
         self.segments = [self.all_segments[i] for i in np.where(self.segment_filter)[0]]
         
-        data_for_scoring = np.array([(s.parameters['ai'], 2*s.parameters['m']/self.genome_medians['m0']-2) for s in self.segments])
+        data_for_scoring = np.array([(s.parameters['ai'], 2*s.parameters['m']/self.genome_medians['m0']-2, s.parameters['n']) for s in self.segments])
         self.scorer = Scoring.Scoring (data_for_scoring, self.logger)
-        ps = []
-        for seg in self.all_segments:
-            self.scorer.score_dipl(seg)
-            ps.append (seg.parameters['p_HE'])
+        ps = np.zeros (len(self.all_segments))
+        for i in np.arange (len(self.all_segments)):
+            self.scorer.score_dipl(self.all_segments[i])
+            ps[i] = seg.parameters['p_HE']
         
-        ps = np.array(ps)
         ##FDRing threshold
         thr = FDR(np.sort(ps[np.isfinite(ps)]), alpha = Consts.DIPLOID_ALPHA, score = True)
         self.genome_medians['thr_HE'] = thr
