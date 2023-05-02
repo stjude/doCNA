@@ -177,8 +177,11 @@ app_ui = ui.page_fluid(
                                                                                          {'PDF' : 'Probability density function',
                                                                                           'CDF' : 'Cumulative density function'}, 
                                                                                          selected = 'CDF', inline = True)),                                                          
-                                                          ui.row(ui.output_plot ('data_plot'),
-                                                                 ui.output_plot ('compare_plot')),
+                                                          ui.row(ui.output_plot ('data_plot')),
+                                                          ui.row(ui.column(6, 
+                                                                           ui.output_plot ('compare_plot')),
+                                                                 ui.column(6, 
+                                                                           ui.output_plot ('qq_plot'))),
                                                           ui.row(ui.output_table (id = 'chrom_segments'))),
                                                     ui.nav("Report",
                                                            ui.row(ui.column(12,
@@ -316,7 +319,7 @@ def server(input, output, session):
             chrs.sort (key = Consts.CHROM_ORDER.index)
             merged_segments = []
             for chrom in chrs: 
-                chr_tmp = bed_full.loc[bed_full['chrom'] == chrom].copy()
+                chr_tmp = bf.loc[bf['chrom'] == chrom].copy()
             
             
                 del (chr_tmp)
@@ -698,6 +701,19 @@ def server(input, output, session):
             fig, ax = plt.subplots (figsize = (6,8))
             verification_plot_CNV (data_chrom, CNV_bed, ax, par(), input.f_to_plot())
             return fig
+    
+    @output
+    @render.plot
+    def qq_plot():
+        bed_data = bed()
+        data_df = data()
+        if (len(bed_data) != 0) & (len(data_df) != 0):
+            CNV_bed = bed_data.loc[bed_data.chrom == input.chrom_view()]
+            data_chrom = data_df.loc[data_df.chrom == input.chrom_view()]
+            fig, ax = plt.subplots (figsize = (6,8))
+            verification_plot_qq (data_chrom, CNV_bed, ax, par())
+            return fig
+    
         
     ###optimalization below    
     @reactive.Effect
@@ -745,7 +761,7 @@ def server(input, output, session):
                                         
 
                     for i in np.where(p_d < thr)[0]:
-                        sm = Models.pick_model(ai[i], 1, cn[i], 1, par()['models']) #scorer.score_dipl(ai[i], m_cov[i], m, par()['models'])
+                        sm = Models.pick_model(ai[i], 1, cn[i], 1, par()['models'])
                         models[i] = sm['model']
                         d_model[i] = sm['d_model']
                         
