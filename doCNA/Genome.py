@@ -154,11 +154,11 @@ class Genome:
         
         for chrom in self.chromosomes.keys():
             status = self.VAF.get_status (chrom)
-            self.logger.debug (f'Chromosome {chrom} inlier: {status}')
+            #self.logger.debug (f'Chromosome {chrom} inlier: {status}')
             if ~status.T.all(axis = 0):
                 params = self.VAF.get_parameters (chrom)
-                self.logger.debug (f'Chromosome {chrom} marked on full model.')
                 self.chromosomes[chrom].mark_on_full_model (self.HE.medians['cov']) 
+                self.logger.debug (f'Chromosome {chrom} marked on full model.')
         
         for chrom in self.sex_chromosomes.keys():
             self.logger.info (f'Analyzing {chrom}: ...')
@@ -242,7 +242,7 @@ class Genome:
         ps = np.zeros (len(self.all_segments))
         for i in np.arange (len(self.all_segments)):
             self.scorer.score_dipl(self.all_segments[i])
-            ps[i] = seg.parameters['p_HE']
+            ps[i] = self.all_segments[i].parameters['p_HE']
         
         ##FDRing threshold
         thr = FDR(np.sort(ps[np.isfinite(ps)]), alpha = Consts.DIPLOID_ALPHA, score = True)
@@ -250,7 +250,6 @@ class Genome:
         self.scorer.set_thr (thr)
         for seg in self.all_segments:
             self.scorer.analyze_segment(seg, self.models)
-        
         
         self.score_model_distance ()
             

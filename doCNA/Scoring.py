@@ -42,7 +42,7 @@ class Scoring:
         m = segment.parameters['m']
         m0 = segment.genome_medians['m0']
         cn = 2*m/m0
-        scale = np.sqrt (self.median_size / segment['n'])
+        scale = np.sqrt (self.median_size / segment.parameters['n'])
         m_ai = self.ai_param['m']
         s_ai = self.ai_param['s']*scale
         m_cn = self.cn_param['m']
