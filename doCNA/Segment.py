@@ -137,7 +137,7 @@ def get_full (data, b = 1.01):
     return parameters
 
 def vaf_cnai (v, dv, a, v0,b, cov):
-    s = np.sqrt((v0 - dv)*(v0 + dv)/(b*cov))
+    s = np.sqrt((v0 - dv)*(v0 + dv)/(cov))*b
     return a*sts.norm.cdf (v, v0 - dv, s) + (1-a)*sts.norm.cdf (v, v0 + dv, s)
 
 def vaf_HO (v, lerr):

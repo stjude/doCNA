@@ -728,8 +728,10 @@ def server(input, output, session):
                             input.step())
             
             ai = np.array(bed_data['ai'].values)
+            l = len (ai)
             m_cov = np.array(bed_data['m'].values)
             sizes = np.array(bed_data['size'].values)
+            n = np.array (bed_data['n'].values)
             
             ai_index = ai < Consts.DIPLOID_AI_THR
             solutions = {}
@@ -743,23 +745,26 @@ def server(input, output, session):
                     cn_index = np.abs(cn -2) < Consts.DIPLOID_dCN_THR
                     index = np.where(ai_index & cn_index)[0]
                     if len(index) > 2:
-                        data_for_scoring = np.concatenate([ai[index], cn[index]-2]).reshape (2,len(index)).T
+                        data_for_scoring = np.concatenate([ai[index], cn[index]-2, n[index]]).reshape (3,len(index)).T
                         scorer = Scoring.Scoring(data_for_scoring)
+                    
+                        m_ai = scorer.ai_param['m']
+                        s_ai = scorer.ai_param['s']
+                        m_cn = scorer.cn_param['m']                   
+                        s_cn = scorer.cn_param['s']
+                    
+                        d_HE = np.sqrt (((ai-m_ai)/s_ai)**2 + ((cn-2-m_cn)/s_cn)**2)
+                        p_d = sts.norm.sf (d_HE, scorer.dipl_dist['m'], scorer.dipl_dist['s'])
+                    
+                        thr = FDR (np.sort(p_d[np.isfinite(p_d)]), Consts.DIPLOID_ALPHA)
+                        
                     else:
-                        scorer = Scoring.Scoring()
-                    m_ai = scorer.ai_param['m']
-                    s_ai = scorer.ai_param['s']
-                    m_cn = scorer.cn_param['m']                   
-                    s_cn = scorer.cn_param['s']
-                    
-                    d_HE = np.sqrt (((ai-m_ai)/s_ai)**2 + ((cn-2-m_cn)/s_cn)**2)
-                    p_d = sts.norm.sf (d_HE, scorer.dipl_dist['m'], scorer.dipl_dist['s'])
-                    
-                    thr = FDR (np.sort(p_d[np.isfinite(p_d)]), Consts.DIPLOID_ALPHA)
-                    models = np.repeat('AB', len(ai))
-                    d_model = np.repeat(np.nan, len(ai))
-                                        
-
+                        p_d = np.ones (l)
+                        thr = 0
+                                       
+                    models = np.repeat('AB', l)
+                    d_model = np.repeat(np.nan, l)
+                        
                     for i in np.where(p_d < thr)[0]:
                         sm = Models.pick_model(ai[i], 1, cn[i], 1, par()['models'])
                         models[i] = sm['model']
@@ -767,7 +772,7 @@ def server(input, output, session):
                         
                     
                     d_total = np.nansum((d_model*sizes))    
-                    print (m,thr, np.nansum(d_model), m_ai, s_ai, m_cn, s_cn, np.unique(models, return_counts = True))
+                    print (m, thr, np.nansum(d_model), m_ai, s_ai, m_cn, s_cn, np.unique(models, return_counts = True))
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
 
             
