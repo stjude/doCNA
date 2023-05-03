@@ -48,11 +48,13 @@ class Segment:
                                              self.genome_medians['fb'])
             method = 'sensitive'
             if self.parameters['ai'] > Consts.MAX_AI_THRESHOLD_FOR_SENSITIVE:
-                self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',])
+                self.parameters = get_full (self.data,#.loc[self.data['symbol'] != 'A',],
+                                            b = self.genome_medians['fb'])
                 method = 'full'
             
         else:
-            self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',])
+            self.parameters = get_full (self.data,#.loc[self.data['symbol'] != 'A',],
+                                        b = self.genome_medians['fb'])
             method = 'full'
             
         if self.parameters['success']:
@@ -112,8 +114,8 @@ def get_full (data, b = 1.01):
         dv0 = v0 - np.median (v[v < v0])
         p0 = [dv0, ones0/c.sum(), 2, 0.5, 0.5, b]        
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
-                                    bounds = ((0,   0,   1, 0, 0.45, 1),
-                                              (0.499, 0.95, 5, 1, 0.55, 10)))
+                                    bounds = ((0,   0,   1, 0, 0.45, 0.99*b),
+                                              (0.499, 0.95, 5, 1, 0.55, 10*b)))
         dv, a, lerr, f, v0, b = popt
                      
         parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 
