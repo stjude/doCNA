@@ -425,29 +425,36 @@ def server(input, output, session):
         par_d = par()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
-            dip_bed_data = bed_data.loc[(bed_data['ai'] < Consts.DIPLOID_AI_THR) &\
-                                        (np.abs(bed_data['cn']-2) < Consts.DIPLOID_dCN_THR)]            
             
-            check_solution_plot_opt (dip_bed_data, ax, model_thr = input.model_thr(),
-                                     highlight = input.chroms_selected())
+            filt = (bed_data['ai'] < Consts.DIPLOID_AI_THR) &\
+                   (np.abs(bed_data['cn']-2) < Consts.DIPLOID_dCN_THR)
             
-            def ellipse (thr, par, **kwargs):
-                p = 10**(-thr)
-                d = sts.norm.ppf(1-p, par['m_d'], par['s_d'])
+            dip_bed_data = bed_data.loc[filt]            
+            
+            if len(dip_bed_data):
+                check_solution_plot_opt (dip_bed_data, ax, model_thr = input.model_thr(),
+                                         highlight = input.chroms_selected())
+                
+            
+            def ellipse (par, **kwargs):
                 return Ellipse ((par['m_cn']+2, par['m_ai']), 2*d*par['s_cn'], 2*d*par['s_ai'], **kwargs)
+                        
+            p = 10**(-par_d['thr_HE'])
+            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])
+            if np.isfinite (d):
+                ax.add_patch (ellipse(par_d, label = 'auto thr',
+                              lw = 1, fill = False, color = 'r', ls = ':'))
             
-            ax.add_patch (ellipse(par_d['thr_HE'], par_d, label = 'auto thr',
-                                  lw = 1, fill = False, color = 'r', ls = ':'))
-            ax.add_patch (ellipse(input.HE_thr(), par_d, label = 'user thr', 
-                                  lw = 1, fill = False, color = 'b', ls = '--') )
-
+            p = 10**(-input.HE_thr())
+            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])
+            if np.isfinite(d):
+                ax.add_patch (ellipse(par_d, label = 'user thr', 
+                              lw = 1, fill = False, color = 'b', ls = '--') )
             ax.legend()
-
             ymin, ymax = ax.get_ylim()
             ax.set_xlim (0.95*(2-Consts.DIPLOID_dCN_THR), 1.05*(2+Consts.DIPLOID_dCN_THR))
-            ax.set_ylim (np.max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
-                         np.min((1.01*Consts.DIPLOID_AI_THR, ymax)))
-            
+            ax.set_ylim (max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
+                         min((1.01*Consts.DIPLOID_AI_THR, ymax)))
             return fig
         
     @output
@@ -604,7 +611,8 @@ def server(input, output, session):
             if np.isfinite(par()['thr_model']):
                 ui.update_slider ('model_thr', value = par()['thr_model'],
                                   min = 0,
-                                  max = 10, 
+                                  #max = 10, 
+                                  max = max([10, int(par()['thr_model'])*5]),
                                   step = 0.1)
 
 
@@ -615,7 +623,8 @@ def server(input, output, session):
             if np.isfinite(par()['thr_HE']):
                 ui.update_slider ('HE_thr', value = par()['thr_HE'],
                                   min = 0,
-                                  max = 10, 
+                                  #max = 10,
+                                  max = max([10, int(par()['thr_HE'])*5]), 
                                   step = 0.1)
 
     @output
@@ -772,7 +781,7 @@ def server(input, output, session):
                         
                     
                     d_total = np.nansum((d_model*sizes))    
-                    print (m, thr, np.nansum(d_model), m_ai, s_ai, m_cn, s_cn, np.unique(models, return_counts = True))
+                    #print (m, thr, np.nansum(d_model), m_ai, s_ai, m_cn, s_cn, np.unique(models, return_counts = True))
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
 
             

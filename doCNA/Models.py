@@ -78,10 +78,10 @@ def pick_model (ai, s_ai, cn, s_cn, models):
     
     model_index = np.where(ds == ds.min())[0][0]
     
-    if (ks[model_index] >= 0) & (ks[model_index] <= 1.05):
-        return {'model' : models[model_index], 'd_model' : ds[model_index], 'k': ks[model_index]}
-    else:
-        return {'model' : 'UN', 'd_model' : ds[model_index], 'k': np.nan}
+    #if (ks[model_index] >= 0) & (ks[model_index] <= 1.05):
+    return {'model' : models[model_index], 'd_model' : ds[model_index], 'k': ks[model_index]}
+    #else:
+    #    return {'model' : 'UN', 'd_model' : ds[model_index], 'k': np.nan}
     
 def calculate_distance_minim (ai, s_ai, cn, s_cn, model):
     

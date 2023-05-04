@@ -33,7 +33,7 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
     mids = []
     
     max_he = bed_df.loc[np.isfinite(bed_df['score_HE'].values), 'score_HE'].max()
-    print (max_he)
+    #print (max_he)
     for chrom in chrs:
         
         for _, b in bed_df.loc[bed_df['chrom'] == chrom].iterrows():
@@ -289,9 +289,12 @@ def verification_plot_qq (d_ch, ch_bed, ax, par):
     pos_filt = ((d_ch.position.values[:, np.newaxis] > starts[np.newaxis,:]) &\
                 (d_ch.position.values[:, np.newaxis] < ends[np.newaxis,:])).any (axis = 1) 
     
-    tmp = d_ch.loc[(d_ch['symbol'] == Consts.E_SYMBOL)&(pos_filt)]
-    v = np.sort (tmp['vaf'].values)
-    ax.plot (norm.ppf(np.linspace (0,1,len(v)+2)[1:-1]), v, lw = 0, marker = '.',
+    xmin, xmax = norm.ppf(0.01), norm.ppf(0.99)
+    tmp = d_ch.loc[(d_ch['symbol'] != Consts.N_SYMBOL)&(pos_filt)]
+    vl = np.sort (tmp['vaf'].values)
+    v = vl[(vl > xmin) & (vl < xmax)]
+    x = norm.ppf(np.linspace (0,1,len(v)+2)[1:-1])
+    ax.plot (x, v , lw = 0, marker = '.',
              markersize = 0.1, label = 'AB', color = colorsCN['AB'], alpha = 0.5)
     
     CNV_bed = ch_bed.loc[ch_bed['model'] != 'AB']
@@ -300,10 +303,14 @@ def verification_plot_qq (d_ch, ch_bed, ax, par):
         tmp = d_ch.loc[(d_ch['vaf'] < 1)&\
                        (d_ch['position'] >= cb['start'])&\
                        (d_ch['position'] >= cb['start'])]
-        v = np.sort (tmp['vaf'].values)
-        ax.plot (norm.ppf(np.linspace (0,1,len(v)+2)[1:-1]), v, marker = '.',
+        vl = np.sort (tmp['vaf'].values)
+        v = vl[(vl > xmin) & (vl < xmax)]
+        x = norm.ppf(np.linspace (0,1,len(v)+2)[1:-1])
+        ax.plot (x, v , marker = '.',
                  lw = 0, color = colorsCN[cb['model']], alpha = 0.5, markersize = 0.1,
                  label = cb['chrom']+':'+str(cb['start'])+'-'+str(cb['end'])+':'+cb['model'])
+    
+    ax.set_xlim (xmin, xmax)
         
     ax.legend()
     
