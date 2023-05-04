@@ -82,11 +82,13 @@ def get_sensitive (data, fb):
     v,c = np.unique (vafs, return_counts = True)
     try:
         popt, pcov = opt.curve_fit (ai, v, np.cumsum(c)/np.sum(c), p0 = [0.02, 0.5, 0.5],
-                                    bounds = ((0.0, 0.1, 0.45),
-                                              (0.3, 0.9, 0.55)), check_finite = False)
+                                    bounds = ((0.0, 0.48, 0.46),
+                                              (0.3, 0.52, 0.54)), check_finite = False)
         dv, a, v0 = popt
+        ddv, da, dv0 = np.sqrt(np.diag(pcov))
                 
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'v0' : v0,
+        parameters = {'m': m, 'l': l, 'ai' : dv,  'dai' : ddv,
+                      'a': a, 'da': da, 'v0' : v0, 'dv0' : dv0,
                       'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'status' : 'valid', 'fraction_1' : np.nan}
         

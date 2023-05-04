@@ -64,7 +64,7 @@ VAF_VAF_BOUNDS = (0.45,0.55)
 VAF_N_THR = 100
 
 FB_F_MAX = 1.4
-FB_EPS = 1e-4
+FB_EPS = 1e-3
 
 ##Distribution
 LENGTH_THRESHOLD = 10
