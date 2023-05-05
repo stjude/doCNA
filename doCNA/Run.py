@@ -92,19 +92,22 @@ class Run:
             vafs.append (np.sort(window['vaf'].values))
             wides.append (get_wide (vafs[-1], s0, fB, zero_thr)[0])  
             fB = wides[-1]
+
             
         #fB = np.percentile (wides, 100*zero_thr)
         s = s0/np.sqrt(fB)
         
-        dvl = []
-        v0l = []
-        for v in vafs:
+
+        dvl = np.zeros(len(vafs))
+        v0l = np.zeros(len(vafs))
+        for i, v in enumerate(vafs):
             popt = get_shift (v, s)
-            dvl.append (popt[0])
-            v0l.append (popt[1])
+            dvl[i] = popt[0]
+            v0l[i] = popt[1]
                         
-        self.dv = np.array(dvl)
-        self.v0 = np.array (v0l)
+        self.dv = dvl
+        self.v0 = v0l
+
         self.dv_dist = Distribution.Distribution (self.dv, p_thr = p_thr, thr_z = z_thr)
         self.logger.debug ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult-0.01))
         self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: {self.dv_dist.parameters['m']}.")  
@@ -233,7 +236,9 @@ class Run:
             for i in old_indexes:
                 try:
                     indexes += (divide_segment(self.dv, *i))
-                except (IndexError,ValueError):
+
+                except (IndexError,ValueError, RuntimeError):
+
                     self.logger.debug (f"Re segmenting of {i} failed!")
                     indexes.append(i)
             if len(indexes) > len(old_indexes):
@@ -308,14 +313,19 @@ class Run:
         return self.tostring()
         
 def get_wide (vafs, s0, fB, zero_thr):
-    s = s0/np.sqrt (fB)
+
+    s = s0/np.sqrt(fB)
     dv, _ = get_shift (vafs, s)
     while dv < zero_thr:
         fB += 0.01
-        s = s0/np.sqrt (fB)
-        dv, _ = get_shift (vafs, s)
+        s = s0/np.sqrt(fB)
+        try:
+            dv, _ = get_shift (vafs, s)
+        except:
+            dv = zero_thr
         
-    return fB, dv
+    return fB - 0.01, dv
+
 
 def get_shift (v, s):
     
@@ -324,7 +334,10 @@ def get_shift (v, s):
 
     popt, _ = opt.curve_fit (two_gauss, np.sort(v), np.linspace (0,1,len(v)),
                              p0 = [0.01,0.5, 0.5],
-                             bounds = ((0, 0.4, 0.3),(0.5, 0.6, 0.7)))
+
+                             bounds = ((0, 0.46, 0.48),
+                                       (0.5, 0.54, 0.52)))
+
             
     return popt[0], popt[1]
 
@@ -338,7 +351,7 @@ def get_norm_p (values, sinit = 0.05):
         pks = sts.kstest (values, cdf, args = popt).pvalue
     except opt.OptimizeWarning:
         pks = np.nan
-    except RuntimeError:
+    except (RuntimeError, ValueError):
         pks = np.nan    
     return pks
 

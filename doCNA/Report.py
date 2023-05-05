@@ -97,7 +97,7 @@ class Report:
                                                  segment.start,
                                                  segment.end,
                                                  segment.parameters['ai'], 
-                                                 segment.parameters['p_ai'],
+                                                 segment.parameters['n'],
                                                  segment.parameters['m'],
                                                  2*segment.parameters['m']/segment.genome_medians['m0'],
                                                  segment.parameters['d_HE'], 

@@ -5,22 +5,32 @@ from doCNA import Genome
 class WGS:
     """Class to handle WGS read counts file and create the genome."""
     def __init__ (self, wgs_file_name,  sample_name, parameters, models,   
-                  no_processes = 1, verbosity = 'INFO'):        
+
+                  no_processes = 1, verbosity = 'INFO', skip_filtering = False):        
+
         self.sample_name = sample_name
         self.no_processes = no_processes
         self.wgs_file = open (wgs_file_name, 'r')
         self.config = parameters
         self.models = models
         
-        try:
-            self.SG_file = open (self.config['Input']['SuperGood_filepath'], 'rb')
-        except FileNotFoundError:
-            sys.exit(f"SuperGood_filepath: {self.config['Input']['SuperGood_filepath']} should be the full real path to supergood file. Exiting")
+
+        self.logger = self.create_logger (verbosity)
+        
+        if skip_filtering:
+            self.SG_file = None
+            self.logger.debug ("Skipping SG filtering.")    
+        else:
+            try:
+                self.SG_file = open (self.config['Input']['SuperGood_filepath'], 'rb')
+            except FileNotFoundError:
+                sys.exit(f"SuperGood_filepath: {self.config['Input']['SuperGood_filepath']} should be the full real path to supergood file. Exiting")
+
         try:
             self.CB_file = open (self.config['Input']['CytoBand_filepath'], 'r')
         except FileNotFoundError:
             sys.exit(f"CytoBand_filepath: {self.config['Input']['CytoBand_filepath']} should be the full real path to cytoband file. Exiting")
-        self.logger = self.create_logger (verbosity)
+        
         self.logger.debug ("WGS object created.")
         
     def create_logger (self, verbosity):

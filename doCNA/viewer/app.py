@@ -2,10 +2,8 @@ from shiny import *
 from .Plots import * #need a dot before Plots, like this: .Plots
 
 from doCNA import Models
-
 from doCNA import Consts
 from doCNA import Scoring
-
 
 
 import numpy as np
@@ -16,6 +14,8 @@ import scipy.signal as sig
 
 from collections import defaultdict
 from matplotlib.patches import Ellipse
+
+from sklearn.neighbors import KernelDensity
 
 
 
@@ -86,19 +86,25 @@ app_ui = ui.page_fluid(
                                        ui.input_slider ('size_thr', "Min segment size (in Mb)",
                                                         value = 5, min = 0, max = 10),
                                        ui.h4 ("Display settings:"),
+                                       ui.output_text ("auto_model_thr"),
                                        ui.input_slider ('model_thr', "Model score threshold",
                                                         value = 3, min = 0, max = 10, step = 0.1),
-                                       ui.input_slider ('HE_max', "Max HE score:",
+
+                                       ui.output_text ("auto_HE_thr"),
+                                       ui.input_slider ('HE_thr', "Max HE score:",
+
                                                         value = 2, min = 0, max = 10),
-                                       
                                        width = 2),
                       ui.panel_main(
                                     ui.navset_tab (
                                                    ui.nav("Genome-wide view",
-                                                          ui.row(ui.column(12,          
-                                                                 ui.input_file ('bed_file', "Choose BED file to upload:",
-                                                                                multiple = False, accept = '.bed'),
-                                                                 ui.output_plot ('genome_plot'),)),
+                                                          ui.row(ui.input_file ('bed_file', "Choose BED file to upload:",
+                                                                                 multiple = False, accept = '.bed'),),
+                                                          ui.row(ui.column(8,
+                                                                           ui.output_plot ('genome_plot'),),
+                                                                 ui.column(4,
+                                                                           ui.h6 ('Attempt of grouping CNVs into clones'),
+                                                                           ui.output_plot ('clones_plot')),),
                                                           ui.row(ui.column(12,
                                                                            ui.h5 (''),
                                                                            ui.input_checkbox_group ('chroms_selected',
@@ -138,13 +144,10 @@ app_ui = ui.page_fluid(
                                                          ui.row(ui.column (2,
                                                                            ui.input_radio_buttons ('sort_CNV_by',
                                                                                                    "Sort list by:",
-                                                                                                   {'position':'position', 'score':'score'}, inline = True)),
-                                                                ui.column (2, 
-                                                                           ui.input_radio_buttons ('corrected',
-                                                                                                   'Show FDR?:',
-                                                                                                   { 'status':'FDR adj', 'status_d':'Score'}, inline = True))),
+                                                                                                   {'position':'position', 'score':'score'}, inline = True))),
                                                          ui.row(ui.output_text ("number_CNVs"), ""),
                                                          ui.row(ui.output_table (id = 'CNVs'),)),
+                                                   
                                                    ui.nav("Solution test",
                                                           ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Optimize settings:"),
                                                                                              ui.input_slider ('min_cn', "Min cov (relative):",
@@ -159,9 +162,16 @@ app_ui = ui.page_fluid(
                                                                                              ui.output_text_verbatim ("coverage_range"),
                                                                                              ui.input_action_button ('opt',
                                                                                                                      "Optimize solution"),
+                                                                                             ui.input_checkbox_group ('models_selected',
+                                                                                                    "Select models to use for refitting",
+                                                                                                    choices = list(Models.model_presets.keys()),
+                                                                                                    inline = False),
                                                                                              width = 2),
-                                                                            ui.panel_main(ui.h6("Solution check plot:"),
-                                                                                          ui.output_plot('solution_plot_opt', "Solution plot"),
+                                                                            ui.panel_main(ui.h6("Solution check plots:"),
+                                                                                          ui.row(ui.column(6,
+                                                                                                           ui.output_plot('solution_plot_dipl_opt', "Solution plot - diploid")                                                   ),
+                                                                                                 ui.column(6, 
+                                                                                                           ui.output_plot('solution_plot_opt', "Solution plot"))),
                                                                                           ui.h6("Total weighted distance to solution at coverage:"),
                                                                                           ui.output_plot('opt_plot', "Relative distance plot"),
                                                                                           ui.h6("Pick coverage to plot models:"),
@@ -179,15 +189,22 @@ app_ui = ui.page_fluid(
                                                                                          {'PDF' : 'Probability density function',
                                                                                           'CDF' : 'Cumulative density function'}, 
                                                                                          selected = 'CDF', inline = True)),                                                          
-                                                          ui.row(ui.output_plot ('data_plot'),
-                                                                 ui.output_plot ('compare_plot')),
+                                                          ui.row(ui.output_plot ('data_plot')),
+                                                          ui.row(ui.column(6, 
+                                                                           ui.output_plot ('compare_plot')),
+                                                                 ui.column(6, 
+                                                                           ui.output_plot ('qq_plot'))),
                                                           ui.row(ui.output_table (id = 'chrom_segments'))),
-                                                    #ui.nav("Report",
-                                                    #       ui.row(ui.column(12,
-                                                    #                        ui.output_plot('report_plot'),
-                                                    #                        ui.row (ui.h6 ("Report diploid regions?"),
-                                                    #                                ui.input_checkbox ('rep_AB', "Yes", value = False)),
-                                                    #                        ui.output_table('report')))),
+
+                                                    ui.nav("Report - TBD",
+                                                           ui.row(ui.column(12,
+                                                                            ui.output_plot('report_plot'),
+                                                                            ui.input_checkbox_group ('report_models',
+                                                                                                     "Pick balanced model types to include in the report:",
+                                                                                                      {'(AB)(2-n)' : '(AB)(2-n)', '(AB)(2+n)' : '(AB)(2+n)', 'AB' : 'AB'},
+                                                                                                      inline = True),
+                                                                            ui.output_table('report')))),
+
                                                     ui.nav("Publication",
                                                            ui.h6 ("AI still in school"))
                                                             
@@ -219,7 +236,9 @@ def server(input, output, session):
     def solutions_info ():
         solutions = solutions_list()
         if len (solutions):
-            ms = np.array(list(solutions_list())) #np.array([s[0] for s in solutions])
+
+            ms = np.array(list(solutions_list())) 
+
             d_total = np.array([solutions[m][1] for m in solutions.keys()])
             d_HE = np.array([solutions[m][0].dipl_dist['m'] for m in solutions.keys()])
         
@@ -279,7 +298,7 @@ def server(input, output, session):
         if not file_input:
             return
         df = pd.read_csv (file_input[0]['datapath'], sep = '\t', header = None, 
-                   names = ['chrom', 'start', 'end', 'ai','p_ai', 'm', 'cn',
+                   names = ['chrom', 'start', 'end', 'ai','n', 'm', 'cn',
                             'd_HE', 'score_HE', 'model', 'd_model', 'score_model',
                             'k', 'symbol', 'cyto', 'cent'])
         
@@ -306,66 +325,24 @@ def server(input, output, session):
             opt_bed.set(tmp.loc[tmp.filt])
     
 
-    #@reactive.Effect
-    #@reactive.Calc
-    #def _():
-    #    bf = bed_full()    
-    #    b = bed()
-    #    if (len(bf) != 0) & (len(b) != 0):
-    #        chrs = chrom_sizes().index.values.tolist()
-    #        #chrs.sort (key = lambda x: int(x[3:]))
-    #        chrs.sort (key = Consts.CHROM_ORDER.index)
-    #        merged_segments = []
-    #        for chrom in chrs: #
-    #            segments = bf.loc[bf.chrom == chrom] #, segments in bf.groupby (by = 'chrom'):
-    #            data = segments.sort_values (by = 'start', ignore_index = True)
-    #            
-    #            seg_iter = data.itertuples()
-    #            
-    #            to_merge = [next(seg_iter)]
-    #            
-    #            try:
-    #                while not to_merge[-1].filt:
-    #                    to_merge.append (next(seg_iter))
-    #            except:
-    #                pass
-    #            current_record = to_merge[-1]
-    #            
-    #            last_action = 'merge' 
-    #            while True:
-    #                try:
-    #                    
-    #                    next_record = next(seg_iter)
-    #                    while not next_record.filt:
-    #                        
-    #                        to_merge.append (next_record)
-    #                        next_record = next(seg_iter)
-    #                    
-    #                    if (current_record.status == next_record.status)&\
-    #                             (current_record.model == next_record.model):
-    #                        if (current_record.status == 'norm'):
-    #                       
-    #                            to_merge.append(next_record)
-    #                            last_action = 'merge'
-    #                        elif (current_record.model == next_record.model)&\
-    #                             np.abs(((current_record.k-next_record.k)/current_record.k) < 0.1):
-    #                            to_merge.append(next_record)
-    #                            last_action = 'merge'
-    #                    
-    #                    else: 
-    #                        
-    #                        merged_segments.append(merge_records(to_merge, chrom))
-    #                        to_merge = [next_record]
-    #                        current_record = next_record
-    #                        last_action = 'no merge'
-    #                except StopIteration:
-    #                    break
-    #                 
-    #            if last_action == 'no merge':
-    #                merged_segments.append(merge_records(to_merge, chrom))
-    #            
-    #        bed_report.set(pd.DataFrame.from_records (merged_segments,
-    #                                                  columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto', 'score']))
+
+    @reactive.Effect
+    @reactive.Calc
+    def _():
+        bf = bed_full()    
+        b = bed()
+        if (len(bf) != 0) & (len(b) != 0):
+            chrs = chrom_sizes().index.values.tolist()
+            chrs.sort (key = Consts.CHROM_ORDER.index)
+            merged_segments = []
+            for chrom in chrs: 
+                chr_tmp = bf.loc[bf['chrom'] == chrom].copy()
+            
+            
+                del (chr_tmp)
+            bed_report.set(pd.DataFrame.from_records (merged_segments,
+                                                      columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto', 'score_HE']))
+
 
     
     @reactive.Effect
@@ -389,6 +366,8 @@ def server(input, output, session):
                         print ('Line: ' + line + 'not parsed.')
         par.set(pard)
         opt_solution.set ((np.array([]), np.array([]), np.array([])))
+        ui.update_checkbox_group ('models_selected', selected = pard['models'])
+
         m0.set(pard['m0'])
         m0_opt.set(pard['m0'])
     
@@ -410,15 +389,46 @@ def server(input, output, session):
         if  len(bed_data):
             fig, axs = plt.subplots (3, 1, figsize = (16,6), sharex = True)
             meerkat_plot (bed_data, axs, chrom_sizes(),
-                          model_thr = input.model_thr(), HE_thr = input.HE_max())
+                          model_thr = input.model_thr(), HE_thr = input.HE_thr())
+
             
             for model in model_presets().keys():
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
-            axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
-            axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets())+2,
+            axs[0].plot ((),(), lw = 10, color = 'red', label = 'below HE')
+            axs[0].legend (bbox_to_anchor = (0.5, 2), 
+                           ncol = int(len(model_presets())/2 + 1),
                            loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
+    
+    @output
+    @render.plot (alt = 'Clones view')
+    def clones_plot():
+        bed_data = bed()
+        if  len(bed_data):
+            fig, ax = plt.subplots (1, 1, figsize = (6,6), sharex = True)
+            tmp = bed_data.loc[bed_data['score_HE'] > input.HE_thr()]
+            
+            k = np.sort(tmp['k'].values)[:, np.newaxis]
+            order = np.argsort (tmp['k'].values)
+            s = tmp['size'].values[order]
+            c = [colorsCN[m] for m in tmp['model'].values[order]]
+                        
+            #how bandwidth?
+            kde = KernelDensity (kernel = 'gaussian', bandwidth = 0.02).fit (k)
+            xt = np.linspace (min(-0.01, k[0,0]), k[-1,0]*1.1, 1000)[:, np.newaxis]
+            ax.scatter (k, np.linspace (0,1, len(k)), s = np.sqrt(s)*10, c = c)
+            ax.plot (k, np.linspace (0,1, len(k)), 'k:')
+            axt = ax.twinx()
+            axt.plot (xt, np.exp(kde.score_samples(xt)))
+            
+            ax.set_xlabel ('clonality')
+            ax.set_ylabel ('clonaticty cdf')
+            axt.set_ylabel ('clonaticty kde')
+            
+            return fig
+    
+    
         
     @output
     @render.plot (alt = "Genomewide view")
@@ -430,7 +440,7 @@ def server(input, output, session):
             for model in model_presets().keys():
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
-            axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
+            #axs[0].plot ((),(), lw = 10, color = 'red', label = 'fail')
             axs[0].legend (bbox_to_anchor = (0.5, 2), ncol = len(model_presets())+2,
                            loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
@@ -442,25 +452,38 @@ def server(input, output, session):
         par_d = par()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
-            dip_bed_data = bed_data.loc[(bed_data['ai'] < Consts.DIPLOID_AI_THR) &\
-                                        (np.abs(bed_data['cn']-2) < Consts.DIPLOID_dCN_THR)]            
-            
-            check_solution_plot_opt (dip_bed_data, ax, model_thr = input.model_thr(),
-                                     highlight = input.chroms_selected())
-            
-            def ellipse_n (n, par):
-                return Ellipse ((par['m_cn']+2, par['m_ai']), n*2*par['s_cn'], n*2*par['s_ai'], 
-                                fill = False, lw = 1)
-            
-            ax.add_patch (ellipse_n(1, par_d))
-            ax.add_patch (ellipse_n(2, par_d))
-            ax.add_patch (ellipse_n(3, par_d))
 
+            
+            filt = (bed_data['ai'] < Consts.DIPLOID_AI_THR) &\
+                   (np.abs(bed_data['cn']-2) < Consts.DIPLOID_dCN_THR)
+            
+            dip_bed_data = bed_data.loc[filt]            
+            
+            if len(dip_bed_data):
+                check_solution_plot_opt (dip_bed_data, ax, model_thr = input.model_thr(),
+                                         highlight = input.chroms_selected())
+                
+            
+            def ellipse (par, **kwargs):
+                return Ellipse ((par['m_cn']+2, par['m_ai']), 2*d*par['s_cn'], 2*d*par['s_ai'], **kwargs)
+                        
+            p = 10**(-par_d['thr_HE'])
+            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])
+            if np.isfinite (d):
+                ax.add_patch (ellipse(par_d, label = 'auto thr',
+                              lw = 1, fill = False, color = 'r', ls = ':'))
+            
+            p = 10**(-input.HE_thr())
+            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])
+            if np.isfinite(d):
+                ax.add_patch (ellipse(par_d, label = 'user thr', 
+                              lw = 1, fill = False, color = 'b', ls = '--') )
+            ax.legend()
             ymin, ymax = ax.get_ylim()
             ax.set_xlim (0.95*(2-Consts.DIPLOID_dCN_THR), 1.05*(2+Consts.DIPLOID_dCN_THR))
-            ax.set_ylim (np.max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
-                         np.min((1.01*Consts.DIPLOID_AI_THR, ymax)))
-            
+            ax.set_ylim (max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
+                         min((1.01*Consts.DIPLOID_AI_THR, ymax)))
+
             return fig
         
     @output
@@ -575,6 +598,13 @@ def server(input, output, session):
             
             return fig
     
+
+    
+    @output
+    @render.plot(alt = "")
+    def solution_plot_dipl_opt ():
+        pass
+
         
     
     @output
@@ -588,7 +618,9 @@ def server(input, output, session):
             
             k = np.linspace (0,1,100)
             for model in model_presets().keys():
-                if model in par()['models']:
+
+                if model in input.models_selected():
+
                     ls = '-'
                 else:
                     ls = ':'
@@ -619,10 +651,25 @@ def server(input, output, session):
     @reactive.event(par)
     def _():
         if 'thr_model' in par().keys():
-            ui.update_slider ('model_thr', value = par()['thr_model'],
-                              min = 0,
-                              max = 10, 
-                              step = 0.1)
+
+            if np.isfinite(par()['thr_model']):
+                ui.update_slider ('model_thr', value = par()['thr_model'],
+                                  min = 0,
+                                  #max = 10, 
+                                  max = max([10, int(par()['thr_model'])*5]),
+                                  step = 0.1)
+
+
+    @reactive.Effect
+    @reactive.event(par)
+    def _():
+        if 'thr_HE' in par().keys():
+            if np.isfinite(par()['thr_HE']):
+                ui.update_slider ('HE_thr', value = par()['thr_HE'],
+                                  min = 0,
+                                  #max = 10,
+                                  max = max([10, int(par()['thr_HE'])*5]), 
+                                  step = 0.1)
 
 
     @output
@@ -649,9 +696,11 @@ def server(input, output, session):
         if (len(bed_data) != 0):
             
             if input.sort_CNV_by() == 'score':
-                tmp_bed = bed_data.loc[bed_data['model'] != 'AB'].sort_values(by = 'score_HE', ascending = False)
+
+                tmp_bed = bed_data.loc[bed_data['score_HE'] > input.HE_thr()].sort_values(by = 'score_HE', ascending = False)
             else:
-                tmp_bed = bed_data.loc[bed_data['model'] != 'AB']
+                tmp_bed = bed_data.loc[bed_data['score_HE'] > input.HE_thr()]
+
             return tmp_bed
 
     @output
@@ -659,11 +708,34 @@ def server(input, output, session):
     def number_CNVs():
         bed_data = bed()
         if len(bed_data) > 0: 
-            message = "Number of CNVs found: " + str(len(bed_data.loc[bed_data['model'] != 'AB']))
+
+            message = "Number of CNVs found: " + str(len(bed_data.loc[bed_data['score_HE'] > input.HE_thr()]))
+
         else:
             message = ''
         return  message
 
+    @output
+    @render.text
+    def auto_model_thr():
+        par_d = par()
+        if 'thr_model' in par_d.keys():
+            message = "Auto model thr: " + '{:.2f}'.format(par_d['thr_model']) 
+        else:
+            message = ''
+        return message
+        
+    @output
+    @render.text
+    def auto_HE_thr():
+        par_d = par()
+        if 'thr_HE' in par_d.keys():
+            message = "Auto HE thr: " + '{:.2f}'.format(par_d['thr_HE']) 
+        else:
+            message = ''
+        return message
+    
+    
     @output
     @render.plot
     def data_plot ():
@@ -673,7 +745,8 @@ def server(input, output, session):
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0) & (len(data_df) != 0):
             fig, axs = plt.subplots (4, 1, figsize = (12,4), sharex = True)
             earth_worm_plot (data_df, bed_data, par_d, input.chrom_view(), axs, 
-                             max_score_HE = input.HE_max(), model_threshold = input.model_thr())
+                             max_score_HE = input.HE_thr(), model_threshold = input.model_thr())
+
             return fig
         
     @output
@@ -687,6 +760,19 @@ def server(input, output, session):
             fig, ax = plt.subplots (figsize = (6,8))
             verification_plot_CNV (data_chrom, CNV_bed, ax, par(), input.f_to_plot())
             return fig
+    
+    @output
+    @render.plot
+    def qq_plot():
+        bed_data = bed()
+        data_df = data()
+        if (len(bed_data) != 0) & (len(data_df) != 0):
+            CNV_bed = bed_data.loc[bed_data.chrom == input.chrom_view()]
+            data_chrom = data_df.loc[data_df.chrom == input.chrom_view()]
+            fig, ax = plt.subplots (figsize = (6,8))
+            verification_plot_qq (data_chrom, CNV_bed, ax, par())
+            return fig
+    
         
     ###optimalization below    
     @reactive.Effect
@@ -701,8 +787,12 @@ def server(input, output, session):
                             input.step())
             
             ai = np.array(bed_data['ai'].values)
+
+            l = len (ai)
             m_cov = np.array(bed_data['m'].values)
             sizes = np.array(bed_data['size'].values)
+            n = np.array (bed_data['n'].values)
+
             
             ai_index = ai < Consts.DIPLOID_AI_THR
             solutions = {}
@@ -716,32 +806,39 @@ def server(input, output, session):
                     cn_index = np.abs(cn -2) < Consts.DIPLOID_dCN_THR
                     index = np.where(ai_index & cn_index)[0]
                     if len(index) > 2:
-                        data_for_scoring = np.concatenate([ai[index], cn[index]-2]).reshape (2,len(index)).T
-                        scorer = Scoring.Scoring(data_for_scoring)
+
+                        data_for_scoring = np.concatenate([ai[index], cn[index]-2, n[index]]).reshape (3,len(index)).T
+                        scorer = Scoring.Scoring(fb = par()['fb'], m0 = par()['m0'], window_size = Consts.SNPS_IN_WINDOW, 
+                                                 initial_data = data_for_scoring)
+                    
+                        m_ai = scorer.ai_param['m']
+                        s_ai = scorer.ai_param['s']
+                        m_cn = scorer.cn_param['m']                   
+                        s_cn = scorer.cn_param['s']
+                    
+                        d_HE = np.sqrt (((ai-m_ai)/s_ai)**2 + ((cn-2-m_cn)/s_cn)**2)
+                        p_d = sts.norm.sf (d_HE, scorer.dipl_dist['m'], scorer.dipl_dist['s'])
+                    
+                        thr = FDR (np.sort(p_d[np.isfinite(p_d)]), Consts.DIPLOID_ALPHA)
+                        
                     else:
                         scorer = Scoring.Scoring()
-                    m_ai = scorer.ai_param['m']
-                    s_ai = scorer.ai_param['s']
-                    m_cn = scorer.cn_param['m']                   
-                    s_cn = scorer.cn_param['s']
-                    
-                    d_HE = np.sqrt (((ai-m_ai)/s_ai)**2 + ((cn-2-m_cn)/s_cn)**2)
-                    p_d = sts.norm.sf (d_HE, scorer.dipl_dist['m'], scorer.dipl_dist['s'])
-                    
-                    thr = FDR (np.sort(p_d[np.isfinite(p_d)]), Consts.DIPLOID_ALPHA)
-                    models = np.repeat('AB', len(ai))
-                    d_model = np.repeat(np.nan, len(ai))
-                                        
-
+                        p_d = np.zeros (l)
+                        thr = 1
+                                       
+                    models = np.repeat('AB', l)
+                    d_model = np.repeat(np.nan, l)
+                        
                     for i in np.where(p_d < thr)[0]:
-                        sm = Models.pick_model(ai[i], 1, cn[i], 1, par()['models']) #scorer.score_dipl(ai[i], m_cov[i], m, par()['models'])
+                        sm = Models.pick_model(ai[i], 1, cn[i], 1, input.models_selected())
                         models[i] = sm['model']
                         d_model[i] = sm['d_model']
                         
                     
                     d_total = np.nansum((d_model*sizes))    
-                    print (m,thr, np.nansum(d_model), m_ai, s_ai, m_cn, s_cn, np.unique(models, return_counts = True))
+                    #print (m, thr, np.nansum(d_model), m_ai, s_ai, m_cn, s_cn, np.unique(models, return_counts = True))
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
+
 
             
             solutions_list.set (solutions)    
@@ -756,7 +853,9 @@ def server(input, output, session):
             
             solutions = solutions_list()
             
-            ms = solutions.keys() #np.array([s[0] for s in solutions])
+
+            ms = solutions.keys()
+
             d_total = np.array([solutions[m][1] for m in solutions.keys()])
             d_HE = np.array([solutions[m][0].dipl_dist['m'] for m in solutions.keys()])
              

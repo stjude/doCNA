@@ -14,7 +14,9 @@ from doCNA import Models
 _description = "Scan chromosomes in search for non-HE segments. Assigns copy numbers if can."
 
 
-__version__ = '0.9.3'
+
+__version__ = '0.9.3a'
+
 
 
 def main():
@@ -46,9 +48,10 @@ def main():
     parser_analyze.add_argument ('-m', '--models', choices=Models.model_presets.keys(),
                                  nargs='+', help = 'Specify which of models should be included.',
                                  default = ['(AB)(2+n)','(AB)(2-n)','A','AAB','AA'])
-    #parser_analyze.add_argument ('-m', '--models', choices=Models.model_presets_extra.keys(),
-    #                             nargs='+', help = 'Specify which of extra models should be included.',
-    #                             default = [])
+
+    parser_analyze.add_argument ('-sf', '--skip_filtering', help = 'Do not filter input data through SG list.',
+                                  action = 'store_true')
+
     parser_analyze.set_defaults (func=analyze)
 
     ### Viewer subparser ###
@@ -75,7 +78,8 @@ def analyze(args):
     
     sample = WGS.WGS (args.input_file,  sample_name = args.sample_name, parameters = ini,
                       no_processes = args.no_processes, models = args.models,
-                      verbosity = args.level)
+
+                      verbosity = args.level, skip_filtering = args.skip_filtering)
 
     sample.analyze (m0 = args.coverage_diploid)
 

@@ -16,7 +16,7 @@ colorsCN['AA'] = 'blue'
 colorsCN['AAB'] = 'cyan'
 colorsCN['(AB)(2+n)'] = 'black'
 colorsCN['(AB)(2-n)'] = 'goldenrod'
-colorsCN['AB'] = 'lightgray'
+colorsCN['AB'] = 'darkgray'
 colorsCN['AAAB'] = 'magenta'
 colorsCN['AAA'] = 'brown'
 colorsCN['AAAA'] = 'darkolivegreen'
@@ -33,12 +33,17 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
     mids = []
     
     max_he = bed_df.loc[np.isfinite(bed_df['score_HE'].values), 'score_HE'].max()
-    print (max_he)
+
     for chrom in chrs:
         
         for _, b in bed_df.loc[bed_df['chrom'] == chrom].iterrows():
             if b['score_model'] < model_thr:
-                color = colorsCN[b['model']]
+
+                if (b['score_HE'] < HE_thr) & (b['model'] != 'AB'):
+                    color = 'r'
+                else:
+                    color = colorsCN[b['model']]
+
             else:
                 color = 'yellow'
             
@@ -271,6 +276,48 @@ def check_solution_plot_opt (bed, ax, model_thr,
     
     ax.set_xlabel ('Coverage/copy number')
     ax.set_ylabel ('Allelic imbalance')
+
+
+def verification_plot_qq (d_ch, ch_bed, ax, par):
+    m0 = par['v0']
+    s0 = np.sqrt(0.25/par['m0'])*par['fb']
+    norm = sts.norm (m0, s0)
+    
+    ax.plot (norm.ppf((0.01,0.99)), norm.ppf((0.01,0.99)),
+             'r-', label = 'diploid reference')
+    
+    dipl_bed = ch_bed.loc[ch_bed['model'] == 'AB']
+    starts = dipl_bed['start'].values
+    ends = dipl_bed['end'].values
+    pos_filt = ((d_ch.position.values[:, np.newaxis] > starts[np.newaxis,:]) &\
+                (d_ch.position.values[:, np.newaxis] < ends[np.newaxis,:])).any (axis = 1) 
+    
+    xmin, xmax = norm.ppf(0.01), norm.ppf(0.99)
+    tmp = d_ch.loc[(d_ch['symbol'] != Consts.N_SYMBOL)&(pos_filt)]
+    vl = np.sort (tmp['vaf'].values)
+    v = vl[(vl > xmin) & (vl < xmax)]
+    x = norm.ppf(np.linspace (0,1,len(v)+2)[1:-1])
+    ax.plot (x, v , lw = 0, marker = '.',
+             markersize = 0.1, label = 'AB', color = colorsCN['AB'], alpha = 0.5)
+    
+    CNV_bed = ch_bed.loc[ch_bed['model'] != 'AB']
+    for _, cb in CNV_bed.iterrows():
+        #(d_ch['symbol'] == cb['symbol'])&\
+        tmp = d_ch.loc[(d_ch['vaf'] < 1)&\
+                       (d_ch['position'] >= cb['start'])&\
+                       (d_ch['position'] >= cb['start'])]
+        vl = np.sort (tmp['vaf'].values)
+        v = vl[(vl > xmin) & (vl < xmax)]
+        x = norm.ppf(np.linspace (0,1,len(v)+2)[1:-1])
+        ax.plot (x, v , marker = '.',
+                 lw = 0, color = colorsCN[cb['model']], alpha = 0.5, markersize = 0.1,
+                 label = cb['chrom']+':'+str(cb['start'])+'-'+str(cb['end'])+':'+cb['model'])
+    
+    ax.set_xlim (xmin, xmax)
+        
+    ax.legend()
+    
+
     
 def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 100):
     assert type in ["CDF", "PDF"], "Unknown plot type!"
