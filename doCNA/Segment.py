@@ -58,9 +58,9 @@ class Segment:
             method = 'full'
             
         if self.parameters['success']:
-            self.logger.info (f"AI estimated by {method} method, ai = {self.parameters['ai']}")
+            self.logger.info (f"ai estimated by {method} method, ai = {self.parameters['ai']}")
         else:
-            self.logger.info (f"AI not estimated.")
+            self.logger.info (f"ai not estimated.")
             self.logger.debug (f"Parameters: {self.parameters}")
                 
     def report (self, report_type = 'bed'):

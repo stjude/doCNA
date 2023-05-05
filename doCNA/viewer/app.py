@@ -157,9 +157,16 @@ app_ui = ui.page_fluid(
                                                                                              ui.output_text_verbatim ("coverage_range"),
                                                                                              ui.input_action_button ('opt',
                                                                                                                      "Optimize solution"),
+                                                                                             ui.input_checkbox_group ('models_selected',
+                                                                                                    "Select models to use for refitting",
+                                                                                                    choices = list(Models.model_presets.keys()),
+                                                                                                    inline = False),
                                                                                              width = 2),
-                                                                            ui.panel_main(ui.h6("Solution check plot:"),
-                                                                                          ui.output_plot('solution_plot_opt', "Solution plot"),
+                                                                            ui.panel_main(ui.h6("Solution check plots:"),
+                                                                                          ui.row(ui.column(6,
+                                                                                                           ui.output_plot('solution_plot_dipl_opt', "Solution plot - diploid")                                                   ),
+                                                                                                 ui.column(6, 
+                                                                                                           ui.output_plot('solution_plot_opt', "Solution plot"))),
                                                                                           ui.h6("Total weighted distance to solution at coverage:"),
                                                                                           ui.output_plot('opt_plot', "Relative distance plot"),
                                                                                           ui.h6("Pick coverage to plot models:"),
@@ -348,6 +355,7 @@ def server(input, output, session):
                         print ('Line: ' + line + 'not parsed.')
         par.set(pard)
         opt_solution.set ((np.array([]), np.array([]), np.array([])))
+        ui.update_checkbox_group ('models_selected', selected = pard['models'])
         m0.set(pard['m0'])
         m0_opt.set(pard['m0'])
     
@@ -387,11 +395,17 @@ def server(input, output, session):
         if  len(bed_data):
             fig, ax = plt.subplots (1, 1, figsize = (6,6), sharex = True)
             tmp = bed_data.loc[bed_data['score_HE'] > input.HE_thr()]
+            
             k = np.sort(tmp['k'].values)[:, np.newaxis]
+            order = np.argsort (tmp['k'].values)
+            s = tmp['size'].values[order]
+            c = [colorsCN[m] for m in tmp['model'].values[order]]
+                        
             #how bandwidth?
             kde = KernelDensity (kernel = 'gaussian', bandwidth = 0.02).fit (k)
-            xt = np.linspace (0, k[-1,0]*1.1, 1000)[:, np.newaxis]
-            ax.plot(k, np.linspace (0,1, len(k)), 'bo:')
+            xt = np.linspace (min(-0.01, k[0,0]), k[-1,0]*1.1, 1000)[:, np.newaxis]
+            ax.scatter (k, np.linspace (0,1, len(k)), s = np.sqrt(s)*10, c = c)
+            ax.plot (k, np.linspace (0,1, len(k)), 'k:')
             axt = ax.twinx()
             axt.plot (xt, np.exp(kde.score_samples(xt)))
             
@@ -564,6 +578,11 @@ def server(input, output, session):
             
             return fig
     
+    
+    @output
+    @render.plot(alt = "")
+    def solution_plot_dipl_opt ():
+        pass
         
     
     @output
@@ -577,7 +596,7 @@ def server(input, output, session):
             
             k = np.linspace (0,1,100)
             for model in model_presets().keys():
-                if model in par()['models']:
+                if model in input.models_selected():
                     ls = '-'
                 else:
                     ls = ':'
@@ -755,7 +774,8 @@ def server(input, output, session):
                     index = np.where(ai_index & cn_index)[0]
                     if len(index) > 2:
                         data_for_scoring = np.concatenate([ai[index], cn[index]-2, n[index]]).reshape (3,len(index)).T
-                        scorer = Scoring.Scoring(data_for_scoring)
+                        scorer = Scoring.Scoring(fb = par()['fb'], m0 = par()['m0'], window_size = Consts.SNPS_IN_WINDOW, 
+                                                 initial_data = data_for_scoring)
                     
                         m_ai = scorer.ai_param['m']
                         s_ai = scorer.ai_param['s']
@@ -768,14 +788,15 @@ def server(input, output, session):
                         thr = FDR (np.sort(p_d[np.isfinite(p_d)]), Consts.DIPLOID_ALPHA)
                         
                     else:
-                        p_d = np.ones (l)
-                        thr = 0
+                        scorer = Scoring.Scoring()
+                        p_d = np.zeros (l)
+                        thr = 1
                                        
                     models = np.repeat('AB', l)
                     d_model = np.repeat(np.nan, l)
                         
                     for i in np.where(p_d < thr)[0]:
-                        sm = Models.pick_model(ai[i], 1, cn[i], 1, par()['models'])
+                        sm = Models.pick_model(ai[i], 1, cn[i], 1, input.models_selected())
                         models[i] = sm['model']
                         d_model[i] = sm['d_model']
                         

@@ -238,7 +238,9 @@ class Genome:
         self.segments = [self.all_segments[i] for i in np.where(self.segment_filter)[0]]
         
         data_for_scoring = np.array([(s.parameters['ai'], 2*s.parameters['m']/self.genome_medians['m0']-2, s.parameters['n']) for s in self.segments])
-        self.scorer = Scoring.Scoring (data_for_scoring, self.logger)
+        self.scorer = Scoring.Scoring (fb = self.genome_medians['fb'], m0 = self.genome_medians['m0'], window_size = Consts.SNPS_IN_WINDOW, 
+                                       initial_data = data_for_scoring, logger = self.logger)
+        
         ps = np.zeros (len(self.all_segments))
         for i, seg in enumerate (self.all_segments):
             self.scorer.score_dipl(seg)
