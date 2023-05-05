@@ -8,6 +8,7 @@ from doCNA import Models
 
 
 class Scoring:
+
     def __init__(self, fb = None, m0 = None, window_size = None, initial_data = None, logger = False) -> None:
         
         if logger:
@@ -40,27 +41,33 @@ class Scoring:
                 self.ai_param['s'] = self.theor_ai_std
                 
             dds =  initial_data[:,:-1] - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
+
             ds = dds/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :]
             self.dipl_dist = fit_QQgauss (np.sqrt((ds**2).sum(axis = 1)))
             self.dipl_dist['alpha'] = Consts.SCORE_ALPHA
             self.dipl_dist['thr'] = sts.norm.ppf (1-self.dipl_dist['alpha'], 
                                                   self.dipl_dist['m'],
                                                   self.dipl_dist['s'])
+
             self.logger.info (f"Median segment size: {self.median_size}")
             self.logger.info (f"Distribution of distance to diploid (0,2): m = {self.dipl_dist['m']}, s = {self.dipl_dist['s']}")
             self.logger.info (f"Distribution of diploid allelic imbalance: m = {self.ai_param['m']}, s = {self.ai_param['s']}")
                 
                 
+
             self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
             
     def get_d_thr (self):
         return self.dipl_dist['thr']
     
+
     def score_dipl (self, segment): 
+
         ai = segment.parameters['ai'] 
         m = segment.parameters['m']
         m0 = segment.genome_medians['m0']
         cn = 2*m/m0
+
         scale = np.sqrt (self.median_size / segment.parameters['n'])
         m_ai = self.ai_param['m']
         s_ai = self.ai_param['s']*scale
@@ -70,6 +77,7 @@ class Scoring:
         p_d = sts.norm.sf (d, self.dipl_dist['m'], self.dipl_dist['s'])
         
         segment.parameters['d_HE'] = d# np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
+
         segment.parameters['p_HE'] = p_d
         segment.parameters['score_HE'] = -np.log10(p_d)
         

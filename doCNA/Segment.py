@@ -65,10 +65,12 @@ class Segment:
                 
     def report (self, report_type = 'bed'):
         return Report(report_type).segment_report(self)
+
                                                 
                         
 
 def get_sensitive (data, fb):
+
     
     vafs = data['vaf'].values
     
@@ -82,6 +84,7 @@ def get_sensitive (data, fb):
     v,c = np.unique (vafs, return_counts = True)
     try:
         popt, pcov = opt.curve_fit (ai, v, np.cumsum(c)/np.sum(c), p0 = [0.02, 0.5, 0.5],
+
                                     bounds = ((0.0, 0.48, 0.46),
                                               (0.3, 0.52, 0.54)), check_finite = False)
         dv, a, v0 = popt
@@ -89,11 +92,14 @@ def get_sensitive (data, fb):
                 
         parameters = {'m': m, 'l': l, 'ai' : dv,  'dai' : ddv,
                       'a': a, 'da': da, 'v0' : v0, 'dv0' : dv0,
+
                       'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'status' : 'valid', 'fraction_1' : np.nan}
         
     except (RuntimeError, ValueError):
+
         parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : np.nan, 
+
                       'success' : False, 'n' : np.nan,
                       'status' : 'valid', 'fraction_1' : np.nan}
         
@@ -116,6 +122,7 @@ def get_full (data, b = 1.01):
         dv0 = v0 - np.median (v[v < v0])
         p0 = [dv0, ones0/c.sum(), 2, 0.5, 0.5, b]        
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
+
                                     bounds = ((0,   0,   1, 0, 0.45, 0.99*b),
                                               (0.499, 0.95, 5, 1, 0.55, 10*b)))
         dv, a, lerr, f, v0, b = popt
@@ -133,13 +140,16 @@ def get_full (data, b = 1.01):
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters failed'}    
     if ones0/c.sum() > 0.9:
         parameters = {'m': m, 'l': l, 'ai' : 0.5, 'v0' : v0, 
+
                       'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters guessed'}    
         
     return parameters
 
 def vaf_cnai (v, dv, a, v0,b, cov):
+
     s = np.sqrt((v0 - dv)*(v0 + dv)/(cov))*b
+
     return a*sts.norm.cdf (v, v0 - dv, s) + (1-a)*sts.norm.cdf (v, v0 + dv, s)
 
 def vaf_HO (v, lerr):

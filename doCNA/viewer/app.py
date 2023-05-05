@@ -5,6 +5,7 @@ from doCNA import Models
 from doCNA import Consts
 from doCNA import Scoring
 
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -13,7 +14,9 @@ import scipy.signal as sig
 
 from collections import defaultdict
 from matplotlib.patches import Ellipse
+
 from sklearn.neighbors import KernelDensity
+
 
 
 chromdic = {}
@@ -86,8 +89,10 @@ app_ui = ui.page_fluid(
                                        ui.output_text ("auto_model_thr"),
                                        ui.input_slider ('model_thr', "Model score threshold",
                                                         value = 3, min = 0, max = 10, step = 0.1),
+
                                        ui.output_text ("auto_HE_thr"),
                                        ui.input_slider ('HE_thr', "Max HE score:",
+
                                                         value = 2, min = 0, max = 10),
                                        width = 2),
                       ui.panel_main(
@@ -190,7 +195,8 @@ app_ui = ui.page_fluid(
                                                                  ui.column(6, 
                                                                            ui.output_plot ('qq_plot'))),
                                                           ui.row(ui.output_table (id = 'chrom_segments'))),
-                                                    ui.nav("Report",
+
+                                                    ui.nav("Report - TBD",
                                                            ui.row(ui.column(12,
                                                                             ui.output_plot('report_plot'),
                                                                             ui.input_checkbox_group ('report_models',
@@ -198,6 +204,7 @@ app_ui = ui.page_fluid(
                                                                                                       {'(AB)(2-n)' : '(AB)(2-n)', '(AB)(2+n)' : '(AB)(2+n)', 'AB' : 'AB'},
                                                                                                       inline = True),
                                                                             ui.output_table('report')))),
+
                                                     ui.nav("Publication",
                                                            ui.h6 ("AI still in school"))
                                                             
@@ -229,7 +236,9 @@ def server(input, output, session):
     def solutions_info ():
         solutions = solutions_list()
         if len (solutions):
+
             ms = np.array(list(solutions_list())) 
+
             d_total = np.array([solutions[m][1] for m in solutions.keys()])
             d_HE = np.array([solutions[m][0].dipl_dist['m'] for m in solutions.keys()])
         
@@ -316,6 +325,7 @@ def server(input, output, session):
             opt_bed.set(tmp.loc[tmp.filt])
     
 
+
     @reactive.Effect
     @reactive.Calc
     def _():
@@ -332,6 +342,7 @@ def server(input, output, session):
                 del (chr_tmp)
             bed_report.set(pd.DataFrame.from_records (merged_segments,
                                                       columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto', 'score_HE']))
+
 
     
     @reactive.Effect
@@ -356,6 +367,7 @@ def server(input, output, session):
         par.set(pard)
         opt_solution.set ((np.array([]), np.array([]), np.array([])))
         ui.update_checkbox_group ('models_selected', selected = pard['models'])
+
         m0.set(pard['m0'])
         m0_opt.set(pard['m0'])
     
@@ -378,6 +390,7 @@ def server(input, output, session):
             fig, axs = plt.subplots (3, 1, figsize = (16,6), sharex = True)
             meerkat_plot (bed_data, axs, chrom_sizes(),
                           model_thr = input.model_thr(), HE_thr = input.HE_thr())
+
             
             for model in model_presets().keys():
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
@@ -439,6 +452,7 @@ def server(input, output, session):
         par_d = par()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
             fig, ax = plt.subplots (1, 1, figsize = (6,6))
+
             
             filt = (bed_data['ai'] < Consts.DIPLOID_AI_THR) &\
                    (np.abs(bed_data['cn']-2) < Consts.DIPLOID_dCN_THR)
@@ -469,6 +483,7 @@ def server(input, output, session):
             ax.set_xlim (0.95*(2-Consts.DIPLOID_dCN_THR), 1.05*(2+Consts.DIPLOID_dCN_THR))
             ax.set_ylim (max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
                          min((1.01*Consts.DIPLOID_AI_THR, ymax)))
+
             return fig
         
     @output
@@ -506,6 +521,11 @@ def server(input, output, session):
             
             ax.set_xlim (2*0.9*bed_data.m.min()/m0, 2*1.1*bed_data.m.max()/m0)
             ax.set_ylim ((max(-0.02, -0.02*bed_data.ai.max()), bed_data.ai.max()*1.1))
+            
+            #ymin, ymax = ax.get_ylim()
+            #ax.set_xlim (0.95*(2-Consts.DIPLOID_dCN_THR), 1.05*(2+Consts.DIPLOID_dCN_THR))
+            #ax.set_ylim (np.max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
+            #             np.min((1.01*Consts.DIPLOID_AI_THR, ymax)))
             
             return fig
         
@@ -578,11 +598,13 @@ def server(input, output, session):
             
             return fig
     
+
     
     @output
     @render.plot(alt = "")
     def solution_plot_dipl_opt ():
         pass
+
         
     
     @output
@@ -596,7 +618,9 @@ def server(input, output, session):
             
             k = np.linspace (0,1,100)
             for model in model_presets().keys():
+
                 if model in input.models_selected():
+
                     ls = '-'
                 else:
                     ls = ':'
@@ -627,6 +651,7 @@ def server(input, output, session):
     @reactive.event(par)
     def _():
         if 'thr_model' in par().keys():
+
             if np.isfinite(par()['thr_model']):
                 ui.update_slider ('model_thr', value = par()['thr_model'],
                                   min = 0,
@@ -645,6 +670,7 @@ def server(input, output, session):
                                   #max = 10,
                                   max = max([10, int(par()['thr_HE'])*5]), 
                                   step = 0.1)
+
 
     @output
     @render.table
@@ -670,9 +696,11 @@ def server(input, output, session):
         if (len(bed_data) != 0):
             
             if input.sort_CNV_by() == 'score':
+
                 tmp_bed = bed_data.loc[bed_data['score_HE'] > input.HE_thr()].sort_values(by = 'score_HE', ascending = False)
             else:
                 tmp_bed = bed_data.loc[bed_data['score_HE'] > input.HE_thr()]
+
             return tmp_bed
 
     @output
@@ -680,7 +708,9 @@ def server(input, output, session):
     def number_CNVs():
         bed_data = bed()
         if len(bed_data) > 0: 
+
             message = "Number of CNVs found: " + str(len(bed_data.loc[bed_data['score_HE'] > input.HE_thr()]))
+
         else:
             message = ''
         return  message
@@ -716,6 +746,7 @@ def server(input, output, session):
             fig, axs = plt.subplots (4, 1, figsize = (12,4), sharex = True)
             earth_worm_plot (data_df, bed_data, par_d, input.chrom_view(), axs, 
                              max_score_HE = input.HE_thr(), model_threshold = input.model_thr())
+
             return fig
         
     @output
@@ -756,10 +787,12 @@ def server(input, output, session):
                             input.step())
             
             ai = np.array(bed_data['ai'].values)
+
             l = len (ai)
             m_cov = np.array(bed_data['m'].values)
             sizes = np.array(bed_data['size'].values)
             n = np.array (bed_data['n'].values)
+
             
             ai_index = ai < Consts.DIPLOID_AI_THR
             solutions = {}
@@ -773,6 +806,7 @@ def server(input, output, session):
                     cn_index = np.abs(cn -2) < Consts.DIPLOID_dCN_THR
                     index = np.where(ai_index & cn_index)[0]
                     if len(index) > 2:
+
                         data_for_scoring = np.concatenate([ai[index], cn[index]-2, n[index]]).reshape (3,len(index)).T
                         scorer = Scoring.Scoring(fb = par()['fb'], m0 = par()['m0'], window_size = Consts.SNPS_IN_WINDOW, 
                                                  initial_data = data_for_scoring)
@@ -805,6 +839,7 @@ def server(input, output, session):
                     #print (m, thr, np.nansum(d_model), m_ai, s_ai, m_cn, s_cn, np.unique(models, return_counts = True))
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
 
+
             
             solutions_list.set (solutions)    
                     
@@ -818,7 +853,9 @@ def server(input, output, session):
             
             solutions = solutions_list()
             
+
             ms = solutions.keys()
+
             d_total = np.array([solutions[m][1] for m in solutions.keys()])
             d_HE = np.array([solutions[m][0].dipl_dist['m'] for m in solutions.keys()])
              

@@ -5,13 +5,16 @@ from doCNA import Genome
 class WGS:
     """Class to handle WGS read counts file and create the genome."""
     def __init__ (self, wgs_file_name,  sample_name, parameters, models,   
+
                   no_processes = 1, verbosity = 'INFO', skip_filtering = False):        
+
         self.sample_name = sample_name
         self.no_processes = no_processes
         self.wgs_file = open (wgs_file_name, 'r')
         self.config = parameters
         self.models = models
         
+
         self.logger = self.create_logger (verbosity)
         
         if skip_filtering:
@@ -22,6 +25,7 @@ class WGS:
                 self.SG_file = open (self.config['Input']['SuperGood_filepath'], 'rb')
             except FileNotFoundError:
                 sys.exit(f"SuperGood_filepath: {self.config['Input']['SuperGood_filepath']} should be the full real path to supergood file. Exiting")
+
         try:
             self.CB_file = open (self.config['Input']['CytoBand_filepath'], 'r')
         except FileNotFoundError:

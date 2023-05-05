@@ -91,11 +91,13 @@ class Run:
         for window in self.windows:
             vafs.append (np.sort(window['vaf'].values))
             wides.append (get_wide (vafs[-1], s0, fB, zero_thr)[0])  
-            #fB = wides[-1]
+            fB = wides[-1]
+
             
         #fB = np.percentile (wides, 100*zero_thr)
         s = s0/np.sqrt(fB)
         
+
         dvl = np.zeros(len(vafs))
         v0l = np.zeros(len(vafs))
         for i, v in enumerate(vafs):
@@ -105,6 +107,7 @@ class Run:
                         
         self.dv = dvl
         self.v0 = v0l
+
         self.dv_dist = Distribution.Distribution (self.dv, p_thr = p_thr, thr_z = z_thr)
         self.logger.debug ("Vaf shifts calculated. Shrink factor used: {:.2f}.".format (cov_mult-0.01))
         self.logger.info (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: {self.dv_dist.parameters['m']}.")  
@@ -233,7 +236,9 @@ class Run:
             for i in old_indexes:
                 try:
                     indexes += (divide_segment(self.dv, *i))
+
                 except (IndexError,ValueError, RuntimeError):
+
                     self.logger.debug (f"Re segmenting of {i} failed!")
                     indexes.append(i)
             if len(indexes) > len(old_indexes):
@@ -308,6 +313,7 @@ class Run:
         return self.tostring()
         
 def get_wide (vafs, s0, fB, zero_thr):
+
     s = s0/np.sqrt(fB)
     dv, _ = get_shift (vafs, s)
     while dv < zero_thr:
@@ -320,6 +326,7 @@ def get_wide (vafs, s0, fB, zero_thr):
         
     return fB - 0.01, dv
 
+
 def get_shift (v, s):
     
     def two_gauss (v, dv, v0, a):
@@ -327,8 +334,10 @@ def get_shift (v, s):
 
     popt, _ = opt.curve_fit (two_gauss, np.sort(v), np.linspace (0,1,len(v)),
                              p0 = [0.01,0.5, 0.5],
+
                              bounds = ((0, 0.46, 0.48),
                                        (0.5, 0.54, 0.52)))
+
             
     return popt[0], popt[1]
 

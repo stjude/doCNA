@@ -7,9 +7,11 @@ import scipy.optimize as opt
 Preset = namedtuple ('Preset', ['k','m', 'ai'])
 
 #Presets of models with 2 +/- 1 copies
+
 model_presets = {'(AB)(2+n)' : Preset(k = lambda m,dv,m0: np.abs(m/m0 - 1),# if (m/m0 > -0.1/2) & (m/m0 < 4.1/2) else np.nan,
                                       m = lambda k,m0: (1+k)*m0,
                                       ai = lambda k,m0:  np.zeros_like(k)),
+
                    
                    '(AB)(2-n)' : Preset(k = lambda m,dv,m0: np.abs(m/m0 - 1),# if (m/m0 > -0.1/2) & (m/m0 < 4.1/2) else np.nan,
                                         m = lambda k,m0: (1-k)*m0,
@@ -27,7 +29,6 @@ model_presets = {'(AB)(2+n)' : Preset(k = lambda m,dv,m0: np.abs(m/m0 - 1),# if 
                                   m = lambda k,m0: (2+k)*m0/2,
                                   ai = lambda k,m0: k/(2*(2+k))),
     
-#models of more copies, not a strict classification 
                    'AAAB' : Preset (k = lambda m,dv,m0 : 2*dv/(1-2*dv),# if (m/m0 > 1.9/2) & (m/m0 < 4.1/2) else np.nan,
                                     m = lambda k,m0 : (1+k)*m0,
                                     ai = lambda k,m0 : k/(2+2*k)),
@@ -39,7 +40,6 @@ model_presets = {'(AB)(2+n)' : Preset(k = lambda m,dv,m0: np.abs(m/m0 - 1),# if 
                    'AAAA' : Preset (k = lambda m,dv,m0 : dv/(1-dv),# if (m/m0 > 1.9/2) & (m/m0 < 4.1/2) else np.nan,
                                     m = lambda k,m0 : (1+k)*m0,
                                     ai = lambda k,m0 : k/(1+k)),
-#more crazy models
                    'AAB+AAAB' : Preset (k = lambda m,dv,m0 : (6*dv-1)/(1-2*dv),# if (m/m0 > 2.9/2) & (m/m0 < 4.1/2) else np.nan,
                                         m = lambda k,m0 : (3+k)*m0/2,
                                         ai = lambda k,m0 : (1+k)/(6+2*k)),

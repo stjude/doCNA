@@ -6,6 +6,7 @@ import scipy.stats as sts
 import scipy.optimize as opt
 import sys
 import sklearn.linear_model as slm
+from sklearn.linear_model import HuberRegressor
 
 from doCNA import Testing
 from doCNA import Chromosome
@@ -234,6 +235,7 @@ class Genome:
                                 (s.centromere_fraction < Consts.CENTROMERE_THR) &\
                                 (s.parameters['ai'] < Consts.DIPLOID_AI_THR) &\
                                 (np.abs(s.parameters['m']/self.genome_medians['m0']-1) < Consts.DIPLOID_dCN_THR/2)    for s in self.all_segments] 
+
         
         self.segments = [self.all_segments[i] for i in np.where(self.segment_filter)[0]]
         
@@ -269,8 +271,8 @@ class Genome:
             indexes = np.where(filter)[0]
             segments = [self.all_segments[i] for i in indexes]
             zs_ns = [seg.parameters['d_model'] for seg in segments]
-            
 
+    
             z_n = np.array(zs_ns)
             x = sts.expon.ppf (np.linspace (0,1,len(z_n)+2)[1:-1])
             huber = slm.HuberRegressor (fit_intercept = False)

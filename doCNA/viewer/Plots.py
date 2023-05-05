@@ -33,15 +33,17 @@ def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
     mids = []
     
     max_he = bed_df.loc[np.isfinite(bed_df['score_HE'].values), 'score_HE'].max()
-    #print (max_he)
+
     for chrom in chrs:
         
         for _, b in bed_df.loc[bed_df['chrom'] == chrom].iterrows():
             if b['score_model'] < model_thr:
+
                 if (b['score_HE'] < HE_thr) & (b['model'] != 'AB'):
                     color = 'r'
                 else:
                     color = colorsCN[b['model']]
+
             else:
                 color = 'yellow'
             
@@ -275,6 +277,7 @@ def check_solution_plot_opt (bed, ax, model_thr,
     ax.set_xlabel ('Coverage/copy number')
     ax.set_ylabel ('Allelic imbalance')
 
+
 def verification_plot_qq (d_ch, ch_bed, ax, par):
     m0 = par['v0']
     s0 = np.sqrt(0.25/par['m0'])*par['fb']
@@ -314,6 +317,7 @@ def verification_plot_qq (d_ch, ch_bed, ax, par):
         
     ax.legend()
     
+
     
 def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 100):
     assert type in ["CDF", "PDF"], "Unknown plot type!"
