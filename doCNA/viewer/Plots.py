@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import argparse as agp
 
-from doCNA import Models
+from doCNA import Testing
 from doCNA import Consts
 
 #colorsCN = {}
@@ -278,62 +278,26 @@ def check_solution_plot_opt (bed, ax, model_thr,
     ax.set_ylabel ('Allelic imbalance')
 
 
-def verification_plot_qq (d_ch, ch_bed, ax, par):
-    m0 = par['v0']
-    s0 = np.sqrt(0.25/par['m0'])*par['fb']
-    norm = sts.norm (m0, s0)
-    
-    ax.plot (norm.ppf((0.01,0.99)), norm.ppf((0.01,0.99)),
-             'r-', label = 'diploid reference')
-    
-    dipl_bed = ch_bed.loc[ch_bed['model'] == 'AB']
-    starts = dipl_bed['start'].values
-    ends = dipl_bed['end'].values
-    pos_filt = ((d_ch.position.values[:, np.newaxis] > starts[np.newaxis,:]) &\
-                (d_ch.position.values[:, np.newaxis] < ends[np.newaxis,:])).any (axis = 1) 
-    
-    xmin, xmax = norm.ppf(0.01), norm.ppf(0.99)
-    tmp = d_ch.loc[(d_ch['symbol'] != Consts.N_SYMBOL)&(pos_filt)]
-    vl = np.sort (tmp['vaf'].values)
-    v = vl[(vl > xmin) & (vl < xmax)]
-    x = norm.ppf(np.linspace (0,1,len(v)+2)[1:-1])
-    ax.plot (x, v , lw = 0, marker = '.',
-             markersize = 0.1, label = 'AB', color = colorsCN['AB'], alpha = 0.5)
-    
-    CNV_bed = ch_bed.loc[ch_bed['model'] != 'AB']
-    for _, cb in CNV_bed.iterrows():
-        #(d_ch['symbol'] == cb['symbol'])&\
-        tmp = d_ch.loc[(d_ch['vaf'] < 1)&\
-                       (d_ch['position'] >= cb['start'])&\
-                       (d_ch['position'] >= cb['start'])]
-        vl = np.sort (tmp['vaf'].values)
-        v = vl[(vl > xmin) & (vl < xmax)]
-        x = norm.ppf(np.linspace (0,1,len(v)+2)[1:-1])
-        ax.plot (x, v , marker = '.',
-                 lw = 0, color = colorsCN[cb['model']], alpha = 0.5, markersize = 0.1,
-                 label = cb['chrom']+':'+str(cb['start'])+'-'+str(cb['end'])+':'+cb['model'])
-    
-    ax.set_xlim (xmin, xmax)
-        
-    ax.legend()
-    
-
-    
-def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 100):
+def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', column = 'vaf', no_bins = 100):
     assert type in ["CDF", "PDF"], "Unknown plot type!"
-    
+    assert column in ['vaf', 'cov'], "Unknown column!"
     ##Plot reference
-    try: 
+     
+    if column == 'vaf':
         x = np.linspace (0,1, 500)
-        if type == "CDF":
-            ax.plot (x, sts.norm.cdf (x, par['v0'], np.sqrt(0.25/par['m0'])*par['fb']),
-                     color = 'red', lw = 0.5)
-        else:
-            ax.plot (x, sts.norm.pdf (x, par['v0'], np.sqrt(0.25/par['m0'])*par['fb']),
-                     color = 'red', lw = 0.5)
-        ax.plot ((),(), lw = 2, color = 'red', label = 'diploid reference')
-    except:
-        pass
+        ref_norm = sts.norm.cdf (x, par['v0'], np.sqrt(0.25/par['m0']*par['fb']))
+        xlim = (-0.01,1.01)
+    elif column == 'cov':
+        x = Testing.lambda_ppf (np.linspace (0,1,500), par['m0'], par['l'])
+        ref_norm = np.linspace (0,1,500)
+        xlim = (d_ch['cov'].quantile ([0.005, 0.999]))
+        
+    if type == "CDF":
+        ax.plot (x, ref_norm,
+                 color = 'red', lw = 0.5)
+        ax.set_xlim (xlim)
+    
+    ax.plot ((),(), lw = 2, color = 'red', label = 'diploid reference')
     
     ##Plot AB
     dipl_bed = ch_bed.loc[ch_bed['model'] == 'AB']
@@ -344,7 +308,7 @@ def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 100):
     
     tmp = d_ch.loc[(d_ch['symbol'] == Consts.E_SYMBOL)&(pos_filt)]
         
-    v = np.sort (tmp['vaf'].values)
+    v = np.sort (tmp[column].values)
     if type == "CDF":
         ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 0.5, color = colorsCN['AB'])
         ax.plot ((),(), lw = 2, label = 'AB', color = colorsCN['AB'])
@@ -360,7 +324,7 @@ def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', no_bins = 100):
         tmp = d_ch.loc[(d_ch['vaf'] < 1)&\
                        (d_ch['position'] >= cb['start'])&\
                        (d_ch['position'] >= cb['start'])]
-        v = np.sort (tmp['vaf'].values)
+        v = np.sort (tmp[column].values)
         if type == "CDF":
             ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 1,
                     color = colorsCN[cb['model']])

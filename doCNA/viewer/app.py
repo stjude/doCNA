@@ -193,7 +193,7 @@ app_ui = ui.page_fluid(
                                                           ui.row(ui.column(6, 
                                                                            ui.output_plot ('compare_plot')),
                                                                  ui.column(6, 
-                                                                           ui.output_plot ('qq_plot'))),
+                                                                           ui.output_plot ('cov_plot'))),
                                                           ui.row(ui.output_table (id = 'chrom_segments'))),
 
                                                     ui.nav("Report",
@@ -792,19 +792,19 @@ def server(input, output, session):
             CNV_bed = bed_data.loc[bed_data.chrom == input.chrom_view()]
             data_chrom = data_df.loc[data_df.chrom == input.chrom_view()]
             fig, ax = plt.subplots (figsize = (6,8))
-            verification_plot_CNV (data_chrom, CNV_bed, ax, par(), input.f_to_plot())
+            verification_plot_CNV (data_chrom, CNV_bed, ax, par(), input.f_to_plot(), column = 'vaf')
             return fig
     
     @output
     @render.plot
-    def qq_plot():
+    def cov_plot():
         bed_data = bed()
         data_df = data()
         if (len(bed_data) != 0) & (len(data_df) != 0):
             CNV_bed = bed_data.loc[bed_data.chrom == input.chrom_view()]
             data_chrom = data_df.loc[data_df.chrom == input.chrom_view()]
             fig, ax = plt.subplots (figsize = (6,8))
-            verification_plot_qq (data_chrom, CNV_bed, ax, par())
+            verification_plot_CNV (data_chrom, CNV_bed, ax, par(), column = 'cov')
             return fig
     
         
@@ -863,22 +863,16 @@ def server(input, output, session):
                     models = []
                     d_model = np.repeat(np.nan, l).astype(np.float)
                         
-                    for i, pd in enumerate (p_d):# np.where(p_d < thr)[0]:
-                        #print (ai[i], 1, cn[i], 1, input.models_selected())
+                    for i, pd in enumerate (p_d):
                         if pd < thr:
                             sm = Models.pick_model(ai[i], 1, cn[i], 1, input.models_selected())
-                            #print (sm['model'])
                             models.append(sm['model'])
                             d_model[i] = sm['d_model']
                         else:
                             models.append ('AB')
                         
-                    #print (models)
                     d_total = np.nansum((d_model*sizes))    
-                    #print (m, thr, np.nansum(d_model), m_ai, s_ai, m_cn, s_cn, np.unique(models, return_counts = True))
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
-
-
             
             solutions_list.set (solutions)    
                     

@@ -151,7 +151,7 @@ def COV_test (data, *args, **kwargs):
         initial_m = np.median(covs)
              
         #here may be good place for try except
-        popt, pcov = opt.curve_fit (lambda_cdf, percentiles, y, p0 = [initial_m, initial_shape],
+        popt, pcov = opt.curve_fit (lambda_ppf, percentiles, y, p0 = [initial_m, initial_shape],
                                     bounds = [(cov_range[0],shape_range[0]),
                                               (cov_range[1],shape_range[1])])
         m, l  = popt
@@ -166,7 +166,7 @@ def Q (p,l):
     else:
         return (p**l-(1-p)**l)/l    
 
-def lambda_cdf (p, m, lam):
+def lambda_ppf (p, m, lam):
     return Q (p, lam)*np.sqrt(m)+m
 
 
