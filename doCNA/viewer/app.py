@@ -196,12 +196,12 @@ app_ui = ui.page_fluid(
                                                                            ui.output_plot ('qq_plot'))),
                                                           ui.row(ui.output_table (id = 'chrom_segments'))),
 
-                                                    ui.nav("Report - TBD",
+                                                    ui.nav("Report",
                                                            ui.row(ui.column(12,
                                                                             ui.output_plot('report_plot'),
                                                                             ui.input_checkbox_group ('report_models',
                                                                                                      "Pick balanced model types to include in the report:",
-                                                                                                      {'(AB)(2-n)' : '(AB)(2-n)', '(AB)(2+n)' : '(AB)(2+n)', 'AB' : 'AB'},
+                                                                                                      {'(AB)(2-n)' : '(AB)(2-n)', '(AB)(2+n)' : '(AB)(2+n)'},
                                                                                                       inline = True),
                                                                             ui.output_table('report')))),
 
@@ -329,19 +329,19 @@ def server(input, output, session):
     @reactive.Effect
     @reactive.Calc
     def _():
-        bf = bed_full()    
+        #bf = bed_full()    
         b = bed()
-        if (len(bf) != 0) & (len(b) != 0):
+        if len(b):
             chrs = chrom_sizes().index.values.tolist()
             chrs.sort (key = Consts.CHROM_ORDER.index)
-            merged_segments = []
-            for chrom in chrs: 
-                chr_tmp = bf.loc[bf['chrom'] == chrom].copy()
             
+            report = b.loc[b['score_HE'] > input.HE_thr()].copy()
+            report.loc[report['score_model'] > input.model_thr(), 'model'] = '--'
+            report.loc[report['score_model'] > input.model_thr(), 'k'] = np.nan
             
-                del (chr_tmp)
-            bed_report.set(pd.DataFrame.from_records (merged_segments,
-                                                      columns = ['chrom', 'start', 'end', 'm', 'cn','model', 'k', 'cyto', 'score_HE']))
+            #merging TBD
+            
+            bed_report.set(report)
 
 
     
@@ -415,7 +415,8 @@ def server(input, output, session):
             c = [colorsCN[m] for m in tmp['model'].values[order]]
                         
             #how bandwidth?
-            kde = KernelDensity (kernel = 'gaussian', bandwidth = 0.02).fit (k)
+            #median distance to the model? or similar
+            kde = KernelDensity (kernel = 'gaussian', bandwidth = 0.018).fit (k)
             xt = np.linspace (min(-0.01, k[0,0]), k[-1,0]*1.1, 1000)[:, np.newaxis]
             ax.scatter (k, np.linspace (0,1, len(k)), s = np.sqrt(s)*10, c = c)
             ax.plot (k, np.linspace (0,1, len(k)), 'k:')
@@ -522,11 +523,7 @@ def server(input, output, session):
             ax.set_xlim (2*0.9*bed_data.m.min()/m0, 2*1.1*bed_data.m.max()/m0)
             ax.set_ylim ((max(-0.02, -0.02*bed_data.ai.max()), bed_data.ai.max()*1.1))
             
-            #ymin, ymax = ax.get_ylim()
-            #ax.set_xlim (0.95*(2-Consts.DIPLOID_dCN_THR), 1.05*(2+Consts.DIPLOID_dCN_THR))
-            #ax.set_ylim (np.max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
-            #             np.min((1.01*Consts.DIPLOID_AI_THR, ymax)))
-            
+                       
             return fig
         
     @output
@@ -603,7 +600,43 @@ def server(input, output, session):
     @output
     @render.plot(alt = "")
     def solution_plot_dipl_opt ():
-        pass
+        bed_data = opt_bed()
+        par_d = par()
+        if (len(bed_data) != 0) & (len(par_d.keys()) != 0):
+            fig, ax = plt.subplots (1, 1, figsize = (6,6))
+
+            
+            filt = (bed_data['ai'] < Consts.DIPLOID_AI_THR) &\
+                   (np.abs(bed_data['cn']-2) < Consts.DIPLOID_dCN_THR)
+            
+            dip_bed_data = bed_data.loc[filt]            
+            
+            if len(dip_bed_data):
+                check_solution_plot_opt (dip_bed_data, ax, model_thr = np.inf,
+                                         highlight = input.chroms_selected())
+                
+            
+            def ellipse (par, **kwargs):
+                return Ellipse ((par['m_cn']+2, par['m_ai']), 2*d*par['s_cn'], 2*d*par['s_ai'], **kwargs)
+                        
+            p = 10**(-par_d['thr_HE'])
+            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])
+            if np.isfinite (d):
+                ax.add_patch (ellipse(par_d, label = 'auto thr',
+                              lw = 1, fill = False, color = 'r', ls = ':'))
+            
+            p = 10**(-input.HE_thr())
+            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])
+            if np.isfinite(d):
+                ax.add_patch (ellipse(par_d, label = 'user thr', 
+                              lw = 1, fill = False, color = 'b', ls = '--') )
+            ax.legend()
+            ymin, ymax = ax.get_ylim()
+            ax.set_xlim (0.95*(2-Consts.DIPLOID_dCN_THR), 1.05*(2+Consts.DIPLOID_dCN_THR))
+            ax.set_ylim (max((-0.01*Consts.DIPLOID_AI_THR, ymin)),
+                         min((1.01*Consts.DIPLOID_AI_THR, ymax)))
+
+            return fig
 
         
     
@@ -684,11 +717,12 @@ def server(input, output, session):
     def report():
         report = bed_report()
         if len(report) > 0:
-            if not input.rep_AB():
-                return report.loc[report.model != 'AB']
-            else:
-                return report
-
+            omit_models = ['AB', '(AB)(2+n)', '(AB)(2-n)']
+            for m in input.report_models():
+                omit_models.remove (m)
+            return report.loc[[m not in omit_models for m in report.model.tolist()]][['chrom', 'start', 'end', 'cn',
+                                                                                      'model','k', 'cyto']]
+        
     @output
     @render.table
     def CNVs ():
@@ -824,17 +858,22 @@ def server(input, output, session):
                     else:
                         scorer = Scoring.Scoring()
                         p_d = np.zeros (l)
-                        thr = 1
+                        thr = -1
                                        
-                    models = np.repeat('AB', l)
-                    d_model = np.repeat(np.nan, l)
+                    models = []
+                    d_model = np.repeat(np.nan, l).astype(np.float)
                         
-                    for i in np.where(p_d < thr)[0]:
-                        sm = Models.pick_model(ai[i], 1, cn[i], 1, input.models_selected())
-                        models[i] = sm['model']
-                        d_model[i] = sm['d_model']
+                    for i, pd in enumerate (p_d):# np.where(p_d < thr)[0]:
+                        #print (ai[i], 1, cn[i], 1, input.models_selected())
+                        if pd < thr:
+                            sm = Models.pick_model(ai[i], 1, cn[i], 1, input.models_selected())
+                            #print (sm['model'])
+                            models.append(sm['model'])
+                            d_model[i] = sm['d_model']
+                        else:
+                            models.append ('AB')
                         
-                    
+                    #print (models)
                     d_total = np.nansum((d_model*sizes))    
                     #print (m, thr, np.nansum(d_model), m_ai, s_ai, m_cn, s_cn, np.unique(models, return_counts = True))
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
@@ -885,7 +924,11 @@ def server(input, output, session):
             m0_opt.set(input.m0_cov())
             bed = opt_bed().copy()
             bed['cn'] = 2*bed['m']/m0_opt()
-            bed['model'] = solutions_list()[m0_opt()][-1]
+            solution = solutions_list()[m0_opt()]
+            print (solution)
+            bed['model'] = solution[-1]
+            print ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+            print (solutions_list()[m0_opt()][-1])
             opt_bed.set(bed)
             
 app = App(app_ui, server, debug=True)
