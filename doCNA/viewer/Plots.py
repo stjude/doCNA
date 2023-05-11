@@ -308,9 +308,9 @@ def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', column = 'vaf', 
     
     tmp = d_ch.loc[(d_ch['symbol'] == Consts.E_SYMBOL)&(pos_filt)]
         
-    v = np.sort (tmp[column].values)
+    v,c = np.unique (tmp[column].values, return_counts = True)
     if type == "CDF":
-        ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 0.5, color = colorsCN['AB'])
+        ax.plot(v, np.cumsum(c)/np.sum(c), '.', markersize = 0.5, color = colorsCN['AB'])
         ax.plot ((),(), lw = 2, label = 'AB', color = colorsCN['AB'])
     else:
         ax.hist (v, bins = np.linspace (0,1, no_bins), lw = 2, 
@@ -324,9 +324,9 @@ def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', column = 'vaf', 
         tmp = d_ch.loc[(d_ch['vaf'] < 1)&\
                        (d_ch['position'] >= cb['start'])&\
                        (d_ch['position'] >= cb['start'])]
-        v = np.sort (tmp[column].values)
+        v,c = np.unique (tmp[column].values, return_counts = True)
         if type == "CDF":
-            ax.plot(v, np.linspace (0,1,len(v)), '.', markersize = 1,
+            ax.plot(v, np.cumsum(c)/np.sum(c), '.', markersize = 1,
                     color = colorsCN[cb['model']])
             ax.plot ((),(), lw = 2, color = colorsCN[cb['model']],
                      label = cb['chrom']+':'+str(cb['start'])+'-'+str(cb['end'])+':'+cb['model'])

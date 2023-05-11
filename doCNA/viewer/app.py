@@ -182,7 +182,7 @@ app_ui = ui.page_fluid(
                                                    ui.nav("Chromosome view",
                                                           ui.row(ui.column(12,
                                                                            ui.input_file ('data_file', "Choose data file to upload:",
-                                                                                           multiple = False, accept = ('.dat', '.dat.gz')),
+                                                                                           multiple = False, accept = '.gz'),
                                                                            ui.input_radio_buttons ('chrom_view', "Choose chromosome to inspect",                                                                                    
                                                                                                    chromdic, inline = True),)),
                                                           ui.row(ui.input_radio_buttons('f_to_plot', "Which function plot to compare:", 
