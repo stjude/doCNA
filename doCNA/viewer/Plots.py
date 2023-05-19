@@ -323,7 +323,7 @@ def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', column = 'vaf', 
         #(d_ch['symbol'] == cb['symbol'])&\
         tmp = d_ch.loc[(d_ch['vaf'] < 1)&\
                        (d_ch['position'] >= cb['start'])&\
-                       (d_ch['position'] >= cb['start'])]
+                       (d_ch['position'] <= cb['end'])]
         v,c = np.unique (tmp[column].values, return_counts = True)
         if type == "CDF":
             ax.plot(v, np.cumsum(c)/np.sum(c), '.', markersize = 1,
