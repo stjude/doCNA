@@ -282,6 +282,8 @@ def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', column = 'vaf', 
     assert type in ["CDF", "PDF"], "Unknown plot type!"
     assert column in ['vaf', 'cov'], "Unknown column!"
     ##Plot reference
+    
+    vaf_down_lim, vaf_up_lim = sts.norm.ppf ((0.0005,0.9995), par['v0'], np.sqrt(0.25/par['m0']*par['fb']))
      
     if column == 'vaf':
         x = np.linspace (0,1, 500)
@@ -321,7 +323,8 @@ def verification_plot_CNV (d_ch, ch_bed, ax, par, type = 'CDF', column = 'vaf', 
     CNV_bed = ch_bed.loc[ch_bed['model'] != 'AB']
     for _, cb in CNV_bed.iterrows():
         #(d_ch['symbol'] == cb['symbol'])&\
-        tmp = d_ch.loc[(d_ch['vaf'] < 1)&\
+        
+        tmp = d_ch.loc[(d_ch['vaf'] < vaf_up_lim)&(d_ch['vaf'] > vaf_down_lim)&\
                        (d_ch['position'] >= cb['start'])&\
                        (d_ch['position'] <= cb['end'])]
         v,c = np.unique (tmp[column].values, return_counts = True)
