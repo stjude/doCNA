@@ -26,7 +26,7 @@ class Scoring:
             self.cn_param = fit_QQgauss(initial_data[: ,1], fit_intercept = False)
             
             self.theor_ai_std = fb*0.25/np.sqrt(m0*self.median_size*window_size)
-            self.theor_cn_std = 2/np.sqrt (m0)
+            self.theor_cn_std = 2/np.sqrt (m0*self.median_size*window_size)
             
             
             greater = self.ai_param['s'] > self.theor_ai_std  
@@ -74,7 +74,8 @@ class Scoring:
         m0 = segment.genome_medians['m0']
         cn = 2*m/m0
 
-        scale = np.sqrt (self.median_size / segment.parameters['n'])
+        #scale = np.sqrt (self.median_size / segment.parameters['n'])
+        scale = (self.median_size / segment.parameters['n'])
         m_ai = self.ai_param['m']
         s_ai = self.ai_param['s']*scale
         m_cn = self.cn_param['m']
