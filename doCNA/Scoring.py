@@ -9,7 +9,7 @@ from doCNA import Models
 
 class Scoring:
 
-    def __init__(self, fb = None, m0 = None, window_size = None, initial_data = None, logger = False) -> None:
+    def __init__(self, fb = None, m0 = None, window_size = None, initial_data = np.array([]), logger = False) -> None:
         
         if logger:
                 self.logger = logger.getChild (f'{self.__class__.__name__}')
@@ -20,14 +20,7 @@ class Scoring:
                 
             self.logger = lg()
                     
-        if initial_data is None:
-            self.ai_param = {'m' : 0, 's' : 1}
-            self.cn_param = {'m' : 0, 's' : 1}
-            self.dipl_dist = {'m' : 0, 's' : 1, 'thr' : 0, 'alpha': np.nan}
-            self.median_size = 1
-            self.logger.info ("Object created with no data.")
-                
-        else:
+        try:
             self.median_size = np.median(initial_data[:, 2])            
             self.ai_param = fit_QQgauss(initial_data[: ,0])
             
@@ -56,6 +49,14 @@ class Scoring:
                 
 
             self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
+        
+        except (IndexError):
+            self.ai_param = {'m' : 0, 's' : 0}
+            self.cn_param = {'m' : 0, 's' : 0}
+            self.dipl_dist = {'m' : 0, 's' : 0, 'thr' : 0, 'alpha': np.nan}
+            self.median_size = 1
+            self.logger.info ("Scorer created with no diploid reference.")
+        
             
     def get_d_thr (self):
         return self.dipl_dist['thr']
