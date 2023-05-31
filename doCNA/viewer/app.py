@@ -409,25 +409,26 @@ def server(input, output, session):
             fig, ax = plt.subplots (1, 1, figsize = (6,6), sharex = True)
             tmp = bed_data.loc[bed_data['score_HE'] > input.HE_thr()]
             
-            k = np.sort(tmp['k'].values)[:, np.newaxis]
-            order = np.argsort (tmp['k'].values)
-            s = tmp['size'].values[order]
-            c = [colorsCN[m] for m in tmp['model'].values[order]]
+            if len(tmp):
+                k = np.sort(tmp['k'].values)[:, np.newaxis]
+                order = np.argsort (tmp['k'].values)
+                s = tmp['size'].values[order]
+                c = [colorsCN[m] for m in tmp['model'].values[order]]
                         
-            #how bandwidth?
-            #median distance to the model? or similar
-            kde = KernelDensity (kernel = 'gaussian', bandwidth = 0.018).fit (k)
-            xt = np.linspace (min(-0.01, k[0,0]), k[-1,0]*1.1, 1000)[:, np.newaxis]
-            ax.scatter (k, np.linspace (0,1, len(k)), s = np.sqrt(s)*10, c = c)
-            ax.plot (k, np.linspace (0,1, len(k)), 'k:')
-            axt = ax.twinx()
-            axt.plot (xt, np.exp(kde.score_samples(xt)))
+                #how bandwidth?
+                #median distance to the model? or similar
+                kde = KernelDensity (kernel = 'gaussian', bandwidth = 0.018).fit (k)
+                xt = np.linspace (min(-0.01, k[0,0]), k[-1,0]*1.1, 1000)[:, np.newaxis]
+                ax.scatter (k, np.linspace (0,1, len(k)), s = np.sqrt(s)*10, c = c)
+                ax.plot (k, np.linspace (0,1, len(k)), 'k:')
+                axt = ax.twinx()
+                axt.plot (xt, np.exp(kde.score_samples(xt)))
             
-            ax.set_xlabel ('clonality')
-            ax.set_ylabel ('clonaticty cdf')
-            axt.set_ylabel ('clonaticty kde')
+                ax.set_xlabel ('clonality')
+                ax.set_ylabel ('clonaticty cdf')
+                axt.set_ylabel ('clonaticty kde')
             
-            return fig
+                return fig
     
     
         

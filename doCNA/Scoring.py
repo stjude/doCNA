@@ -23,16 +23,24 @@ class Scoring:
         try:
             self.median_size = np.median(initial_data[:, 2])            
             self.ai_param = fit_QQgauss(initial_data[: ,0])
+            self.cn_param = fit_QQgauss(initial_data[: ,1], fit_intercept = False)
             
             self.theor_ai_std = fb*0.25/np.sqrt(m0*self.median_size*window_size)
-
-            self.cn_param = fit_QQgauss(initial_data[: ,1], fit_intercept = False)
+            self.theor_cn_std = 2/np.sqrt (m0)
+            
+            
             greater = self.ai_param['s'] > self.theor_ai_std  
             self.logger.info (f"Estimated std of ai is {'greater' if greater else 'smaller'} than theoretical minimum {self.theor_ai_std}.")
             if not greater:
                 self.logger.info ("Std of ai is replaced by theoretical minimum.")
                 self.ai_param['s'] = self.theor_ai_std
                 
+            greater = self.cn_param['s'] > self.theor_cn_std  
+            self.logger.info (f"Estimated std of cn is {'greater' if greater else 'smaller'} than theoretical minimum {self.theor_cn_std}.")
+            if not greater:
+                self.logger.info ("Std of cn is replaced by theoretical minimum.")
+                self.cn_param['s'] = self.theor_cn_std
+                            
             dds =  initial_data[:,:-1] - np.array([self.ai_param['m'], self.cn_param['m']])[np.newaxis, :]
 
             ds = dds/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :]
@@ -45,9 +53,6 @@ class Scoring:
             self.logger.info (f"Median segment size: {self.median_size}")
             self.logger.info (f"Distribution of distance to diploid (0,2): m = {self.dipl_dist['m']}, s = {self.dipl_dist['s']}")
             self.logger.info (f"Distribution of diploid allelic imbalance: m = {self.ai_param['m']}, s = {self.ai_param['s']}")
-                
-                
-
             self.logger.info (f"Distribution of diploid copy number: m = {self.cn_param['m']}, s = {self.cn_param['s']}")
         
         except (IndexError):
@@ -74,22 +79,25 @@ class Scoring:
         s_ai = self.ai_param['s']*scale
         m_cn = self.cn_param['m']
         s_cn = self.cn_param['s']*scale
-        d = np.sqrt (((ai-m_ai)/s_ai)**2 + (((cn-2)-m_cn)/s_cn)**2)
-        p_d = sts.norm.sf (d, self.dipl_dist['m'], self.dipl_dist['s'])
+        if (s_ai > 0)&(s_cn > 0):
+            d = np.sqrt (((ai-m_ai)/s_ai)**2 + (((cn-2)-m_cn)/s_cn)**2)
+            p_d = sts.norm.sf (d, self.dipl_dist['m'], self.dipl_dist['s'])
         
-        segment.parameters['d_HE'] = d# np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
+            segment.parameters['d_HE'] = d# np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
 
-        segment.parameters['p_HE'] = p_d
-        segment.parameters['score_HE'] = -np.log10(p_d)
-        
-
+            segment.parameters['p_HE'] = p_d
+            segment.parameters['score_HE'] = -np.log10(p_d)
+        else:
+            segment.parameters['d_HE'] = np.inf
+            segment.parameters['p_HE'] = 0
+            segment.parameters['score_HE'] = np.inf
 
     def analyze_segment (self, segment, models):
         m = segment.parameters['m']
         m0 = segment.genome_medians['m0']
         cn = 2*m/m0
         
-        if segment.parameters['score_HE'] > self.dipl_dist['thr']:
+        if segment.parameters['score_HE'] >= self.dipl_dist['thr']:
             ai = segment.parameters['ai']
               
             try:
