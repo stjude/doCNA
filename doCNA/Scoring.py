@@ -21,12 +21,13 @@ class Scoring:
             self.logger = lg()
                     
         try:
-            self.median_size = np.median(initial_data[:, 2])            
-            self.ai_param = fit_QQgauss(initial_data[: ,0])
-            self.cn_param = fit_QQgauss(initial_data[: ,1], fit_intercept = False)
+            self.median_size = np.median(initial_data[:, 2])
+            scales = np.sqrt(initial_data[:,2])            
+            self.ai_param = fit_QQgauss(initial_data[: ,0]*scales, fit_intercept = False)
+            self.cn_param = fit_QQgauss(initial_data[: ,1]*scales, fit_intercept = False)
             
-            self.theor_ai_std = fb*0.25/np.sqrt(m0*self.median_size*window_size)
-            self.theor_cn_std = 2/np.sqrt (m0*self.median_size*window_size)
+            self.theor_ai_std = fb*0.25/np.sqrt(m0*window_size)
+            self.theor_cn_std = 2/np.sqrt (m0*window_size)
             
             
             greater = self.ai_param['s'] > self.theor_ai_std  
@@ -69,17 +70,16 @@ class Scoring:
 
     def score_dipl (self, segment): 
 
-        ai = segment.parameters['ai'] 
+        scale = np.sqrt (segment.parameters['n'])
+        ai = segment.parameters['ai']*scale
         m = segment.parameters['m']
         m0 = segment.genome_medians['m0']
-        cn = 2*m/m0
+        cn = scale*2*m/m0
 
-        #scale = np.sqrt (self.median_size / segment.parameters['n'])
-        scale = (self.median_size / segment.parameters['n'])**2
         m_ai = self.ai_param['m']
-        s_ai = self.ai_param['s']*scale
+        s_ai = self.ai_param['s']
         m_cn = self.cn_param['m']
-        s_cn = self.cn_param['s']*scale
+        s_cn = self.cn_param['s']
         if (s_ai > 0)&(s_cn > 0):
             d = np.sqrt (((ai-m_ai)/s_ai)**2 + (((cn-2)-m_cn)/s_cn)**2)
             p_d = sts.norm.sf (d, self.dipl_dist['m'], self.dipl_dist['s'])

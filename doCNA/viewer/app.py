@@ -461,6 +461,8 @@ def server(input, output, session):
             
             dip_bed_data = bed_data.loc[filt]            
             
+            n_median = np.median (dip_bed_data['n'])
+            
             if len(dip_bed_data):
                 check_solution_plot_opt (dip_bed_data, ax, model_thr = input.model_thr(),
                                          highlight = input.chroms_selected())
@@ -470,7 +472,7 @@ def server(input, output, session):
                 return Ellipse ((par['m_cn']+2, par['m_ai']), 2*d*par['s_cn'], 2*d*par['s_ai'], **kwargs)
                         
             p = 10**(-par_d['thr_HE'])
-            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])
+            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])/np.sqrt(n_median)
             if np.isfinite (d):
                 ax.add_patch (ellipse(par_d, label = 'auto thr',
                               lw = 1, fill = False, color = 'r', ls = ':'))
