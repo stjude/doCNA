@@ -478,7 +478,7 @@ def server(input, output, session):
                               lw = 1, fill = False, color = 'r', ls = ':'))
             
             p = 10**(-input.HE_thr())
-            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])
+            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])/np.sqrt(n_median)
             if np.isfinite(d):
                 ax.add_patch (ellipse(par_d, label = 'user thr', 
                               lw = 1, fill = False, color = 'b', ls = '--') )
