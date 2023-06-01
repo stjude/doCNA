@@ -74,17 +74,17 @@ class Scoring:
         ai = segment.parameters['ai']*scale
         m = segment.parameters['m']
         m0 = segment.genome_medians['m0']
-        cn = scale*2*m/m0
+        cn = scale*(2*m/m0-2)
 
         m_ai = self.ai_param['m']
         s_ai = self.ai_param['s']
         m_cn = self.cn_param['m']
         s_cn = self.cn_param['s']
         if (s_ai > 0)&(s_cn > 0):
-            d = np.sqrt (((ai-m_ai)/s_ai)**2 + (((cn-2)-m_cn)/s_cn)**2)
+            d = np.sqrt ((ai/s_ai)**2 + ((cn/s_cn)**2))
             p_d = sts.norm.sf (d, self.dipl_dist['m'], self.dipl_dist['s'])
         
-            segment.parameters['d_HE'] = d# np.sqrt ((ai/s_ai)**2 + ((cn-2)/s_cn)**2)
+            segment.parameters['d_HE'] = d
 
             segment.parameters['p_HE'] = p_d
             segment.parameters['score_HE'] = -np.log10(p_d)
