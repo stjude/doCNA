@@ -42,7 +42,7 @@ class Scoring:
                 self.logger.info ("Std of cn is replaced by theoretical minimum.")
                 self.cn_param['s'] = self.theor_cn_std
                             
-            dds = scales[np.newaxis, :]*(initial_data[:,:-1]) - np.array([self.ai_param['m'], self.cn_param['m']])
+            dds = scales[:, np.newaxis]*(initial_data[:,:-1]) - np.array([self.ai_param['m'], self.cn_param['m']])
 
             ds = dds/np.array([self.ai_param['s'],self.cn_param['s']])[np.newaxis, :]
             self.dipl_dist = fit_QQgauss (np.sqrt((ds**2).sum(axis = 1)))
