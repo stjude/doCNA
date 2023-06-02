@@ -59,7 +59,7 @@ class Scoring:
         except (IndexError):
             self.ai_param = {'m' : 0, 's' : 0}
             self.cn_param = {'m' : 0, 's' : 0}
-            self.dipl_dist = {'m' : 0, 's' : 0, 'thr' : 0, 'alpha': np.nan}
+            self.dipl_dist = {'m' : np.nan, 's' : 0, 'thr' : 0, 'alpha': np.nan}
             self.median_size = 1
             self.logger.info ("Scorer created with no diploid reference.")
         

@@ -847,6 +847,7 @@ def server(input, output, session):
                         data_for_scoring = np.concatenate([ai[index], cn[index]-2, n[index]]).reshape (3,len(index)).T
                         scorer = Scoring.Scoring(fb = par()['fb'], m0 = par()['m0'], window_size = Consts.SNPS_IN_WINDOW, 
                                                  initial_data = data_for_scoring)
+                        
                     
                         m_ai = scorer.ai_param['m']
                         s_ai = scorer.ai_param['s']
@@ -855,7 +856,6 @@ def server(input, output, session):
                     
                         d_HE = np.sqrt (((ai-m_ai)/s_ai)**2 + ((cn-2-m_cn)/s_cn)**2)
                         p_d = sts.norm.sf (d_HE, scorer.dipl_dist['m'], scorer.dipl_dist['s'])
-                    
                         thr = FDR (np.sort(p_d[np.isfinite(p_d)]), Consts.DIPLOID_ALPHA)
                         
                     else:
@@ -924,8 +924,6 @@ def server(input, output, session):
             solution = solutions_list()[m0_opt()]
             print (solution)
             bed['model'] = solution[-1]
-            print ('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-            print (solutions_list()[m0_opt()][-1])
             opt_bed.set(bed)
             
 app = App(app_ui, server, debug=True)
