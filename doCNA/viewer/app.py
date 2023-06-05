@@ -6,6 +6,9 @@ from doCNA import Consts
 from doCNA import Scoring
 
 
+from doCNA import Consts
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -877,9 +880,10 @@ def server(input, output, session):
                     d_total = np.nansum((d_model*sizes))    
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
             
+
             solutions_list.set (solutions)    
                     
-            
+       
     @output
     @render.plot (alt = 'Total distance to the model')
     def opt_plot ():

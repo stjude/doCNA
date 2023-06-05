@@ -66,7 +66,6 @@ class Segment:
     def report (self, report_type = 'bed'):
         return Report(report_type).segment_report(self)
 
-                                                
                         
 
 def get_sensitive (data, fb):

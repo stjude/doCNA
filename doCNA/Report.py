@@ -15,6 +15,7 @@ class Report:
         """ Generates a report for Genome objects """
         if self._report_type == 'bed':
             keys = list(genome.chromosomes.keys())
+
             keys.sort (key = Consts.CHROM_ORDER.index)
             report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
         elif self._report_type == 'params':
@@ -50,6 +51,7 @@ class Report:
 
         """ Generates a report for Segment objects """
         if self._report_type == 'bed':    
+
            
             report = '\t'.join([str(p) for p in [segment.chrom, 
                                                  segment.start,
@@ -57,6 +59,7 @@ class Report:
                                                  segment.parameters['ai'], 
                                                  segment.parameters['n'],
                                                  segment.parameters['m'],
+
                                                  2*segment.parameters['m']/segment.genome_medians['m0'],
                                                  segment.parameters['d_HE'], 
                                                  segment.parameters['score_HE'], 

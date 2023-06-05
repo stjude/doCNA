@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import argparse as agp
 
+
 from doCNA import Testing
 from doCNA import Consts
 
@@ -26,6 +27,7 @@ colorsCN['NA'] = 'lightskyblue'
 
 def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
     chrs = chrom_sizes.index.values.tolist()
+
     chrs.sort (key = Consts.CHROM_ORDER.index)
     start = 0
     axs[1].plot ((start, start), (0, 4), 'k:', lw = 0.5)
@@ -193,8 +195,10 @@ def plot_cdf (all_values, ax,  all_colors, par = (1,1), n = 100, xscale = 'lin',
         raise ('Unknown scale')
         
 
+
 def earth_worm_plot (data_df, bed_df, params, chrom, axs, markersize = 2,
                      max_score_HE = 10, model_threshold = 3):
+
     chromdata = data_df.loc[data_df.chrom == chrom]
 
     chromdata.loc[chromdata['symbol'] == 'E'].plot(x = 'position', y = 'vaf', lw = 0, alpha = 0.3,
@@ -255,6 +259,7 @@ def check_solution_plot_opt (bed, ax, model_thr,
     
     
     for _, b in bed.loc[bed['model'].notna(),:].iterrows():
+
         ec = 'w' if b['score_model'] < model_thr else 'orange'
         if b['chrom'] == 'chrX':
             ax.scatter (b[xcol],b['ai'], c = colorsCN[b['model']], s = b['size']*2,

@@ -54,6 +54,7 @@ class Distribution:
             m1 = double_G_par['m'][0]
             m2 = double_G_par['m'][1]
             if (double_G_par['p'] > single_G_par['p'])&(np.abs(m1 - m2)/(m1+m2) > 0.01):
+
                 self.key = 'double'
                 self.parameters = double_G_par
                 self.all_parameters ['double'] = double_G_par
@@ -69,7 +70,6 @@ class Distribution:
                 #marking D population
                 for i in np.where ((z1 < z0)&(z1 < thr_z))[0]:
                     string[i] = 'D'
-                
                 self.parameters['string'] = ''.join(string)
                 self.all_parameters['double']['string'] = string
                 self.string = ''.join(string)

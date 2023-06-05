@@ -1,5 +1,7 @@
 ##Genome
-SEX_CHROMS = ['chrX', 'chrY']
+FEMALE_CHROM = 'chrX'
+MALE_CHROM = 'chrY'
+SEX_CHROMS = [FEMALE_CHROM, MALE_CHROM]
 
 #Scoring
 ##Many may be from older version
@@ -63,6 +65,7 @@ VAF_N_THR = 100
 
 FB_F_MAX = 1.4
 FB_EPS = 1e-3
+
 
 ##Reports
 CHROM_ORDER = ['chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9',

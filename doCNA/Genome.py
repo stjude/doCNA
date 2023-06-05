@@ -6,6 +6,7 @@ import scipy.stats as sts
 import scipy.optimize as opt
 import sys
 import sklearn.linear_model as slm
+
 from sklearn.linear_model import HuberRegressor
 
 from doCNA import Testing
@@ -121,9 +122,11 @@ class Genome:
         #for formatting
         for  par in status.index.values:
             params[par] = self.HE.get_genome_medians()[par]  
+
         
         for chrom in self.sex_chromosomes.keys():
             self.sex_chromosomes[chrom].markE_onHE (params, float(self.config['HE']['z_thr']))
+
         
         self.logger.debug ('Testing N/E marking.')    
         
@@ -159,6 +162,7 @@ class Genome:
             if ~status.T.all(axis = 0):
                 params = self.VAF.get_parameters (chrom)
                 self.chromosomes[chrom].mark_on_full_model (self.HE.medians['cov']) 
+
                 self.logger.debug (f'Chromosome {chrom} marked on full model.')
         
         for chrom in self.sex_chromosomes.keys():
@@ -172,6 +176,7 @@ class Genome:
         
             self.chromosomes[chrom] = self.sex_chromosomes[chrom]
             self.logger.info(f'Chromosome {chrom} added.')        
+
         
         self.COV = Testing.Testing ('COV', 
                                     self.chromosomes,
@@ -233,10 +238,12 @@ class Genome:
             for seg in self.chromosomes[chrom].segments:
                 self.all_segments.append (seg)
                 
+
         self.segment_filter = [((s.end - s.start)/1e6 > Consts.SIZE_THR) &\
                                 (s.centromere_fraction < Consts.CENTROMERE_THR) &\
                                 (s.parameters['ai'] < Consts.DIPLOID_AI_THR) &\
                                 (np.abs(s.parameters['m']/self.genome_medians['m0']-1) < Consts.DIPLOID_dCN_THR/2)    for s in self.all_segments] 
+
 
         
         self.segments = [self.all_segments[i] for i in np.where(self.segment_filter)[0]]
@@ -259,6 +266,7 @@ class Genome:
         
         self.score_model_distance ()
             
+
 
     def score_model_distance (self):
     
@@ -299,6 +307,7 @@ class Genome:
             for seg in self.all_segments:
                 seg.parameters['score_model'] = 0
             self.genome_medians['thr_model'] = np.nan
+
             
     def report (self, report_type = 'bed'):
         return Report.Report(report_type).genome_report(self)
