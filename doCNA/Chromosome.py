@@ -132,8 +132,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
             self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = 0.1, thr_z = z_thr)
         except:
-            print ('Error error')
-            print (self.dv)
+            pass
         
  
     def find_runs (self):
