@@ -37,49 +37,6 @@ class Report:
         else:
             report = ""
         return report
-    
-    ##Remove in release
-    def genome_report_old(self, genome):
-        """ Generates a report for Genome objects """
-        if self._report_type == 'bed':
-            keys = list(genome.chromosomes.keys())
-            #keys.sort(key = lambda x: int(x[3:]))
-            keys.sort (key = Consts.CHROM_ORDER.index)
-            report = '\n'.join([genome.chromosomes[key].report(report_type=self._report_type) for key in keys])
-        elif self._report_type == 'params':
-            #shift_b = genome.genome_medians['clonality_balanced']['up']
-            shift_i = genome.genome_medians['clonality_imbalanced']['up']
-            #report = '\n'.join(['m' + '\t' + str(genome.genome_medians['m']),
-            #                    'a_model' + '\t' + str(genome.genome_medians['model_d']['a']),  
-            #                    'a_b' + '\t' + str(genome.genome_medians['clonality_balanced']['A']),
-            #                    'b_b' + '\t' + str(genome.genome_medians['clonality_balanced']['C']),
-            #                    'bt_b' + '\t' + str(genome.genome_medians['clonality_balanced']['C']-shift_b),
-            #                    'm_a' + '\t' + str(genome.genome_medians['clonality_balanced']['m']),
-            #                    's_a' + '\t' + str(genome.genome_medians['clonality_balanced']['s']),
-            #                    'a_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['A']),
-            #                    'b_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['C']),
-            #                    'bt_i' + '\t' + str(genome.genome_medians['clonality_imbalanced']['C']-shift_i),
-            #                    'm_a' + '\t' + str(genome.genome_medians['clonality_imbalanced']['m']),
-            #                    's_a' + '\t' + str(genome.genome_medians['clonality_imbalanced']['s'])])
-
-            report_list = ['m0\t'+ str(genome.genome_medians['m']),
-                           'a_model\t' + str(genome.genome_medians['model_d']['a']),
-                           'Imbalanced:']
-            for key in genome.genome_medians['clonality_imbalanced'].keys():
-                report_list.append (key + '_i\t' + str(genome.genome_medians['clonality_imbalanced'][key])) 
-            report_list.append ('Balanced:')
-            for key in genome.genome_medians['clonality_balanced'].keys():
-                value = genome.genome_medians['clonality_balanced'][key]
-                if hasattr(value, '__iter__'):
-                    value_str = ' '.join([str(v) for v in value])
-                else:
-                    value_str = str(value)
-                report_list.append (key + '_b\t' + value_str)
-            report = '\n'.join(report_list)
-        else:
-            report = ""     
-        return report
-    ##end of remove in release
 
     def chromosome_report(self, segments, runs):
         """ Generates a report for Chromosome objects """
