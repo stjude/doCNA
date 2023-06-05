@@ -8,7 +8,7 @@ from doCNA import Distribution
 from doCNA import Segment
 from doCNA import Run
 from doCNA import Consts
-from doCNA.Report import Report
+from doCNA import Report
 
 Run_treshold =  namedtuple('Run_treshold', [Consts.N_SYMBOL, Consts.E_SYMBOL])
 
@@ -23,8 +23,13 @@ class Chromosome:
         self.genome_medians = genome_medians
         
         self.CB = CB
-        self.cent = (CB.loc[(CB['gieStain'] == 'acen') | (CB['gieStain'] == 'gvar'),'chromStart'].min(),
+        ##Very ugly
+        if name != 'chrY':
+            self.cent = (CB.loc[(CB['gieStain'] == 'acen') | (CB['gieStain'] == 'gvar'),'chromStart'].min(),
                      CB.loc[(CB['gieStain'] == 'acen') | (CB['gieStain'] == 'gvar'),'chromEnd'].max())
+        else:
+            self.cent = (CB.loc[(CB['gieStain'] == 'acen') ,'chromStart'].min(),
+                         CB.loc[(CB['gieStain'] == 'acen'),'chromEnd'].max())
          
         self.Eruns = []
         self.Uruns = []
@@ -127,10 +132,9 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
             self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = 0.1, thr_z = z_thr)
         except:
-            print ('Error error')
-            print (self.dv)
-        
- 
+
+            pass
+
     def find_runs (self):
         """Method to generate runs. Runs segment themselves."""
                 
@@ -229,7 +233,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         self.logger.info (f'N runs: {self.Nruns}')
     
     def report (self, report_type = 'bed'):
-        return Report(report_type).chromosome_report(self.segments, self.runs)
+        return Report.Report(report_type).chromosome_report(self.segments, self.runs)
 
 def vaf_cnai (v, dv, a, vaf,b, cov):
     s = np.sqrt((vaf - dv)*(vaf + dv)/(b*cov))
@@ -294,7 +298,7 @@ def find_runs_thr (values, counts, N = 'N', E = 'E'):
                 E_thr = Consts.DEFAULT_E_THRESHOLD
             if E_thr > np.percentile(counts[values == E], q = [20])[0]:
                 E_thr = Consts.DEFAULT_E_THRESHOLD
-    except (RuntimeError,TypeError):
+    except (RuntimeError,TypeError, ValueError):
         E_thr = Consts.DEFAULT_E_THRESHOLD
     
     return Run_treshold (N = N_thr, E = E_thr)

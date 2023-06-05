@@ -4,14 +4,21 @@ MALE_CHROM = 'chrY'
 SEX_CHROMS = [FEMALE_CHROM, MALE_CHROM]
 
 #Scoring
-SIZE_THR = 1 #in Mb
-K_THR = 0.11
-MIN_LEN_K_BALANCED = 6
-MODEL_THR = 3
+##Many may be from older version
+SIZE_THR = 5 #in Mb
+#MIN_LEN_K_BALANCED = 6
+MODEL_APLHA = 0.05
 #alpha used to determine weidening threshold, using normal approximation 
 FB_ALPHA = 0.1
+SCORE_ALPHA = 0.05
 DSCORE_ALPHA = 0.05
 KSCORE_ALPHA = 0.05
+DIPLOID_AI_THR = 0.05
+DIPLOID_dCN_THR = 0.5
+
+DIPLOID_ALPHA = 0.001
+CENTROMERE_THR = 0.3
+
 
 ##Chromosome
 N_SYMBOL = 'N'
@@ -26,7 +33,7 @@ HE_Z_THR = 13.8
 WINDOWS_THRESHOLD = 9
 SNPS_IN_WINDOW = 1000
 WINDOWS_TO_TEST_THRESHOLD = 20
-UNIFORMITY_THRESHOLD = 1e-5
+#UNIFORMITY_THRESHOLD = 1e-5
 LENGTH_THRESHOLD = 10
 
 AI_SENSITIVE_Z = 2
@@ -37,7 +44,7 @@ SINGLE_P_SENSITIVE = 0.05
 
 ##Segment
 MAX_AI_THRESHOLD_FOR_SENSITIVE = 0.1
-K_MAX = 1.1
+#K_MAX = 1.1
 
 ##Testing
 COV_INITIAL_SHAPE = 0.14
@@ -57,10 +64,8 @@ VAF_VAF_BOUNDS = (0.45,0.55)
 VAF_N_THR = 100
 
 FB_F_MAX = 1.4
-FB_EPS = 1e-4
+FB_EPS = 1e-3
 
-##Distribution
-LENGTH_THRESHOLD = 10
 
 ##Reports
 CHROM_ORDER = ['chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9',

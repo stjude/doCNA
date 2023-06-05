@@ -5,23 +5,24 @@ import multiprocessing as mpl
 import scipy.stats as sts
 import scipy.optimize as opt
 import sys
-import copy
+import sklearn.linear_model as slm
+
 from sklearn.linear_model import HuberRegressor
 
 from doCNA import Testing
 from doCNA import Chromosome
-from doCNA import Distribution
 from doCNA import Consts
 from doCNA import Report
-from doCNA import Run
+from doCNA import Scoring
 
 
 class Genome:
     """Class to run genome wide tests of HE and create chromosomes."""
-    def __init__(self, sample_name, logger, config, CB_file, no_processes = 1):
+    def __init__(self, sample_name, logger, config, CB_file, models, no_processes = 1):
         self.sample_name = sample_name
         self.no_processes = no_processes
         self.config = config
+        self.models = models
         self.CB = pd.read_csv (CB_file, sep = '\t')
         self.logger = logger.getChild (f'{self.__class__.__name__}')
         self.genome_medians = {}
@@ -95,8 +96,16 @@ class Genome:
                
         self.HE.analyze (parameters = self.config['HE'], outliers = outliers, skip_par = ['cov'])
         self.logger.info ("Genome heterozygosity reference: "+ f"\n" + str(self.HE.get_genome_medians()))
-        
         self.genome_medians['HE'] = self.HE.get_genome_medians()
+        
+        ####To Be Tested
+        #self.HEn = Testing.Testing ('HEn',
+        #                            self.chromosomes,
+        #                            self.logger)
+        #self.HEn.run_test(no_processes = self.no_processes)
+
+        #self.logger.debug ("Genomewide heterozygosity: " + f"\n" + str(self.HEn.report_results()))
+        ####
         
         self.logger.debug ('Running N/E marking.')
         
@@ -113,10 +122,11 @@ class Genome:
         #for formatting
         for  par in status.index.values:
             params[par] = self.HE.get_genome_medians()[par]  
-            
-        self.sex_chromosomes[Consts.FEMALE_CHROM].markE_onHE (params, float(self.config['HE']['z_thr']))
-        #self.sex_chromosomes[Consts.MALE_CHROM].data['symbol'] = 'N'
-        self.sex_chromosomes[Consts.MALE_CHROM].markE_onHE (params, float(self.config['HE']['z_thr']))
+
+        
+        for chrom in self.sex_chromosomes.keys():
+            self.sex_chromosomes[chrom].markE_onHE (params, float(self.config['HE']['z_thr']))
+
         
         self.logger.debug ('Testing N/E marking.')    
         
@@ -148,47 +158,25 @@ class Genome:
         
         for chrom in self.chromosomes.keys():
             status = self.VAF.get_status (chrom)
-            self.logger.debug (f'Chromosome {chrom} inlier: {status}')
+            #self.logger.debug (f'Chromosome {chrom} inlier: {status}')
             if ~status.T.all(axis = 0):
                 params = self.VAF.get_parameters (chrom)
-                self.logger.debug (f'Chromosome {chrom} marked on full model.')
                 self.chromosomes[chrom].mark_on_full_model (self.HE.medians['cov']) 
-        
-        self.logger.info (f'Analyzing {Consts.FEMALE_CHROM}: ...')
-        female_chrom_vaf_results = Testing.VAF_test (self.sex_chromosomes[Consts.FEMALE_CHROM].data,
-                                                     self.HE.medians['cov'])
-        self.logger.info (f'VAF test results: {female_chrom_vaf_results}')
-        self.VAF.results.append(pd.DataFrame.from_records ([female_chrom_vaf_results],
-                                                     columns = female_chrom_vaf_results._fields, 
-                                                     index = [Consts.FEMALE_CHROM]))
-        
-        self.logger.info (f'Analyzing {Consts.MALE_CHROM}: ...')
-        male_chrom_vaf_results = Testing.VAF_test (self.sex_chromosomes[Consts.MALE_CHROM].data,
-                                                     self.HE.medians['cov'])
-        self.logger.info (f'VAF test results: {male_chrom_vaf_results}')
-        self.VAF.results.append(pd.DataFrame.from_records ([male_chrom_vaf_results],
-                                                     columns = male_chrom_vaf_results._fields,
-                                                     index = [Consts.MALE_CHROM]))
-        
 
-        #self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
-        #self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
-        #male_markers = len (self.sex_chromosomes[Consts.MALE_CHROM].data)
-        #if male_markers > Consts.SNPS_IN_WINDOW:
-        #    self.chromosomes[Consts.MALE_CHROM] = self.sex_chromosomes[Consts.MALE_CHROM]
-        #    self.logger.info(f'Chromosome {Consts.MALE_CHROM} added.')
-        #else:
-        #    self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, only {male_markers} markers.')
+                self.logger.debug (f'Chromosome {chrom} marked on full model.')
         
-        self.chromosomes[Consts.FEMALE_CHROM] = self.sex_chromosomes[Consts.FEMALE_CHROM]
-        self.logger.info(f'Chromosome {Consts.FEMALE_CHROM} added.')
-        male_markers = len (self.sex_chromosomes[Consts.MALE_CHROM].data)
-        if male_markers > 0: #Consts.SNPS_IN_WINDOW:
-            self.chromosomes[Consts.MALE_CHROM] = self.sex_chromosomes[Consts.MALE_CHROM]
-            self.logger.info(f'Chromosome {Consts.MALE_CHROM} added.')
-        else:
-            self.logger.info(f'Chromosome {Consts.MALE_CHROM} omitted, no markers.')                
-                
+        for chrom in self.sex_chromosomes.keys():
+            self.logger.info (f'Analyzing {chrom}: ...')
+            chrom_vaf_results = Testing.VAF_test (self.sex_chromosomes[chrom].data,
+                                                     self.HE.medians['cov'])
+            self.logger.info (f'VAF test results: {chrom_vaf_results}')
+            self.VAF.results.append(pd.DataFrame.from_records ([chrom_vaf_results],
+                                                                columns = chrom_vaf_results._fields, 
+                                                                index = [chrom]))
+        
+            self.chromosomes[chrom] = self.sex_chromosomes[chrom]
+            self.logger.info(f'Chromosome {chrom} added.')        
+
         
         self.COV = Testing.Testing ('COV', 
                                     self.chromosomes,
@@ -216,12 +204,15 @@ class Genome:
                 self.logger.exception ('Estimation of fb failed.')
                 exit (1)
   
+        self.genome_medians['v0'] = self.genome_medians['VAF']['vaf']
         if m0 > 0:
             self.logger.info (f"Using user supplied m0 = {m0}, instead of estimated m0 = {self.genome_medians['COV']['m']}")
             self.genome_medians['m0'] = m0
         else:
             self.genome_medians['m0'] = self.genome_medians['COV']['m'] 
 
+        self.genome_medians['l'] = self.genome_medians['COV']['l']
+        
         if self.COV.medians['m'] < float(self.config['COV']['min_cov']):
             self.logger.critical (f"Coverage is below threshold {self.COV.medians['m']} < {self.config['COV']['min_cov']}")
             exit (1)
@@ -247,168 +238,76 @@ class Genome:
             for seg in self.chromosomes[chrom].segments:
                 self.all_segments.append (seg)
                 
+
+        self.segment_filter = [((s.end - s.start)/1e6 > Consts.SIZE_THR) &\
+                                (s.centromere_fraction < Consts.CENTROMERE_THR) &\
+                                (s.parameters['ai'] < Consts.DIPLOID_AI_THR) &\
+                                (np.abs(s.parameters['m']/self.genome_medians['m0']-1) < Consts.DIPLOID_dCN_THR/2)    for s in self.all_segments] 
+
+
+        
+        self.segments = [self.all_segments[i] for i in np.where(self.segment_filter)[0]]
+        
+        data_for_scoring = np.array([(s.parameters['ai'], 2*s.parameters['m']/self.genome_medians['m0']-2, s.parameters['n']) for s in self.segments])
+        self.scorer = Scoring.Scoring (fb = self.genome_medians['fb'], m0 = self.genome_medians['m0'], window_size = Consts.SNPS_IN_WINDOW, 
+                                       initial_data = data_for_scoring, logger = self.logger)
+        
+        ps = np.zeros (len(self.all_segments))
+        for i, seg in enumerate (self.all_segments):
+            self.scorer.score_dipl(seg)
+            ps[i] = seg.parameters['p_HE']
+        
+        ##FDRing threshold
+        thr = FDR(np.sort(ps[np.isfinite(ps)]), alpha = Consts.DIPLOID_ALPHA, score = True)
+        self.genome_medians['thr_HE'] = thr
+        self.scorer.set_thr (thr)
+        for seg in self.all_segments:
+            self.scorer.analyze_segment(seg, self.models)
         
         self.score_model_distance ()
-        self.score_clonality (size_thr = Consts.SIZE_THR, model_thr = Consts.MODEL_THR,
-                              dalpha = Consts.DSCORE_ALPHA, kalpha = Consts.KSCORE_ALPHA,
-                              k_thr = Consts.K_THR)
-        
+            
+
+
     def score_model_distance (self):
     
-        zs_ns = [(seg.parameters['d'], seg.parameters['n']) for seg in self.all_segments]
+        size_filter = np.array([(seg.end - seg.start)/1e6 > Consts.SIZE_THR  for seg in self.all_segments])
+        cent_filter = np.array([seg.centromere_fraction < Consts.CENTROMERE_THR  for seg in self.all_segments])
+        model_filter = np.array([seg.parameters['model'] not in ['AB', '(AB)(2-n)', '(AB)(2+n)'] for seg in self.all_segments])
+        finite_filter = np.array([np.isfinite(seg.parameters['d_model']) for seg in self.all_segments])
         
-        z_n_a = np.array(zs_ns)
-        z_n = z_n_a[~np.isnan(z_n_a[:,0]) ,:]
-        try:
-            popt, _ = opt.curve_fit (exp, np.sort (z_n[:,0]), np.linspace (0,1,len(z_n[:,0])),
-                                     p0 = (10), sigma = 1/np.sqrt(z_n[:,1])[np.argsort(z_n[:,0])])
-            self.logger.info ('Distance from model /d/ distribution: FI(d) = exp(-{:.5f} d)'.format (popt[0]))
-            
-        except ValueError:
-            popt = [np.nan]
-            self.logger.warning ("Scoring of models failed. None of the scoring have any sense.")
-            self.logger.warning ("Consider rerunning with manually set m0.")
+        filter = size_filter & cent_filter & model_filter & finite_filter
+        
+        if sum(filter) >= 3:
+            indexes = np.where(filter)[0]
+            segments = [self.all_segments[i] for i in indexes]
+            zs_ns = [seg.parameters['d_model'] for seg in segments]
 
-        for seg in self.all_segments:
-            seg.parameters['model_score'] = -np.log10 (np.exp (-popt[0]*seg.parameters['d']))
-        self.genome_medians['model_d'] = {'a' : popt[0]}
     
-    
-    def score_clonality (self, size_thr = 5e6, model_thr = 3, dalpha = 0.01, kalpha = 0.01, k_thr = 0.11):
-        balanced = [seg.parameters['model'] == '(AB)n' for seg in self.all_segments]
-        big = [(seg.end - seg.start)/1e6 > size_thr for seg in self.all_segments]
-        notHO = [seg.parameters['k'] < k_thr for seg in self.all_segments]
-        fit_model = [seg.parameters['model_score'] < model_thr for seg in self.all_segments]
-        
-        all_data = np.array([(seg.parameters['k'], (seg.end - seg.start)/1e6, seg.parameters['m']) for seg in self.all_segments])
-                
-        balanced_index = np.where ([ba&bi&fi for ba,bi,fi in zip(balanced, big, fit_model)])[0]
-        imbalanced_index = np.where ([(~ba)&bi&fi&nh for ba,bi,fi,nh in zip(balanced, big, fit_model, notHO)])[0]
-        ed = {'A' : np.nan, 'B' : np.nan, 'C' : np.nan, 'down' : np.nan, 
-                  'up' : np.nan, 'm' : np.nan, 's' : np.nan, 'score_FDR' : np.inf}
-            
-        try:            
-            self.genome_medians['clonality_imbalanced'] = fit_huber (all_data[imbalanced_index,:],
-                                                                     dalpha)
-            
-            if self.genome_medians['clonality_imbalanced']['A'] < 0:
-                self.logger.warning ("Scoring of imbalanced segments seems to fail. Check before you yell!")
-            
-        except:
-            self.logger.warning ("Scoring of imbalanced segments failed. None of the scoring makes sense.")    
-            self.genome_medians['clonality_imbalanced'] = ed
-            
-        A = self.genome_medians['clonality_imbalanced']['A']
-        B = self.genome_medians['clonality_imbalanced']['B']
-        C = self.genome_medians['clonality_imbalanced']['C']
-        m = self.genome_medians['clonality_imbalanced']['m']
-        s = self.genome_medians['clonality_imbalanced']['s']
-        up = self.genome_medians['clonality_imbalanced']['up']
-        down = self.genome_medians['clonality_imbalanced']['down']
-        
-        imbalanced_all_index = np.where ([(~ba)&bi&fi for ba,bi,fi in zip(balanced, big, fit_model)])[0] 
-        data = all_data[imbalanced_all_index,:]
-        ks = np.log10 (data[:,0])
-        ss = np.log10 (data[:,1])
-        d = (A*ss+B*ks+C)/np.sqrt (A**2+B**2)
-        p_imb = sts.norm.sf (d, m, s)
-        
-        self.genome_medians["clonality_imbalanced"]["score_FDR"] = FDR(np.sort(p_imb), dalpha)
-
-        self.logger.info ('Score for imbalanced segments:')
-        self.logger.info (f'Core usuallness: log(k) = {-A} log(s) + {-C}')
-        self.logger.info (f'Normal estimation of distance to usual: m  = {m}, s = {s}.')
-        self.logger.info (f'Estimated normal range of distance to usual: from {down} to {up}.')
-        self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_imbalanced"]["score_FDR"]}.')
-        
-        k = all_data[balanced_index,2]/self.genome_medians['m0'] -1
-        
-        try:
-        
-            if len(k) < Consts.MIN_LEN_K_BALANCED:
-                self.logger.warning (f'Only {len(k)} balance regions. Attempt to score from normal imbalanced.')
-                #raise ValueError 
-                m0 = self.genome_medians['m0']
-                imbalanced_norm_indexes = [imbalanced_all_index[i] for i in np.where(p_imb < self.genome_medians["clonality_imbalanced"]["score_FDR"])[0]]
-                #k = [(all_data[i][2]/m0 -1) for i in imbalanced_norm_indexes]
-                k = all_data[imbalanced_norm_indexes, 2]/m0 -1                           
-                
-            gauss = Distribution.fit_single_G(k[~np.isnan(k)], alpha = kalpha, r = 0.2)
-            if gauss['p'] > 0.3:
-                
-                self.logger.info (f"Fitting single gauss considered success, p = {gauss['p']}")
-                params = gauss['2']
-                params['thr'] = gauss['thr']
-                params['p'] = gauss['p']
-                params['a'] = 1 
-            else:
-                self.logger.info (f'Fitting single gauss consider failed, p = {gauss["p"]}')
-                bounds = [[0,-0.2, 0.01, 0.0, 0.01],
-                          [1, 0.0, 0.2, 0.2, 0.2]]
-            
-                gauss = Distribution.fit_double_G (k[~np.isnan(k)], alpha = kalpha, r = 0.2, 
-                                                   initial_bounds = bounds,
-                                                   initial_p0 = (0.5, -0.1, 0.02, 0.1, 0.02))
-            
-               
-                params = gauss['2']
-                params['thr'] = gauss['thr']
-                params['p'] = gauss['p']
-                
-
-            self.genome_medians['clonality_balanced'] = params
-            
-            self.genome_medians['clonality_balanced']['score_FDR'] = FDR (score_double_gauss (k[:,np.newaxis],
-                                                                                              params['m'][np.newaxis,:],
-                                                                                              params['s'][np.newaxis,:]),
-                                                                                              kalpha )
-
-            self.logger.info ('Score for balanced segments:')
-            if params['m'][0] != params['m'][1]:
-                self.logger.info (f'Estimation fits double normal as: p = {params["p"]}.')
-                self.logger.info (f'Double normal estimation of k: m  = {params["m"]}, s = {params["s"]}.')
-            else:
-                self.logger.info (f'Estimation fits normal as: p = {params["p"]}.')
-                self.genome_medians['clonality_balanced']['m'] = params['m'][:1]
-                self.genome_medians['clonality_balanced']['s'] = params['s'][:1]
-                self.logger.info (f'Single normal estimation of k: m  = {params["m"]}, s = {params["s"]}.')
-                
-            self.logger.info ('Note on quality')
-            self.logger.info ('Distance of balanced distributions to k = 0:')
-            self.logger.info (f'Absolute: m = {params["m"]}')
-            self.logger.info (f'Relative: z = {params["m"]/params["s"]}')
-            self.logger.info (f'FDR corrected score threshold: {self.genome_medians["clonality_balanced"]["score_FDR"]}.')
-        except:
-            self.logger.exception ('Scoring of balanced regions failed and it makes no sense.')
-            params = {'p' : np.nan,
-                      'm' : np.array([np.nan, np.nan]),
-                      's' : np.array([np.nan, np.nan]),
-                      'a' : np.array([np.nan, np.nan]),
-                      'thr' : np.array([np.nan, np.nan]),
-                      'score_FDR' : np.inf}
-
-        self.genome_medians['clonality_balanced'] = params
-
-        for seg in self.all_segments:
-            x = np.log10((seg.end - seg.start)/10**6)
-            y = np.log10(seg.parameters['k'])
-            if seg.parameters['model'] != '(AB)n':
-                seg.parameters['k_d'] = (A*x+B*y+C)/np.sqrt (A**2+B**2)
-                seg.parameters['clonality_score'] = -np.log10(sts.norm.sf(seg.parameters['k_d'], m, s))
-                seg.parameters['call'] = 'CNVi' if seg.parameters['k_d'] > up else 'norm'
-                seg.parameters['call_FDR'] = 'CNVi' if seg.parameters['clonality_score'] > self.genome_medians["clonality_imbalanced"]["score_FDR"] else 'norm'
-            else:
-                k = seg.parameters['k']
-                if params['m'].size == 1:
-                    p = sts.norm.sf (seg.parameters['k'], params['m'][0], params['s'][0])                
+            z_n = np.array(zs_ns)
+            x = sts.expon.ppf (np.linspace (0,1,len(z_n)+2)[1:-1])
+            huber = slm.HuberRegressor (fit_intercept = False)
+            huber.fit (x[:, np.newaxis], np.sort(z_n))
+            a = -1./huber.coef_[0]
+            self.logger.info ('Distance from model /d/ distribution: FI(d) = exp({:.5f} d)'.format (a))
+            ps = []
+            for seg in self.all_segments:
+                if seg.parameters['model'] != 'AB':
+                    p = np.exp (a*seg.parameters['d_model'])
+                    seg.parameters['score_model'] = -np.log10 (p)
+                    ps.append(p)
                 else:
-                    z = (k - params['m'])/params['s']
-                    p = np.min((sts.norm.cdf (z[0]), sts.norm.sf (z[-1])))
+                    seg.parameters['score_model'] = 0
                 
-                seg.parameters['k_d'] = np.nan
-                seg.parameters['clonality_score'] = -np.log10(p)
-                seg.parameters['call'] = 'norm' if (k < params['thr'][1]) & (k > params['thr'][0]) else 'CNVb'
-                seg.parameters['call_FDR'] = 'CNVb' if seg.parameters['clonality_score'] > self.genome_medians['clonality_balanced']['score_FDR'] else 'norm'
+            self.genome_medians['d_model'] = {'a' : a}
+            ps = np.array(ps)
+            self.genome_medians['thr_model'] = FDR (np.sort(ps[np.isfinite(ps)]), Consts.MODEL_APLHA, score = True)
+        else:
+            self.logger.info ('Not enough non diploid regions to perform meaningful scoring')
+            self.genome_medians['d_model'] = {'a' : np.nan}
+            for seg in self.all_segments:
+                seg.parameters['score_model'] = 0
+            self.genome_medians['thr_model'] = np.nan
+
             
     def report (self, report_type = 'bed'):
         return Report.Report(report_type).genome_report(self)
@@ -423,7 +322,7 @@ def score_double_gauss (k, m, s):
 def fit_huber (data, alpha):
     k = np.log10 (data[:,0])
     s = np.log10 (data[:,1])
-    huber = HuberRegressor(alpha = 0.0, epsilon = 1.35)
+    huber = slm.HuberRegressor(alpha = 0.0, epsilon = 1.35)
     huber.fit(s[:, np.newaxis], k)
 
     A = -huber.coef_[0]
@@ -431,12 +330,13 @@ def fit_huber (data, alpha):
     C = -huber.intercept_
     d = (A*s+B*k+C)/np.sqrt (A**2+B**2)
     
+    
     down, up = Testing.get_outliers_thrdist (d, alpha = alpha)
     inlier_ds = d[(d > down)&(d < up)]
     m, std = sts.norm.fit (inlier_ds)
     std = std/Bolch_correction (len(inlier_ds))
 
-    score_FDR = FDR (np.sort(sts.norm.sf (d, m, std)), alpha)
+    score_FDR = FDR (np.sort(sts.norm.sf (d, m, std)), alpha, score = True)
 
     return {'A' : A, 'B' : B, 'C' : C, 'down' : down, 'up' : up, 'm' : m,
             's' : std, 'score_FDR' : score_FDR}
@@ -445,11 +345,14 @@ def Bolch_correction (n):
     return 1 - 1/(4*n) - 7/(32*n**2) - 19/(128*n**3)
 
 
-def FDR (p, alpha):
+def FDR (p, alpha, score = False):
     k = np.arange (1, len(p)+1)
     index = np.where(p <= alpha*k/len(p))[0]
     try:
-        return -np.log10(p[np.max(index)])
+        if score:
+            return -np.log10(p[np.max(index)])
+        else:
+            return p[np.max(index)]
     except:
         return np.inf
 

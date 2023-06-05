@@ -22,15 +22,15 @@ class Testing:
         """
         Class constructor        
         """
-        assert test_name in ['COV', 'HE', 'VAF'], f"Unknown test: {test_name}!"
+        assert test_name in ['COV', 'HE', 'VAF', 'HEn'], f"Unknown test: {test_name}!"
         self.test_name = test_name
-        i = np.where([t == test_name for t in ['COV', 'HE', 'VAF']])[0][0]
-        self.test = [COV_test, HE_test, VAF_test][i]
+        i = np.where([t == test_name for t in ['COV', 'HE', 'VAF', 'HEn']])[0][0]
+        self.test = [COV_test, HE_test, VAF_test, HE_test_new][i]
         self.chromosomes = chromosomes
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.test.__name__}')
         self.logger.debug (f'Object {self.test.__name__} created.')
         
-    def run_test (self, *args, no_processes = 1, exclude_symbol = []):
+    def run_test (self, *args, no_processes = 1, exclude_symbol = [], **kwargs):
         """
         Method that runs test
         """        
@@ -151,7 +151,7 @@ def COV_test (data, *args, **kwargs):
         initial_m = np.median(covs)
              
         #here may be good place for try except
-        popt, pcov = opt.curve_fit (lambda_cdf, percentiles, y, p0 = [initial_m, initial_shape],
+        popt, pcov = opt.curve_fit (lambda_ppf, percentiles, y, p0 = [initial_m, initial_shape],
                                     bounds = [(cov_range[0],shape_range[0]),
                                               (cov_range[1],shape_range[1])])
         m, l  = popt
@@ -166,8 +166,75 @@ def Q (p,l):
     else:
         return (p**l-(1-p)**l)/l    
 
-def lambda_cdf (p, m, lam):
+def lambda_ppf (p, m, lam):
     return Q (p, lam)*np.sqrt(m)+m
+
+
+def HE_test_new (data, *args, **kwargs):
+    cov_perc_bounds = Consts.HE_COV_PERC_BOUNDS if 'cov_perc_bounds' not in kwargs else kwargs['cov_perc_bounds']
+    vaf_bounds = Consts.HE_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds']
+    fcov_bounds = Consts.HE_FCOV_BOUNDS if 'fcov_bounds' not in kwargs else kwargs['fcov_bounds']
+    fN_bounds = Consts.HE_FN_BOUNDS if 'fN_bounds' not in kwargs else kwargs['fN_bounds']
+    a_bounds = Consts.HE_A_BOUNDS if 'a_bounds' not in kwargs else kwargs['a_bounds']
+    aN_bounds = Consts.HE_AN_BOUNDS if 'aN_bounds' not in kwargs else kwargs['aN_bounds']
+    b_bounds = Consts.HE_B_BOUNDS if 'b_bounds' not in kwargs else kwargs['b_bounds']
+    lerr_bounds = Consts.HE_LERR_BOUNDS if 'lerr_bounds' not in kwargs else kwargs['lerr_bounds']   
+    
+    cov_min, cov_max = np.percentile (data['cov'].values, q = cov_perc_bounds)
+    cov_min = int(cov_min)
+    cov_max = int(cov_max)
+    
+    n = np.concatenate ([np.repeat(c, c+1) for c in np.arange (cov_min, cov_max +1)])
+    a = np.concatenate ([np.arange(0, c+1) for c in np.arange (cov_min, cov_max +1)])
+    c = np.zeros_like (a)
+    
+    data_of_interest = data.loc[(data['cov'] >= cov_min)&(data['cov'] <= cov_max)]
+    counts = data_of_interest.groupby (by = ['cov', 'alt_count'])['chrom'].count()
+    #this should run one time, so much quicker
+    for i in np.arange(len(n)):
+        try:
+            c[i] = counts[(n[i],a[i])]
+        except KeyError:
+            pass
+    
+    fcov = (data['cov'].median() - cov_min) /  (cov_max - cov_min)
+    aH = len(data.loc[(data['vaf'] > 0.1)&(data['vaf'] < 0.9)])/len(data)
+    aN = len(data.loc[(data['vaf'] > 0.9)])/len(data)
+    
+    res = opt.minimize (chi2_new, x0 = (0.5, fcov, 1.0, aH, aN, 1.3, 6, 6), args = (n,a,c, c.sum()),
+                        bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
+                        options = {'maxiter' : 2000})
+    
+    if res.success:
+        chi2 = res.fun
+        vaf, fcov, fN, a, a1, b, le, lf = res.x    
+        cov = cov_min + fcov*(cov_max-cov_min)    
+    else:
+        chi2 = np.nan
+        vaf = np.nan
+        cov = np.nan
+        b = np.nan
+    
+    return HE_results(chi2 = chi2, vaf = vaf, cov = cov, b = b)
+
+def chi2_new (params, n, a, c, N):
+        vaf, fcov, fN, aH, aN, b, le, lf = params
+        fe = 10**(-le)
+        ff = 10**(-lf)
+        
+        cov = n.min() + fcov*(n.max()-n.min())
+        ns = 2*fN*N*cn2_cov_pdf (n, cov, b)
+        
+        nhe = cn2_vaf_pdf (a/n,vaf,n)
+        nho = HO_vaf_pdf (a, n, fe ,b)
+        nno = NO_vaf_pdf (a, n, ff, b)
+        
+        ct = ns*(aH*nhe + (1-aH -aN)*nho + aN*nno)
+        
+        chi2 = ((c - ct)**2/np.sqrt(c*c+1)).sum()/len(n)
+        
+        return chi2
+
 
 def HE_test (data, *args, **kwargs):
     
@@ -201,7 +268,7 @@ def HE_test (data, *args, **kwargs):
         return chi2/len(counts)
 
     cov_min, cov_max = np.percentile (data['cov'].values, q = cov_perc_bounds)
-   
+    
     counts = []
     for c in np.arange (int(cov_min), int(cov_max+1)):
         d = data.loc[data['cov'] == c]
@@ -229,7 +296,6 @@ def HE_test (data, *args, **kwargs):
         b = np.nan
  
     return HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
-
 
 def cn2_vaf_pdf (x,v,c):
     p = sts.norm.pdf (x, v, np.sqrt((v*(1-v))/c))

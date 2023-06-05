@@ -1,6 +1,5 @@
 import scipy.stats as sts
 import numpy as np
-
 import scipy.optimize as opt
 
 from doCNA import Testing
@@ -8,10 +7,6 @@ from doCNA import Consts
 from doCNA import Models
 from doCNA.Report import Report
 
-#use model_presets from __main__
-model_presets = {}
-model_presets.update (Models.model_presets_2)
-model_presets.update (Models.model_presets_4)
 
 class Segment:
     """Class to calculate clonality and find the model."""
@@ -20,6 +15,7 @@ class Segment:
         self.data = data
         self.config = config
         self.genome_medians = genome_medians
+        #self.model_presets = model_dic
         self.segmentation_score = segmentation_score
         self.segmentation_symbol = segmentation_symbol
         self.centromere_fraction = centromere_fraction
@@ -35,7 +31,7 @@ class Segment:
         self.symbol = self.symbols.index[0]
         self.logger.debug (f'Segment symbol: {self.symbol}')
         self.estimate_parameters ()
-        self.select_model ()
+        #self.select_model ()
         self.logger.debug ('Segment analyzed.')
         
     def tostring(self) -> str:
@@ -49,63 +45,36 @@ class Segment:
         method = 'unspecified'
         if self.symbol == Consts.E_SYMBOL:
             self.parameters = get_sensitive (self.data.loc[self.data['symbol'] == Consts.E_SYMBOL,],
-                                             self.genome_medians['fb'],
-                                             self.genome_medians['m0'])
+                                             self.genome_medians['fb'])
             method = 'sensitive'
             if self.parameters['ai'] > Consts.MAX_AI_THRESHOLD_FOR_SENSITIVE:
-                self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',])
+                self.parameters = get_full (self.data,#.loc[self.data['symbol'] != 'A',],
+                                            b = self.genome_medians['fb'])
                 method = 'full'
             
         else:
-            self.parameters = get_full (self.data.loc[self.data['symbol'] != 'A',])
+            self.parameters = get_full (self.data,#.loc[self.data['symbol'] != 'A',],
+                                        b = self.genome_medians['fb'])
             method = 'full'
             
         if self.parameters['success']:
-            self.logger.info (f"AI estimated by {method} method, ai = {self.parameters['ai']}")
+            self.logger.info (f"ai estimated by {method} method, ai = {self.parameters['ai']}")
         else:
-            self.logger.info (f"AI not estimated.")
+            self.logger.info (f"ai not estimated.")
             self.logger.debug (f"Parameters: {self.parameters}")
                 
     def report (self, report_type = 'bed'):
         return Report(report_type).segment_report(self)
-                                                  
-    def select_model (self):        
-        if self.parameters['success']:
-            m = self.parameters['m']
-            v = self.parameters['ai']
-            m0 = self.genome_medians['m0']
-        
-            self.distances = np.array ([Models.calculate_distance (preset, m,v,m0) for preset in model_presets.values()])
-            self.logger.debug (f"Segment distances {self.distances}")
 
-            if all (np.isnan(self.distances)):
-                picked = np.nan
-                self.parameters['d'] = np.nan
-                self.parameters['model'] = 'NaN'
-                self.parameters['k'] = np.nan
-                self.logger.info (f"Segment not kariotyped!")    
-            else:
-                picked = np.where(self.distances == np.nanmin(self.distances))[0][0]
-                self.parameters['d'] = np.nanmin(self.distances)
-                self.parameters['model'] = list(model_presets.keys())[picked]
-                k = model_presets[self.parameters['model']].k(m,v,m0) 
-                self.parameters['k'] = k if k < Consts.K_MAX else np.nan
-                self.logger.info (f"Segment kariotyped as {self.parameters['model']}, d = {self.parameters['d']}")
-            
-        else:
-            self.parameters['d'] = np.nan
-            self.parameters['model'] = 'NA'
-            self.parameters['k'] = np.nan
-            self.logger.info ('No model for this segment.')
                         
 
+def get_sensitive (data, fb):
 
-def get_sensitive (data, fb, mG, z_thr = 1.5):
     
     vafs = data['vaf'].values
     
-    def ai (v, dv, a):
-        v0 = 0.5
+    def ai (v, dv, a, v0):
+        #v0 = 0.5
         return a*sts.norm.cdf (v, v0 - dv, smin) + (1-a)*sts.norm.cdf (v, v0 + dv, smin)
     
     m, dm, l, dl = Testing.COV_test (data)
@@ -113,24 +82,32 @@ def get_sensitive (data, fb, mG, z_thr = 1.5):
            
     v,c = np.unique (vafs, return_counts = True)
     try:
-        popt, pcov = opt.curve_fit (ai, v, np.cumsum(c)/np.sum(c), p0 = [0.02, 0.5],
-                                    bounds = ((0.0, 0.1),
-                                              (0.3, 0.9)), check_finite = False)
-        dv, a = popt
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'a': a, 'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
+        popt, pcov = opt.curve_fit (ai, v, np.cumsum(c)/np.sum(c), p0 = [0.02, 0.5, 0.5],
+
+                                    bounds = ((0.0, 0.48, 0.46),
+                                              (0.3, 0.52, 0.54)), check_finite = False)
+        dv, a, v0 = popt
+        ddv, da, dv0 = np.sqrt(np.diag(pcov))
+                
+        parameters = {'m': m, 'l': l, 'ai' : dv,  'dai' : ddv,
+                      'a': a, 'da': da, 'v0' : v0, 'dv0' : dv0,
+
+                      'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'status' : 'valid', 'fraction_1' : np.nan}
         
     except (RuntimeError, ValueError):
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,
+
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : np.nan, 
+
+                      'success' : False, 'n' : np.nan,
                       'status' : 'valid', 'fraction_1' : np.nan}
         
-    
     return parameters 
 
 def get_full (data, b = 1.01):
     
     vafs = data['vaf'].values    
-    m, dm, l, dl = Testing.COV_test (data)
+    m, _, l, _ = Testing.COV_test (data)
 
     def vaf_cdf (v, dv, a, lerr, f, vaf, b):
         return vaf_cdf_c (v, dv, a, lerr, f, vaf, b, m)
@@ -144,33 +121,41 @@ def get_full (data, b = 1.01):
         dv0 = v0 - np.median (v[v < v0])
         p0 = [dv0, ones0/c.sum(), 2, 0.5, 0.5, b]        
         popt, pcov = opt.curve_fit (vaf_cdf, v, cnor, p0 = p0, 
-                                    bounds = ((0,   0,   1, 0, 0.45, 1),
-                                              (0.499, 0.95, 5, 1, 0.55, 10)))
-        dv, a, lerr, f, vaf, b = popt      
-        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 'success' : True, 
-                      'fraction_1' : ones0/c.sum(), 'n' : len (data)/Consts.SNPS_IN_WINDOW,
-                      'status' : 'valid'}
+
+                                    bounds = ((0,   0,   1, 0, 0.45, 0.99*b),
+                                              (0.499, 0.95, 5, 1, 0.55, 10*b)))
+        dv, a, lerr, f, v0, b = popt
+                     
+        parameters = {'m': m, 'l': l, 'ai' : dv, 'v0': v0, 'a': a, 'b' : b, 
+                      'success' : True, 'fraction_1' : ones0/c.sum(),
+                      'n' : len (data)/Consts.SNPS_IN_WINDOW, 'status' : 'valid'}
     except RuntimeError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,
-                       'fraction_1' : ones0/c.sum(), 'status' : 'Fit failed'}
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : v0, 
+                      'success' : False, 'n' :  len (data)/Consts.SNPS_IN_WINDOW,
+                      'fraction_1' : ones0/c.sum(), 'status' : 'Fit failed'}
     except ValueError:
-        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'success' : False, 'n' : np.nan,  
+        parameters = {'m': m, 'l': l, 'ai' : np.nan, 'v0' : v0, 
+                      'success' : False, 'n' : len (data)/Consts.SNPS_IN_WINDOW,  
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters failed'}    
     if ones0/c.sum() > 0.9:
-        parameters = {'m': m, 'l': l, 'ai' : 0.5, 'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
+        parameters = {'m': m, 'l': l, 'ai' : 0.5, 'v0' : v0, 
+
+                      'success' : True, 'n' : len (data)/Consts.SNPS_IN_WINDOW,
                       'fraction_1' : ones0/c.sum(), 'status' : 'Parameters guessed'}    
         
     return parameters
 
-def vaf_cnai (v, dv, a, vaf,b, cov):
-    s = np.sqrt((vaf - dv)*(vaf + dv)/(b*cov))
-    return a*sts.norm.cdf (v, vaf - dv, s) + (1-a)*sts.norm.cdf (v, vaf + dv, s)
+def vaf_cnai (v, dv, a, v0,b, cov):
+
+    s = np.sqrt((v0 - dv)*(v0 + dv)/(cov))*b
+
+    return a*sts.norm.cdf (v, v0 - dv, s) + (1-a)*sts.norm.cdf (v, v0 + dv, s)
 
 def vaf_HO (v, lerr):
     err = 10**lerr
     return np.exp ((v-1)*err)
 
-def vaf_cdf_c (v, dv, a, lerr, f, vaf, b, cov):
-    cnai = vaf_cnai (v, dv, f, vaf, b, cov)
+def vaf_cdf_c (v, dv, a, lerr, f, v0, b, cov):
+    cnai = vaf_cnai (v, dv, f, v0, b, cov)
     cnHO = vaf_HO (v, lerr)
     return a*cnHO + (1 - a)*cnai
