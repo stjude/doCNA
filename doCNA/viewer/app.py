@@ -867,7 +867,7 @@ def server(input, output, session):
                         thr = 0
                                        
                     models = []
-                    d_model = np.repeat(np.nan, l).astype(np.float)
+                    d_model = np.repeat(np.nan, l).astype(float)
                         
                     for i, pd in enumerate (p_d):
                         if pd <= thr:
