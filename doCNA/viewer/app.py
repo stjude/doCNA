@@ -399,8 +399,8 @@ def server(input, output, session):
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'below HE')
-            axs[0].legend (bbox_to_anchor = (0.5, 2), 
-                           ncol = int(len(model_presets())/2 + 1),
+            axs[0].legend (bbox_to_anchor = (0.5, 2.5), 
+                           ncol = int(len(model_presets())/2) + 1,
                            loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
     
@@ -848,7 +848,8 @@ def server(input, output, session):
                     if len(index) > 2:
 
                         data_for_scoring = np.concatenate([ai[index], cn[index]-2, n[index]]).reshape (3,len(index)).T
-                        scorer = Scoring.Scoring(fb = par()['fb'], m0 = par()['m0'], window_size = Consts.SNPS_IN_WINDOW, 
+                        #par()['m0']
+                        scorer = Scoring.Scoring(fb = par()['fb'], m0 = m, window_size = Consts.SNPS_IN_WINDOW, 
                                                  initial_data = data_for_scoring)
                         
                     
