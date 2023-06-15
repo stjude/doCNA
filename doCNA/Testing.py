@@ -25,7 +25,7 @@ class Testing:
         assert test_name in ['COV', 'HE', 'VAF', 'HEn'], f"Unknown test: {test_name}!"
         self.test_name = test_name
         i = np.where([t == test_name for t in ['COV', 'HE', 'VAF', 'HEn']])[0][0]
-        self.test = [COV_test, HE_test, VAF_test, HE_test_new][i]
+        self.test = [COV_test, HE_test, VAF_test][i]
         self.chromosomes = chromosomes
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.test.__name__}')
         self.logger.debug (f'Object {self.test.__name__} created.')
