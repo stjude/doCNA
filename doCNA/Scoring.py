@@ -102,7 +102,7 @@ class Scoring:
             ai = segment.parameters['ai']
               
             try:
-                segment.parameters.update (Models.pick_model(ai,1, cn,1,models))
+                segment.parameters.update (Models.pick_model(ai,0.5, cn,1,models))
             except IndexError:
                 segment.parameters.update ({'model' : 'UN', 'd_model' : np.nan,
                                             'k': np.nan, 'p_model' : np.nan,})

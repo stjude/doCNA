@@ -871,12 +871,12 @@ def server(input, output, session):
                     d_model = np.repeat(np.nan, l).astype(float)
                         
                     for i, pd in enumerate (p_d):
-                        if pd <= thr:
-                            sm = Models.pick_model(ai[i], 1, cn[i], 1, input.models_selected())
-                            models.append(sm['model'])
-                            d_model[i] = sm['d_model']
-                        else:
-                            models.append ('AB')
+                        #if pd <= thr:
+                        sm = Models.pick_model(ai[i], 0.5, cn[i], 1, input.models_selected())
+                        models.append(sm['model'])
+                        d_model[i] = sm['d_model']
+                        #else:
+                        #    models.append ('AB')
                         
                     d_total = np.nansum((d_model*sizes))    
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
