@@ -236,27 +236,28 @@ def server(input, output, session):
     def solutions_info ():
         solutions = solutions_list()
         if len (solutions):
-
+            header = "Paired model fit and diploid dist minima.\n"
             ms = np.array(list(solutions_list())) 
 
             d_total = np.array([solutions[m][1] for m in solutions.keys()])
             d_HE = np.array([solutions[m][0].dipl_dist['m'] for m in solutions.keys()])
-        
-        #m, d, _, _ = opt_solution ()
+                
             ind_d = sig.argrelmin (d_total, order = 2)[0]
             ind_HE = sig.argrelmin (d_HE, order = 1)[0]
-            
-            
+            print (ind_d)
+            print (ind_HE) 
+                        
+            dist = np.abs (ind_d[:,np.newaxis] - ind_HE[np.newaxis,:])
+            index = np.argsort(dist, axis = 1)
             
             minims = []
-            for i in ind_d:
-                minims.append ((ms[i], d_total[i], d_HE[i]))
-            for i in ind_HE:
-                minims.append ((ms[i], d_total[i], d_HE[i]))
+            for i, id in enumerate(ind_d):
+                idc = index[i,0]
+                minims.append ((ms[id], ms[ind_HE[idc]], d_total[id], d_HE[ind_HE[idc]]))
              
-            minims.sort (key = lambda x: x[1], reverse = False)
+            minims.sort (key = lambda x: x[2], reverse = False)
         
-            return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) + ' d_HE = ' + str(HE)  for m,d,HE in minims])
+            return header + '\n'.join(['m_d = ' + str(m_d) + ' m_HE = ' + str(m_H) +'  d = ' + str(d) + ' d_HE = ' + str(HE)  for m_d, m_H,d,HE in minims])
   
    
     @output
