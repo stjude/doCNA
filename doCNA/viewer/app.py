@@ -17,10 +17,7 @@ import scipy.signal as sig
 
 from collections import defaultdict
 from matplotlib.patches import Ellipse
-
 from sklearn.neighbors import KernelDensity
-
-
 
 chromdic = {}
 for c in Consts.CHROM_ORDER:
@@ -246,8 +243,11 @@ def server(input, output, session):
             d_HE = np.array([solutions[m][0].dipl_dist['m'] for m in solutions.keys()])
         
         #m, d, _, _ = opt_solution ()
-            ind_d = sig.argrelmin (d_total)[0]
-            ind_HE = sig.argrelmin (d_HE)[0]
+            ind_d = sig.argrelmin (d_total, order = 2)[0]
+            ind_HE = sig.argrelmin (d_HE, order = 1)[0]
+            
+            
+            
             minims = []
             for i in ind_d:
                 minims.append ((ms[i], d_total[i], d_HE[i]))
@@ -617,6 +617,8 @@ def server(input, output, session):
             
             dip_bed_data = bed_data.loc[filt]            
             
+            n_median = np.median (dip_bed_data['n'])
+            
             if len(dip_bed_data):
                 check_solution_plot_opt (dip_bed_data, ax, model_thr = np.inf,
                                          highlight = input.chroms_selected())
@@ -626,13 +628,13 @@ def server(input, output, session):
                 return Ellipse ((par['m_cn']+2, par['m_ai']), 2*d*par['s_cn'], 2*d*par['s_ai'], **kwargs)
                         
             p = 10**(-par_d['thr_HE'])
-            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])
+            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])/np.sqrt(n_median)
             if np.isfinite (d):
                 ax.add_patch (ellipse(par_d, label = 'auto thr',
                               lw = 1, fill = False, color = 'r', ls = ':'))
             
             p = 10**(-input.HE_thr())
-            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])
+            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])/np.sqrt(n_median)
             if np.isfinite(d):
                 ax.add_patch (ellipse(par_d, label = 'user thr', 
                               lw = 1, fill = False, color = 'b', ls = '--') )
