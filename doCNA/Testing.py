@@ -25,7 +25,7 @@ class Testing:
         assert test_name in ['COV', 'HE', 'VAF', 'HEn'], f"Unknown test: {test_name}!"
         self.test_name = test_name
         i = np.where([t == test_name for t in ['COV', 'HE', 'VAF', 'HEn']])[0][0]
-        self.test = [COV_test, HE_test, VAF_test, HE_test_new][i]
+        self.test = [COV_test, HE_test, VAF_test][i]
         self.chromosomes = chromosomes
         self.logger = logger.getChild (f'{self.__class__.__name__}-{self.test.__name__}')
         self.logger.debug (f'Object {self.test.__name__} created.')
@@ -169,8 +169,7 @@ def Q (p,l):
 def lambda_ppf (p, m, lam):
     return Q (p, lam)*np.sqrt(m)+m
 
-
-def HE_test_new (data, *args, **kwargs):
+def HE_test (data, *args, **kwargs):
     cov_perc_bounds = Consts.HE_COV_PERC_BOUNDS if 'cov_perc_bounds' not in kwargs else kwargs['cov_perc_bounds']
     vaf_bounds = Consts.HE_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds']
     fcov_bounds = Consts.HE_FCOV_BOUNDS if 'fcov_bounds' not in kwargs else kwargs['fcov_bounds']
@@ -199,15 +198,16 @@ def HE_test_new (data, *args, **kwargs):
     
     fcov = (data['cov'].median() - cov_min) /  (cov_max - cov_min)
     aH = len(data.loc[(data['vaf'] > 0.1)&(data['vaf'] < 0.9)])/len(data)
-    aN = len(data.loc[(data['vaf'] > 0.9)])/len(data)
+    aN = len(data.loc[(data['vaf'] < 0.1)])/len(data)
+    N = len(data_of_interest['cov'])#.sum()
     
-    res = opt.minimize (chi2_new, x0 = (0.5, fcov, 1.0, aH, aN, 1.3, 6, 6), args = (n,a,c, c.sum()),
+    res = opt.minimize (chi2, x0 = (0.5, fcov, 1.0, aH, aN, 1.3, 6, 6), args = (n,a,c,N),
                         bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
                         options = {'maxiter' : 2000})
     
     if res.success:
         chi2 = res.fun
-        vaf, fcov, fN, a, a1, b, le, lf = res.x    
+        vaf, fcov, fN, aH, aN, b, le, lf = res.x    
         cov = cov_min + fcov*(cov_max-cov_min)    
     else:
         chi2 = np.nan
@@ -215,28 +215,53 @@ def HE_test_new (data, *args, **kwargs):
         cov = np.nan
         b = np.nan
     
-    return HE_results(chi2 = chi2, vaf = vaf, cov = cov, b = b)
+    return chi2, vaf, fcov, fN, aH, aN, b, le, lf 
+    #return chi2, vaf, cov, b
 
-def chi2_new (params, n, a, c, N):
+def chi2 (params, n, a, c, N):
         vaf, fcov, fN, aH, aN, b, le, lf = params
         fe = 10**(-le)
         ff = 10**(-lf)
         
         cov = n.min() + fcov*(n.max()-n.min())
-        ns = 2*fN*N*cn2_cov_pdf (n, cov, b)
+        ns = cn2_cov_pdf (n, cov, b)
         
-        nhe = cn2_vaf_pdf (a/n,vaf,n)
-        nho = HO_vaf_pdf (a, n, fe ,b)
-        nno = NO_vaf_pdf (a, n, ff, b)
+        nhe = cn2_vaf_pdf (vaf, n)
+        nho = HO_vaf_pdf (a, n, fe)
+        nno = NO_vaf_pdf (a, n, ff)
         
-        ct = ns*(aH*nhe + (1-aH -aN)*nho + aN*nno)
+        pt = ns*(aH*nhe + (1-aH -aN)*nho + aN*nno)
+        ct = 2*fN*N*pt/pt.sum()
+#        ct = ns*(aH*nhe + (1-aH -aN)*nho + aN*nno)
         
-        chi2 = ((c - ct)**2/np.sqrt(c*c+1)).sum()/len(n)
+        chi2i = (c - ct)**2/np.sqrt(ct*ct+1)
+        
+        chi2 = chi2i.sum()/len(chi2i)
         
         return chi2
 
+def cn2_vaf_pdf (v,c):
+    p = []
+    for d in np.arange (c[0], c[-1]+1):
+        sv = np.sqrt((v*(1-v))/d)    
+        x = np.arange (-0.5, d+1)/d
+        pc = sts.norm.cdf (x[1:], v, sv) - sts.norm.cdf (x[:-1], v, sv)
+        p.append (pc)
+    return np.concatenate (p)
 
-def HE_test (data, *args, **kwargs):
+def cn2_cov_pdf (n,c,b = 1):
+    p = sts.norm.pdf (n, c, np.sqrt(b*c))
+    return p
+
+def HO_vaf_pdf (i, n, fe = 10**-6, b = 1):
+    p = sts.binom.pmf(i, n, 1-b*fe)
+    return p
+    
+def NO_vaf_pdf (i, n, fe = 10**-6, b = 1):
+    p = sts.binom.pmf(i, n, b*fe)
+    return p
+
+def HE_test_old (data, *args, **kwargs):
     
     cov_perc_bounds = Consts.HE_COV_PERC_BOUNDS if 'cov_perc_bounds' not in kwargs else kwargs['cov_perc_bounds']
     vaf_bounds = Consts.HE_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds']
@@ -297,17 +322,17 @@ def HE_test (data, *args, **kwargs):
  
     return HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
 
-def cn2_vaf_pdf (x,v,c):
+def cn2_vaf_pdf_old (x,v,c):
     p = sts.norm.pdf (x, v, np.sqrt((v*(1-v))/c))
     return p/sum(p)
 
-def cn2_cov_pdf (n,c,b = 1):
+def cn2_cov_pdf_old (n,c,b = 1):
     return sts.norm.pdf (n, c, np.sqrt(b*c))
 
-def HO_vaf_pdf (i, n, fe = 10**-6, b = 1):
+def HO_vaf_pdf_old (i, n, fe = 10**-6, b = 1):
     return sts.binom.pmf(i, n, 1-b*fe)
 
-def NO_vaf_pdf (i, n, fe = 10**-6, b = 1):
+def NO_vaf_pdf_old (i, n, fe = 10**-6, b = 1):
     return sts.binom.pmf(i, n, b*fe)
 
 def VAF_test (data, m, **kwargs):

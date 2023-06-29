@@ -17,10 +17,7 @@ import scipy.signal as sig
 
 from collections import defaultdict
 from matplotlib.patches import Ellipse
-
 from sklearn.neighbors import KernelDensity
-
-
 
 chromdic = {}
 for c in Consts.CHROM_ORDER:
@@ -239,24 +236,28 @@ def server(input, output, session):
     def solutions_info ():
         solutions = solutions_list()
         if len (solutions):
-
+            header = "Paired model fit and diploid dist minima.\n"
             ms = np.array(list(solutions_list())) 
 
             d_total = np.array([solutions[m][1] for m in solutions.keys()])
             d_HE = np.array([solutions[m][0].dipl_dist['m'] for m in solutions.keys()])
-        
-        #m, d, _, _ = opt_solution ()
-            ind_d = sig.argrelmin (d_total)[0]
-            ind_HE = sig.argrelmin (d_HE)[0]
+                
+            ind_d = sig.argrelmin (d_total, order = 2)[0]
+            ind_HE = sig.argrelmin (d_HE, order = 1)[0]
+            print (ind_d)
+            print (ind_HE) 
+                        
+            dist = np.abs (ind_d[:,np.newaxis] - ind_HE[np.newaxis,:])
+            index = np.argsort(dist, axis = 1)
+            
             minims = []
-            for i in ind_d:
-                minims.append ((ms[i], d_total[i], d_HE[i]))
-            for i in ind_HE:
-                minims.append ((ms[i], d_total[i], d_HE[i]))
+            for i, id in enumerate(ind_d):
+                idc = index[i,0]
+                minims.append ((ms[id], ms[ind_HE[idc]], d_total[id], d_HE[ind_HE[idc]]))
              
-            minims.sort (key = lambda x: x[1], reverse = False)
+            minims.sort (key = lambda x: x[2], reverse = False)
         
-            return '\n'.join(['m = ' + str(m) + '  d = ' + str(d) + ' d_HE = ' + str(HE)  for m,d,HE in minims])
+            return header + '\n'.join(['m_d = ' + str(m_d) + ' m_HE = ' + str(m_H) +'  d = ' + str(d) + ' d_HE = ' + str(HE)  for m_d, m_H,d,HE in minims])
   
    
     @output
@@ -399,8 +400,8 @@ def server(input, output, session):
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'below HE')
-            axs[0].legend (bbox_to_anchor = (0.5, 2), 
-                           ncol = int(len(model_presets())/2 + 1),
+            axs[0].legend (bbox_to_anchor = (0.5, 20.5), 
+                           ncol = int(len(model_presets())/2) + 1,
                            loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
     
@@ -617,6 +618,8 @@ def server(input, output, session):
             
             dip_bed_data = bed_data.loc[filt]            
             
+            n_median = np.median (dip_bed_data['n'])
+            
             if len(dip_bed_data):
                 check_solution_plot_opt (dip_bed_data, ax, model_thr = np.inf,
                                          highlight = input.chroms_selected())
@@ -626,13 +629,13 @@ def server(input, output, session):
                 return Ellipse ((par['m_cn']+2, par['m_ai']), 2*d*par['s_cn'], 2*d*par['s_ai'], **kwargs)
                         
             p = 10**(-par_d['thr_HE'])
-            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])
+            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])/np.sqrt(n_median)
             if np.isfinite (d):
                 ax.add_patch (ellipse(par_d, label = 'auto thr',
                               lw = 1, fill = False, color = 'r', ls = ':'))
             
             p = 10**(-input.HE_thr())
-            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])
+            d = sts.norm.ppf(1-p, par_d['m_d'], par_d['s_d'])/np.sqrt(n_median)
             if np.isfinite(d):
                 ax.add_patch (ellipse(par_d, label = 'user thr', 
                               lw = 1, fill = False, color = 'b', ls = '--') )
@@ -848,7 +851,8 @@ def server(input, output, session):
                     if len(index) > 2:
 
                         data_for_scoring = np.concatenate([ai[index], cn[index]-2, n[index]]).reshape (3,len(index)).T
-                        scorer = Scoring.Scoring(fb = par()['fb'], m0 = par()['m0'], window_size = Consts.SNPS_IN_WINDOW, 
+                        #par()['m0']
+                        scorer = Scoring.Scoring(fb = par()['fb'], m0 = m, window_size = Consts.SNPS_IN_WINDOW, 
                                                  initial_data = data_for_scoring)
                         
                     
@@ -867,15 +871,15 @@ def server(input, output, session):
                         thr = 0
                                        
                     models = []
-                    d_model = np.repeat(np.nan, l).astype(np.float)
+                    d_model = np.repeat(np.nan, l).astype(float)
                         
                     for i, pd in enumerate (p_d):
-                        if pd <= thr:
-                            sm = Models.pick_model(ai[i], 1, cn[i], 1, input.models_selected())
-                            models.append(sm['model'])
-                            d_model[i] = sm['d_model']
-                        else:
-                            models.append ('AB')
+                        #if pd <= thr:
+                        sm = Models.pick_model(ai[i], 0.5, cn[i], 1, input.models_selected())
+                        models.append(sm['model'])
+                        d_model[i] = sm['d_model']
+                        #else:
+                        #    models.append ('AB')
                         
                     d_total = np.nansum((d_model*sizes))    
                     solutions[m] = (scorer, d_total/sizes.sum(), models)
