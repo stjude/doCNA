@@ -201,7 +201,7 @@ def HE_test (data, *args, **kwargs):
     aN = len(data.loc[(data['vaf'] < 0.1)])/len(data)
     N = len(data_of_interest['cov'])#.sum()
     
-    res = opt.minimize (chi2, x0 = (0.5, fcov, 1.0, aH, aN, 1.3, 6, 6), args = (n,a,c,N),
+    res = opt.minimize (fun_chi2, x0 = (0.5, fcov, 1.0, aH, aN, 1.3, 6, 6), args = (n,a,c,N),
                         bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
                         options = {'maxiter' : 2000})
     
@@ -215,10 +215,11 @@ def HE_test (data, *args, **kwargs):
         cov = np.nan
         b = np.nan
     
-    return chi2, vaf, fcov, fN, aH, aN, b, le, lf 
+    return HE_results(chi2 = chi2, vaf = vaf, cov = cov, b = b)
+    #return chi2, vaf, fcov, fN, aH, aN, b, le, lf 
     #return chi2, vaf, cov, b
 
-def chi2 (params, n, a, c, N):
+def fun_chi2 (params, n, a, c, N):
         vaf, fcov, fN, aH, aN, b, le, lf = params
         fe = 10**(-le)
         ff = 10**(-lf)
