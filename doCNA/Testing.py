@@ -184,7 +184,7 @@ def HE_test (data, *args, **kwargs):
     
     mid, mid_sd = np.percentile (data['cov'].values, q = (50,66))
     
-    cov_min = int(mid-5*(mid_sd-mid))
+    cov_min = np.max((int(mid-5*(mid_sd-mid)), np.percentile(data['cov'].values, q = (0.1))))
     cov_max = int(mid+5*(mid_sd-mid))
     
     n = np.concatenate ([np.repeat(c, c+1) for c in np.arange (cov_min, cov_max +1)])
