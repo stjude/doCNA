@@ -170,7 +170,7 @@ def lambda_ppf (p, m, lam):
     return Q (p, lam)*np.sqrt(m)+m
 
 def HE_test (data, *args, **kwargs):
-    cov_perc_bounds = Consts.HE_COV_PERC_BOUNDS if 'cov_perc_bounds' not in kwargs else kwargs['cov_perc_bounds']
+    #cov_perc_bounds = Consts.HE_COV_PERC_BOUNDS if 'cov_perc_bounds' not in kwargs else kwargs['cov_perc_bounds']
     vaf_bounds = Consts.HE_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds']
     fcov_bounds = Consts.HE_FCOV_BOUNDS if 'fcov_bounds' not in kwargs else kwargs['fcov_bounds']
     fN_bounds = Consts.HE_FN_BOUNDS if 'fN_bounds' not in kwargs else kwargs['fN_bounds']
@@ -179,9 +179,13 @@ def HE_test (data, *args, **kwargs):
     b_bounds = Consts.HE_B_BOUNDS if 'b_bounds' not in kwargs else kwargs['b_bounds']
     lerr_bounds = Consts.HE_LERR_BOUNDS if 'lerr_bounds' not in kwargs else kwargs['lerr_bounds']   
     
-    cov_min, cov_max = np.percentile (data['cov'].values, q = cov_perc_bounds)
-    cov_min = int(cov_min)
-    cov_max = int(cov_max)
+    #this failed 
+    #cov_min, cov_max = np.percentile (data['cov'].values, q = cov_perc_bounds)
+    
+    mid, mid_sd = np.percentile (data['cov'].values, q = (50,66))
+    
+    cov_min = int(mid-5*(mid_sd-mid))
+    cov_max = int(mid+5*(mid_sd-mid))
     
     n = np.concatenate ([np.repeat(c, c+1) for c in np.arange (cov_min, cov_max +1)])
     a = np.concatenate ([np.arange(0, c+1) for c in np.arange (cov_min, cov_max +1)])
@@ -233,7 +237,7 @@ def fun_chi2 (params, n, a, c, N):
         
         pt = ns*(aH*nhe + (1-aH -aN)*nho + aN*nno)
         ct = 2*fN*N*pt/pt.sum()
-#        ct = ns*(aH*nhe + (1-aH -aN)*nho + aN*nno)
+#       ct = ns*(aH*nhe + (1-aH -aN)*nho + aN*nno)
         
         chi2i = (c - ct)**2/np.sqrt(ct*ct+1)
         
@@ -261,80 +265,6 @@ def HO_vaf_pdf (i, n, fe = 10**-6, b = 1):
 def NO_vaf_pdf (i, n, fe = 10**-6, b = 1):
     p = sts.binom.pmf(i, n, b*fe)
     return p
-
-def HE_test_old (data, *args, **kwargs):
-    
-    cov_perc_bounds = Consts.HE_COV_PERC_BOUNDS if 'cov_perc_bounds' not in kwargs else kwargs['cov_perc_bounds']
-    vaf_bounds = Consts.HE_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds']
-    fcov_bounds = Consts.HE_FCOV_BOUNDS if 'fcov_bounds' not in kwargs else kwargs['fcov_bounds']
-    fN_bounds = Consts.HE_FN_BOUNDS if 'fN_bounds' not in kwargs else kwargs['fN_bounds']
-    a_bounds = Consts.HE_A_BOUNDS if 'a_bounds' not in kwargs else kwargs['a_bounds']
-    aN_bounds = Consts.HE_AN_BOUNDS if 'aN_bounds' not in kwargs else kwargs['aN_bounds']
-    b_bounds = Consts.HE_B_BOUNDS if 'b_bounds' not in kwargs else kwargs['b_bounds']
-    lerr_bounds = Consts.HE_LERR_BOUNDS if 'lerr_bounds' not in kwargs else kwargs['lerr_bounds']    
-    
-    def chi2 (params, counts, N):
-        vaf, fcov, fN, a, aN, b, le, lf = params
-        fe = 10**(-le)
-        ff = 10**(-lf)
-        cs = np.arange (0, cov_max +1)
-        cov = cov_min + fcov*(cov_max-cov_min)
-        ns = 2*fN*N*cn2_cov_pdf (cs, cov, b)
-        chi2 = 0
-        
-        for c, cnt, in counts:
-            i = np.arange(0,c+1)
-            nhe = ns[c]*cn2_vaf_pdf (i/c,vaf,c)
-            nho = ns[c]*HO_vaf_pdf (i, c, fe ,b)
-            nno = ns[c]*NO_vaf_pdf (i, c, ff, b)
-            
-            na = a*nhe + (1-a -aN)*nho+ aN*nno
-            
-            chi2 += sum((cnt - na)**2/np.sqrt(na*na+1))/c 
-        return chi2/len(counts)
-
-    cov_min, cov_max = np.percentile (data['cov'].values, q = cov_perc_bounds)
-    
-    counts = []
-    for c in np.arange (int(cov_min), int(cov_max+1)):
-        d = data.loc[data['cov'] == c]
-        h = np.histogram(d['alt_count'].values, bins = np.arange(0,c+2)-0.5)
-        counts.append ((c, h[0]))
-        del (h)
-    
-    N = len(data)
-    fcov = (data['cov'].median() - cov_min)/(cov_max - cov_min)
-    
-    aN = sum (data['vaf'] < 0.1)/len(data)
-    
-    res = opt.minimize (chi2, x0 = (0.5, fcov, 0.5,0.75, aN, 1.3, 6, 6), args = (counts, N),
-                        bounds = (vaf_bounds, fcov_bounds, fN_bounds, a_bounds, aN_bounds, b_bounds, lerr_bounds, lerr_bounds),
-                        options = {'maxiter' : 2000})    
-     
-    if res.success:
-        chi2 = res.fun
-        vaf, fcov, fN, a, a1, b, le, lf = res.x    
-        cov = cov_min + fcov*(cov_max-cov_min)    
-    else:
-        chi2 = np.nan
-        vaf = np.nan
-        cov = np.nan
-        b = np.nan
- 
-    return HE_results(chi2 = res.fun, vaf = vaf, cov = cov, b = b)
-
-def cn2_vaf_pdf_old (x,v,c):
-    p = sts.norm.pdf (x, v, np.sqrt((v*(1-v))/c))
-    return p/sum(p)
-
-def cn2_cov_pdf_old (n,c,b = 1):
-    return sts.norm.pdf (n, c, np.sqrt(b*c))
-
-def HO_vaf_pdf_old (i, n, fe = 10**-6, b = 1):
-    return sts.binom.pmf(i, n, 1-b*fe)
-
-def NO_vaf_pdf_old (i, n, fe = 10**-6, b = 1):
-    return sts.binom.pmf(i, n, b*fe)
 
 def VAF_test (data, m, **kwargs):
     
