@@ -400,9 +400,10 @@ def server(input, output, session):
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'below HE')
-            axs[0].legend (bbox_to_anchor = (0.5, 20.5), 
+            axs[0].legend (bbox_to_anchor = (0., 1.02, 1., 1.02), 
                            ncol = int(len(model_presets())/2) + 1,
-                           loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
+                           loc = 'lower left', mode = 'expand', fontsize = 8,
+                           title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
     
     @output
