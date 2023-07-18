@@ -52,31 +52,37 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         self.get_fragments (n = int(self.config['Segmenting']['No_SNPs']))
         self.get_vaf_shift_full ()
         
-        indexes, merged_string = Run.merge_symbols (self.dv_dist.string, outliers_threshold = 4)
-        for r in indexes:
-            start = self.windows_positions[r[0]][0]
-            end = self.windows_positions [r[1]][1]
-            try:
-                chi2, vaf, fb = Testing.VAF_test (self.data.loc[(self.data['position'] >= start)&(self.data['position'] <= end),],
-                                                  m, run_fb = False)
-            except:
-                chi2 = 0.0
-                 
+        if self.dv_dist is not None:
+            indexes, merged_string = Run.merge_symbols (self.dv_dist.string, outliers_threshold = 4)
+            for r in indexes:
+                start = self.windows_positions[r[0]][0]
+                end = self.windows_positions [r[1]][1]
+                try:
+                    chi2, vaf, fb = Testing.VAF_test (self.data.loc[(self.data['position'] >= start)&(self.data['position'] <= end),],
+                                                    m, run_fb = False)
+                except:
+                    chi2 = 0.0
+                    
 
-            ai = np.median (self.dv[r[0]:r[1]])
-            outlier = (ai > 0.07) & ((chi2 > float(self.config['VAF']['chi2_high'])) | (chi2 == 0))
-                      
-            if outlier:
-                self.logger.info (f'Region {self.name}:{start}-{end}, chi2 = {chi2}, marked as U.')
-                self.data.loc[(self.data['position'] >= start)&\
-                                    (self.data['position'] <= end), 'symbol'] = Consts.U_SYMBOL
-                self.Uruns.append ((start, end))
-                
-        self.logger.info (f"""{self.name} composition: 
-                          #N = {sum(self.data.symbol == Consts.N_SYMBOL)},
-                          #E = {sum(self.data.symbol == Consts.E_SYMBOL)},
-                          #U = {sum(self.data.symbol == Consts.U_SYMBOL)}""")    
-        
+                ai = np.median (self.dv[r[0]:r[1]])
+                outlier = (ai > 0.07) & ((chi2 > float(self.config['VAF']['chi2_high'])) | (chi2 == 0))
+                        
+                if outlier:
+                    self.logger.info (f'Region {self.name}:{start}-{end}, chi2 = {chi2}, marked as U.')
+                    self.data.loc[(self.data['position'] >= start)&\
+                                        (self.data['position'] <= end), 'symbol'] = Consts.U_SYMBOL
+                    self.Uruns.append ((start, end))
+                    
+            self.logger.info (f"""{self.name} composition: 
+                            #N = {sum(self.data.symbol == Consts.N_SYMBOL)},
+                            #E = {sum(self.data.symbol == Consts.E_SYMBOL)},
+                            #U = {sum(self.data.symbol == Consts.U_SYMBOL)}""")    
+        else:
+            self.logger.info (f"All marked {Consts.U_SYMBOL} due to assertion error")
+            self.Uruns.append((self.data['position'].min(), self.data['position'].max()))
+            self.data['symbol'] = Consts.U_SYMBOL
+            
+            
     def get_fragments (self, n = 1000):
         tmp = self.data
         N = np.max((int(np.floor(len(tmp)/n)),1))
@@ -131,9 +137,8 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         try:
             self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = 0.1, thr_z = z_thr)
-        except:
-
-            pass
+        except (AssertionError):
+            self.dv_dist = None
 
     def find_runs (self):
         """Method to generate runs. Runs segment themselves."""
