@@ -395,8 +395,8 @@ def server(input, output, session):
             meerkat_plot (bed_data, axs, chrom_sizes(),
                           model_thr = input.model_thr(), HE_thr = input.HE_thr())
 
-            
-            for model in model_presets().keys():
+            models = bed_data['model'].unique()
+            for model in models:
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'below HE')
