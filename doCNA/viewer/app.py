@@ -82,7 +82,7 @@ app_ui = ui.page_fluid(
    
     ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Segments filtering:"),
                                        ui.input_slider ('cent_thr', "Centromere fraction threshold",
-                                                        value = 0.3, min = 0, max = 1),
+                                                        value = 0.5, min = 0, max = 1),
                                        ui.input_slider ('size_thr', "Min segment size (in Mb)",
                                                         value = 5, min = 0, max = 10),
                                        ui.h4 ("Display settings:"),
@@ -340,8 +340,10 @@ def server(input, output, session):
             chrs.sort (key = Consts.CHROM_ORDER.index)
             
             report = b.loc[b['score_HE'] > input.HE_thr()].copy()
-            report.loc[report['score_model'] > input.model_thr(), 'model'] = '--'
-            report.loc[report['score_model'] > input.model_thr(), 'k'] = np.nan
+            report['model'] = [ m if score <= input.model_thr() else m+'*' for m,score in zip (report['model'].tolist(),
+                                                                                              report['score_model'].tolist())]
+            #report.loc[report['score_model'] > input.model_thr(), 'model'] = '--'
+            #report.loc[report['score_model'] > input.model_thr(), 'k'] = np.nan
             
             #merging TBD
             
@@ -725,13 +727,13 @@ def server(input, output, session):
     @output
     @render.table
     def report():
-        report = bed_report()
+        report = bed_report().copy()
         if len(report) > 0:
             omit_models = ['AB', '(AB)(2+n)', '(AB)(2-n)']
             for m in input.report_models():
                 omit_models.remove (m)
             return report.loc[[m not in omit_models for m in report.model.tolist()]][['chrom', 'start', 'end', 'cn',
-                                                                                      'model','k', 'cyto']]
+                                                                                      'model', 'score_model', 'k', 'cyto']]
         
     @output
     @render.table
