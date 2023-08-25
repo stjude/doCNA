@@ -81,9 +81,11 @@ app_ui = ui.page_fluid(
     ui.h2 ({"style" : "text-align: center;"}, "doCNA results viewer."),
    
     ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Segments filtering:"),
-                                       ui.input_slider ('cent_thr', "Centromere fraction threshold",
-                                                        value = 0.5, min = 0, max = 1),
-                                       ui.input_slider ('size_thr', "Min segment size (in Mb)",
+                                       #ui.input_slider ('cent_thr', "Centromere fraction threshold",
+                                       #                 value = 0.5, min = 0, max = 1),
+                                       ui.input_slider ('k_thr', "Min clonality",
+                                                        value = 0.05, min = 0, max = 1, step = 0.01),
+                                       ui.input_slider ('size_thr', "Min non-centromere segment size (in Mb)",
                                                         value = 5, min = 0, max = 10),
                                        ui.h4 ("Display settings:"),
                                        ui.output_text ("auto_model_thr"),
@@ -322,9 +324,9 @@ def server(input, output, session):
         tmp = bed_full()
         if len(tmp) > 0:
             chrom_sizes.set(tmp.groupby(by = 'chrom').agg({'end' : 'max'})['end'])
-            tmp['filt'] = (tmp['cent'] <= input.cent_thr()) & (tmp['size'] >= input.size_thr())
+            tmp['filt'] = (False | ((1-tmp['cent'])*tmp['size'] >= input.size_thr())) & ((tmp['k'] >= input.k_thr()) | (tmp['model'] == 'AB'))
+            #(tmp['cent'] <= input.cent_thr())
             
-            #bed_full.set(tmp)
             bed.set (tmp.loc[tmp.filt])
             opt_bed.set(tmp.loc[tmp.filt])
     
@@ -334,7 +336,7 @@ def server(input, output, session):
     @reactive.Calc
     def _():
         #bf = bed_full()    
-        b = bed()
+        b = opt_bed()
         if len(b):
             chrs = chrom_sizes().index.values.tolist()
             chrs.sort (key = Consts.CHROM_ORDER.index)
@@ -785,7 +787,7 @@ def server(input, output, session):
     @output
     @render.plot
     def data_plot ():
-        bed_data = bed()
+        bed_data = opt_bed()
         par_d = par()
         data_df = data()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0) & (len(data_df) != 0):
@@ -798,7 +800,7 @@ def server(input, output, session):
     @output
     @render.plot
     def compare_plot():
-        bed_data = bed()
+        bed_data = opt_bed()
         data_df = data()
         if (len(bed_data) != 0) & (len(data_df) != 0):
             CNV_bed = bed_data.loc[bed_data.chrom == input.chrom_view()]
@@ -810,7 +812,7 @@ def server(input, output, session):
     @output
     @render.plot
     def cov_plot():
-        bed_data = bed()
+        bed_data = opt_bed()
         data_df = data()
         if (len(bed_data) != 0) & (len(data_df) != 0):
             CNV_bed = bed_data.loc[bed_data.chrom == input.chrom_view()]
