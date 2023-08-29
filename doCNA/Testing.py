@@ -183,10 +183,15 @@ def HE_test (data, *args, **kwargs):
     #cov_min, cov_max = np.percentile (data['cov'].values, q = cov_perc_bounds)
     
     mid, mid_sd = np.percentile (data['cov'].values, q = (50,66))
+    out_min, out_max = get_outliers_thrdist (np.sort(data['cov'].values), alpha = 0.05, r = 0.2)
     
-    cov_min = np.max((int(mid-5*(mid_sd-mid)), np.percentile(data['cov'].values, q = (0.1))))
-    cov_max = int(mid+5*(mid_sd-mid))
-    
+    if (int(mid+5*(mid_sd-mid)))<(out_max):
+        cov_min = np.max((int(mid-5*(mid_sd-mid)), np.percentile(data['cov'].values, q = (0.1))))
+        cov_max = int(mid+5*(mid_sd-mid))
+    else:
+        cov_min = np.max(int(out_min), np.percentile(data['cov'].values,q = (0.1)))
+        cov_max = int(out_max)
+
     n = np.concatenate ([np.repeat(c, c+1) for c in np.arange (cov_min, cov_max +1)])
     a = np.concatenate ([np.arange(0, c+1) for c in np.arange (cov_min, cov_max +1)])
     c = np.zeros_like (a)
