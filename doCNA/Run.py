@@ -43,7 +43,7 @@ class Run:
                 self.get_coverage ()
                 self.solve_windows ()
 
-            except (AssertionError):
+            except (AssertionError, RuntimeError):
 
                 self.logger.info (f"Run can't be analyzed.")
                 self.dumy_solution ()
