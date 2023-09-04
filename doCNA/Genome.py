@@ -154,20 +154,21 @@ class Genome:
                 self.chromosomes[chrom].mark_on_full_model (self.HE.medians['cov']) 
 
                 self.logger.debug (f'Chromosome {chrom} marked on full model.')
-        
+        VAFresults = []
         for chrom in self.sex_chromosomes.keys():
             self.logger.info (f'Analyzing {chrom}: ...')
             chrom_vaf_results = Testing.VAF_test (self.sex_chromosomes[chrom].data,
                                                      self.HE.medians['cov'])
             self.logger.info (f'VAF test results: {chrom_vaf_results}')
-            self.VAF.results.append(pd.DataFrame.from_records ([chrom_vaf_results],
+            VAFresults.append(pd.DataFrame.from_records ([chrom_vaf_results],
                                                                 columns = chrom_vaf_results._fields, 
                                                                 index = [chrom]))
         
             self.chromosomes[chrom] = self.sex_chromosomes[chrom]
             self.logger.info(f'Chromosome {chrom} added.')        
 
-        
+        self.VAF.results = pd.concat (VAFresults)
+        del(VAFresults) 
         self.COV = Testing.Testing ('COV', 
                                     self.chromosomes,
                                     self.logger)

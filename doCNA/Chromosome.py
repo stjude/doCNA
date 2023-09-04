@@ -52,7 +52,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         self.get_fragments (n = int(self.config['Segmenting']['No_SNPs']))
         self.get_vaf_shift_full ()
         
-        if self.dv_dist is not None:
+        try: #self.dv_dist is not None:
             indexes, merged_string = Run.merge_symbols (self.dv_dist.string, outliers_threshold = 4)
             for r in indexes:
                 start = self.windows_positions[r[0]][0]
@@ -77,8 +77,8 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
                             #N = {sum(self.data.symbol == Consts.N_SYMBOL)},
                             #E = {sum(self.data.symbol == Consts.E_SYMBOL)},
                             #U = {sum(self.data.symbol == Consts.U_SYMBOL)}""")    
-        else:
-            self.logger.info (f"All marked {Consts.U_SYMBOL} due to assertion error")
+        except (AttributeError):
+            self.logger.info (f"All marked {Consts.U_SYMBOL} due to an error")
             self.Uruns.append((self.data['position'].min(), self.data['position'].max()))
             self.data['symbol'] = Consts.U_SYMBOL
             
