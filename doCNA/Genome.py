@@ -167,8 +167,8 @@ class Genome:
             self.chromosomes[chrom] = self.sex_chromosomes[chrom]
             self.logger.info(f'Chromosome {chrom} added.')        
 
-        self.VAF.results = pd.concat (VAFresults)
-        self.VAF.results.set_index ('chrom', inplace = True)
+        self.VAF.results = pd.concat ([self.VAF.results] + VAFresults)
+        #self.VAF.results.set_index ('chrom', inplace = True)
 
         del(VAFresults) 
         self.COV = Testing.Testing ('COV', 
