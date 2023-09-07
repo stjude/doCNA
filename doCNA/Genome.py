@@ -59,7 +59,7 @@ class Genome:
             
         self.logger.debug ("Creating chromosomes...")
         
-        for chrom, data in self.data.loc[~self.data['vaf'].isna()].groupby (by = 'chrom'):
+        for chrom, data in self.data.loc[(~self.data['vaf'].isna())&(self.data['cov']>0)].groupby (by = 'chrom'):
             if chrom not in Consts.SEX_CHROMS:
                 self.chromosomes[chrom] = Chromosome.Chromosome (chrom, data.copy(), 
                                                              self.config, self.logger,
