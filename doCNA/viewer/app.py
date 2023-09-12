@@ -81,9 +81,11 @@ app_ui = ui.page_fluid(
     ui.h2 ({"style" : "text-align: center;"}, "doCNA results viewer."),
    
     ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Segments filtering:"),
-                                       ui.input_slider ('cent_thr', "Centromere fraction threshold",
-                                                        value = 0.3, min = 0, max = 1),
-                                       ui.input_slider ('size_thr', "Min segment size (in Mb)",
+                                       #ui.input_slider ('cent_thr', "Centromere fraction threshold",
+                                       #                 value = 0.5, min = 0, max = 1),
+                                       ui.input_slider ('k_thr', "Min clonality",
+                                                        value = 0.05, min = 0, max = 1, step = 0.01),
+                                       ui.input_slider ('size_thr', "Min non-centromere segment size (in Mb)",
                                                         value = 5, min = 0, max = 10),
                                        ui.h4 ("Display settings:"),
                                        ui.output_text ("auto_model_thr"),
@@ -322,9 +324,9 @@ def server(input, output, session):
         tmp = bed_full()
         if len(tmp) > 0:
             chrom_sizes.set(tmp.groupby(by = 'chrom').agg({'end' : 'max'})['end'])
-            tmp['filt'] = (tmp['cent'] <= input.cent_thr()) & (tmp['size'] >= input.size_thr())
+            tmp['filt'] = (False | ((1-tmp['cent'])*tmp['size'] >= input.size_thr())) & ((tmp['k'] >= input.k_thr()) | (tmp['model'] == 'AB'))
+            #(tmp['cent'] <= input.cent_thr())
             
-            #bed_full.set(tmp)
             bed.set (tmp.loc[tmp.filt])
             opt_bed.set(tmp.loc[tmp.filt])
     
@@ -334,14 +336,16 @@ def server(input, output, session):
     @reactive.Calc
     def _():
         #bf = bed_full()    
-        b = bed()
+        b = opt_bed()
         if len(b):
             chrs = chrom_sizes().index.values.tolist()
             chrs.sort (key = Consts.CHROM_ORDER.index)
             
             report = b.loc[b['score_HE'] > input.HE_thr()].copy()
-            report.loc[report['score_model'] > input.model_thr(), 'model'] = '--'
-            report.loc[report['score_model'] > input.model_thr(), 'k'] = np.nan
+            report['model'] = [ m if score <= input.model_thr() else m+'*' for m,score in zip (report['model'].tolist(),
+                                                                                              report['score_model'].tolist())]
+            #report.loc[report['score_model'] > input.model_thr(), 'model'] = '--'
+            #report.loc[report['score_model'] > input.model_thr(), 'k'] = np.nan
             
             #merging TBD
             
@@ -395,14 +399,15 @@ def server(input, output, session):
             meerkat_plot (bed_data, axs, chrom_sizes(),
                           model_thr = input.model_thr(), HE_thr = input.HE_thr())
 
-            
-            for model in model_presets().keys():
+            models = bed_data['model'].unique()
+            for model in models:
                 axs[0].plot ((),(), lw = 10, color = colorsCN[model], label = model)
             axs[0].plot ((),(), lw = 10, color = 'yellow', label = 'complex')
             axs[0].plot ((),(), lw = 10, color = 'red', label = 'below HE')
-            axs[0].legend (bbox_to_anchor = (0.5, 20.5), 
+            axs[0].legend (bbox_to_anchor = (0., 1.02, 1., 1.02), 
                            ncol = int(len(model_presets())/2) + 1,
-                           loc = 'upper center', title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
+                           loc = 'lower left', mode = 'expand', fontsize = 8,
+                           title = 'Models of mixed clones: normal (AB) and abnormal karyotypes:')
             return fig
     
     @output
@@ -724,13 +729,13 @@ def server(input, output, session):
     @output
     @render.table
     def report():
-        report = bed_report()
+        report = bed_report().copy()
         if len(report) > 0:
             omit_models = ['AB', '(AB)(2+n)', '(AB)(2-n)']
             for m in input.report_models():
                 omit_models.remove (m)
             return report.loc[[m not in omit_models for m in report.model.tolist()]][['chrom', 'start', 'end', 'cn',
-                                                                                      'model','k', 'cyto']]
+                                                                                      'model', 'score_model', 'k', 'cyto']]
         
     @output
     @render.table
@@ -782,7 +787,7 @@ def server(input, output, session):
     @output
     @render.plot
     def data_plot ():
-        bed_data = bed()
+        bed_data = opt_bed()
         par_d = par()
         data_df = data()
         if (len(bed_data) != 0) & (len(par_d.keys()) != 0) & (len(data_df) != 0):
@@ -795,7 +800,7 @@ def server(input, output, session):
     @output
     @render.plot
     def compare_plot():
-        bed_data = bed()
+        bed_data = opt_bed()
         data_df = data()
         if (len(bed_data) != 0) & (len(data_df) != 0):
             CNV_bed = bed_data.loc[bed_data.chrom == input.chrom_view()]
@@ -807,7 +812,7 @@ def server(input, output, session):
     @output
     @render.plot
     def cov_plot():
-        bed_data = bed()
+        bed_data = opt_bed()
         data_df = data()
         if (len(bed_data) != 0) & (len(data_df) != 0):
             CNV_bed = bed_data.loc[bed_data.chrom == input.chrom_view()]
@@ -874,12 +879,14 @@ def server(input, output, session):
                     d_model = np.repeat(np.nan, l).astype(float)
                         
                     for i, pd in enumerate (p_d):
-                        #if pd <= thr:
-                        sm = Models.pick_model(ai[i], 0.5, cn[i], 1, input.models_selected())
+                        try:
+                            sm = Models.pick_model(ai[i], 0.5, cn[i], 1, input.models_selected())
+                        except (IndexError, AssertionError):
+                            sm = {'model' : 'UN', 'd_model' : np.nan,
+                                  'k': 1, 'p_model' : np.nan,}
+                        
                         models.append(sm['model'])
                         d_model[i] = sm['d_model']
-                        #else:
-                        #    models.append ('AB')
                         
                     d_total = np.nansum((d_model*sizes))    
                     solutions[m] = (scorer, d_total/sizes.sum(), models)

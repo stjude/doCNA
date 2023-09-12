@@ -21,8 +21,10 @@ colorsCN['AB'] = 'darkgray'
 colorsCN['AAAB'] = 'magenta'
 colorsCN['AAA'] = 'brown'
 colorsCN['AAAA'] = 'darkolivegreen'
-colorsCN[np.nan] = 'lightskyblue'
-colorsCN['NA'] = 'lightskyblue'
+colorsCN['AA+AAB'] = 'lightcoral'
+colorsCN['AAB+AAAB'] = 'peachpuff'
+colorsCN['AAB+AABB'] = 'turquoise'
+colorsCN['UN'] = 'skyblue'
     
 
 def meerkat_plot (bed_df, axs, chrom_sizes, model_thr = 5, HE_thr = 3):
