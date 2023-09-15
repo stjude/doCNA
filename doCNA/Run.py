@@ -187,11 +187,14 @@ class Run:
         dva = np.array (dvs)      
         self.dv = dva
         self.v0 = np.array(v0s)        
-        self.dv_dist = Distribution.Distribution (self.dv,
+        try:
+            self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = p_thr, thr_z = z_thr)
 
-        self.logger.debug (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: m = {self.dv_dist.parameters['m']}, s = {self.dv_dist.parameters['s']}.")
-        
+            self.logger.debug (f"Vaf shift calculated. Described by: {self.dv_dist.key} distribution: m = {self.dv_dist.parameters['m']}, s = {self.dv_dist.parameters['s']}.")
+        except:
+            self.dv_dist = None
+            self.logger.debug ("Vaf shift calcultaions failed.")
 
     def get_coverage (self, z_thr = Consts.M_Z, p_thr = Consts.SINGLE_P_SENSITIVE):
         ml = []

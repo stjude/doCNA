@@ -186,7 +186,11 @@ def HE_test (data, *args, **kwargs):
     out_min, out_max = get_outliers_thrdist (np.sort(data['cov'].values), alpha = 2.8e-7, r = 0.2)
     
     if (int(mid+5*(mid_sd-mid)))<(out_max):
+<<<<<<< HEAD
         cov_min = np.max((int(mid-5*(mid_sd-mid)), np.percentile(data['cov'].values, q = (0.1))))
+=======
+        cov_min = int(np.max((mid-5*(mid_sd-mid), np.percentile(data['cov'].values, q = (0.1)))))
+>>>>>>> development
         cov_max = int(mid+5*(mid_sd-mid))
     else:
         cov_min = int(np.max((out_min, np.percentile(data['cov'].values,q = (0.1)))))
@@ -204,7 +208,7 @@ def HE_test (data, *args, **kwargs):
             c[i] = counts[(n[i],a[i])]
         except KeyError:
             pass
-    
+     
     fcov = (data['cov'].median() - cov_min) /  (cov_max - cov_min)
     aH = len(data.loc[(data['vaf'] > 0.1)&(data['vaf'] < 0.9)])/len(data)
     aN = len(data.loc[(data['vaf'] < 0.1)])/len(data)
