@@ -137,11 +137,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
         try:
             self.dv_dist = Distribution.Distribution (self.dv,
                                                   p_thr = 0.1, thr_z = z_thr)
-<<<<<<< HEAD
-        except (AssertionError):
-=======
         except (AssertionError,RuntimeError):
->>>>>>> development
             self.dv_dist = None
 
     def find_runs (self):
