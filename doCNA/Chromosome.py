@@ -218,9 +218,10 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
                                                        cytobands = cytobands_str))
     
     def find_Nruns (self):
-        vaf_thr = (self.genome_medians['m0'] - 1)/self.genome_medians['m0']
-
-        symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr) & (self.data['symbol'] != Consts.U_SYMBOL), 'symbol'].values
+        vaf_thr_high = (self.genome_medians['m0'] - 1)/self.genome_medians['m0']
+        vaf_thr_low = 1/self.genome_medians['m0']
+        
+        symbol_list = self.data.loc[(self.data['vaf'] < vaf_thr_high) & (self.data['vaf'] > vaf_thr_low) & (self.data['symbol'] != Consts.U_SYMBOL), 'symbol'].values
         if len (symbol_list) >= Consts.N_STR_LEN_THR:    
             self.Nruns_indexes, self.Nruns_threshold, self.Nruns_threshold_first = analyze_string_N (symbol_list, N = Consts.N_SYMBOL, E = Consts.E_SYMBOL)
             self.logger.info (f'N runs thresholds: t_N = {self.Nruns_threshold[0]}, t_E =  {self.Nruns_threshold[1]}')
