@@ -232,7 +232,7 @@ v = {he_parameters['vaf']}, c = {he_parameters['cov']}.
             self.logger.info (f"To few N's ({len (symbol_list)}) to analyse.")
         
         for run in self.Nruns_indexes:
-            tmp = self.data.loc[(self.data['vaf'] < vaf_thr)&(self.data['symbol'] != Consts.U_SYMBOL),].iloc[run[0]:run[1],:].position.agg((min,max))
+            tmp = self.data.loc[(self.data['vaf'] < vaf_thr_high) & (self.data['vaf'] > vaf_thr_low)&(self.data['symbol'] != Consts.U_SYMBOL),].iloc[run[0]:run[1],:].position.agg((min,max))
             self.data.loc[(self.data.position >= tmp['min'])&(self.data.position <= tmp['max']), 'symbol'] = Consts.N_SYMBOL
             self.Nruns.append ((tmp['min'], tmp['max']))
        
