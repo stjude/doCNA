@@ -39,6 +39,7 @@ class Testing:
             with mpl.Pool (processes = no_processes) as pool:
                 results = pool.starmap (self.test, [(self.chromosomes[chrom].data, args, kwargs) 
                                                     for chrom in self.chromosomes.keys()])
+            index =  [chrom for chrom in self.chromosomes.keys()]
         else:
             results = []
             index = []
@@ -272,7 +273,7 @@ def NO_vaf_pdf (i, n, fe = 10**-6, b = 1):
     p = sts.binom.pmf(i, n, b*fe)
     return p
 
-def VAF_test (data, m, **kwargs):
+def VAF_test (data, m, *args, **kwargs):
     
     vaf_bounds = Consts.VAF_VAF_BOUNDS if 'vaf_bounds' not in kwargs else kwargs['vaf_bounds'] 
     n_thr = Consts.VAF_N_THR if 'n_thr' not in kwargs else kwargs['n_thr']

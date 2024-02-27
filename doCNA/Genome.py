@@ -124,7 +124,8 @@ class Genome:
                                     self.chromosomes,
                                     self.logger)
         
-        self.VAF.run_test (self.HE.medians['cov'], no_processes = self.no_processes)
+        self.VAF.run_test (self.HE.medians['cov'], 
+                           no_processes = self.no_processes)
         
         self.logger.debug ("Genomewide VAF: " + f"\n" + str(self.VAF.report_results()))
         

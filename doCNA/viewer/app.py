@@ -81,8 +81,8 @@ app_ui = ui.page_fluid(
     ui.h2 ({"style" : "text-align: center;"}, "doCNA results viewer."),
    
     ui.layout_sidebar(ui.panel_sidebar(ui.h4 ("Segments filtering:"),
-                                       #ui.input_slider ('cent_thr', "Centromere fraction threshold",
-                                       #                 value = 0.5, min = 0, max = 1),
+                                       ui.input_slider ('cent_thr', "Centromere fraction threshold",
+                                                        value = 0.3, min = 0, max = 1),
                                        ui.input_slider ('k_thr', "Min clonality",
                                                         value = 0.05, min = 0, max = 1, step = 0.01),
                                        ui.input_slider ('size_thr', "Min non-centromere segment size (in Mb)",
@@ -324,8 +324,8 @@ def server(input, output, session):
         tmp = bed_full()
         if len(tmp) > 0:
             chrom_sizes.set(tmp.groupby(by = 'chrom').agg({'end' : 'max'})['end'])
-            tmp['filt'] = (False | ((1-tmp['cent'])*tmp['size'] >= input.size_thr())) & ((tmp['k'] >= input.k_thr()) | (tmp['model'] == 'AB'))
-            #(tmp['cent'] <= input.cent_thr())
+            #tmp['filt'] = (False | ((1-tmp['cent'])*tmp['size'] >= input.size_thr())) & ((tmp['k'] >= input.k_thr()) | (tmp['model'] == 'AB'))
+            tmp['filt'] = (tmp['cent'] <= input.cent_thr())&(tmp['size'] >= input.size_thr())& ((tmp['k'] >= input.k_thr()) | (tmp['model'] == 'AB'))
             
             bed.set (tmp.loc[tmp.filt])
             opt_bed.set(tmp.loc[tmp.filt])
